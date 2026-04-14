@@ -1,0 +1,152 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USUARIOS ────────────────────────────────────────────────────────────────
+
+model Usuario {
+  id             String     @id @default(cuid())
+  nombre         String
+  email          String     @unique
+  emailVerified  DateTime?
+  passwordHash   String?
+  imagen         String?
+  colegio        String?
+  grado          Int?       // 9, 10, 11
+  ciudad         String?
+  rol            Rol        @default(ESTUDIANTE)
+  planId         String?
+  plan           Plan?      @relation(fields: [planId], references: [id])
+  simulacros     Simulacro[]
+  suscripcion    Suscripcion?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@map("usuarios")
+}
+
+enum Rol {
+  ESTUDIANTE
+  DOCENTE
+  ADMIN
+}
+
+// ─── ÁREAS Y PREGUNTAS ────────────────────────────────────────────────────────
+
+model Area {
+  id          String      @id @default(cuid())
+  nombre      String      @unique  // "Matemáticas", "Lectura Crítica", etc.
+  descripcion String?
+  color       String?     // color hex para UI
+  icono       String?
+  preguntas   Pregunta[]
+
+  @@map("areas")
+}
+
+model Pregunta {
+  id               String             @id @default(cuid())
+  enunciado        String
+  imagenUrl        String?
+  nivelDificultad  Int                @default(1) // 1=fácil, 2=medio, 3=difícil
+  anioReferencia    Int?
+  activa           Boolean            @default(true)
+  areaId           String
+  area             Area               @relation(fields: [areaId], references: [id])
+  opciones         OpcionRespuesta[]
+  respuestasUsuario RespuestaUsuario[]
+
+  @@map("preguntas")
+}
+
+model OpcionRespuesta {
+  id          String            @id @default(cuid())
+  texto       String
+  esCorrecta  Boolean           @default(false)
+  preguntaId  String
+  pregunta    Pregunta          @relation(fields: [preguntaId], references: [id])
+  respuestas  RespuestaUsuario[]
+
+  @@map("opciones_respuesta")
+}
+
+// ─── SIMULACROS ───────────────────────────────────────────────────────────────
+
+model Simulacro {
+  id            String             @id @default(cuid())
+  usuarioId     String
+  usuario       Usuario            @relation(fields: [usuarioId], references: [id])
+  tipo          TipoSimulacro      @default(COMPLETO)
+  estado        EstadoSimulacro    @default(EN_PROGRESO)
+  puntajeTotal  Float?
+  fechaInicio   DateTime           @default(now())
+  fechaFin      DateTime?
+  duracionMin   Int                @default(210) // minutos
+  respuestas    RespuestaUsuario[]
+
+  @@map("simulacros")
+}
+
+enum TipoSimulacro {
+  COMPLETO
+  POR_AREA
+  PRACTICA_RAPIDA
+}
+
+enum EstadoSimulacro {
+  EN_PROGRESO
+  FINALIZADO
+  ABANDONADO
+}
+
+model RespuestaUsuario {
+  id                   String          @id @default(cuid())
+  simulacroId          String
+  simulacro            Simulacro       @relation(fields: [simulacroId], references: [id])
+  preguntaId           String
+  pregunta             Pregunta        @relation(fields: [preguntaId], references: [id])
+  opcionSeleccionadaId String?
+  opcionSeleccionada   OpcionRespuesta? @relation(fields: [opcionSeleccionadaId], references: [id])
+  esCorrecta           Boolean?
+  tiempoSegundos       Int?
+  respondidaEn         DateTime        @default(now())
+
+  @@map("respuestas_usuario")
+}
+
+// ─── PLANES Y SUSCRIPCIONES ───────────────────────────────────────────────────
+
+model Plan {
+  id               String        @id @default(cuid())
+  nombre           String        @unique // "Básico", "Pro", "Institucional"
+  descripcion      String?
+  precio           Float
+  duracionDias     Int
+  simulacrosMax    Int           @default(-1) // -1 = ilimitados
+  caracteristicas  String[]
+  activo           Boolean       @default(true)
+  usuarios         Usuario[]
+  suscripciones    Suscripcion[]
+
+  @@map("planes")
+}
+
+model Suscripcion {
+  id          String   @id @default(cuid())
+  usuarioId   String   @unique
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
+  planId      String
+  plan        Plan     @relation(fields: [planId], references: [id])
+  fechaInicio DateTime @default(now())
+  fechaFin    DateTime
+  activa      Boolean  @default(true)
+
+  @@map("suscripciones")
+}

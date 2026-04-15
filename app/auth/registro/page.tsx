@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Loader, Eye, EyeOff, MapPin } from "lucide-react";
@@ -164,20 +165,24 @@ export default function RegistroPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 py-12 px-4">
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 dark:from-gray-950 to-blue-100 dark:to-gray-900 py-12 px-4 transition-colors duration-300">
       <div className="w-full max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-10 h-10 bg-gradient-to-br from-axis-azul to-axis-azul-dark rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">A</span>
-            </div>
-            <span className="font-bold text-2xl text-axis-azul">AXIS</span>
+          <Link href="/" className="inline-flex items-center gap-2 mb-6 justify-center">
+            <Image 
+              src="/images/logo.png" 
+              alt="AXIS Logo" 
+              width={40} 
+              height={40}
+              className="rounded-lg"
+            />
+            <span className="font-bold text-2xl text-axis-azul dark:text-blue-400">AXIS</span>
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Crea tu cuenta
           </h1>
-          <p className="text-base text-gray-700">
+          <p className="text-base text-gray-700 dark:text-gray-300">
             Únete a miles de estudiantes preparándose para el ICFES
           </p>
         </div>
@@ -185,14 +190,14 @@ export default function RegistroPage() {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-2xl shadow-lg p-8 space-y-6"
+          className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg dark:shadow-2xl p-8 space-y-6 transition-colors duration-300"
         >
           {/* Row 1: Nombre y Documento */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label
                 htmlFor="nombre"
-                className="block text-sm font-semibold text-gray-900 mb-3"
+                className="block text-sm font-semibold text-gray-900 dark:text-white mb-3"
               >
                 Nombre completo *
               </label>
@@ -203,7 +208,7 @@ export default function RegistroPage() {
                 value={formData.nombre}
                 onChange={handleChange}
                 placeholder="Juan Pérez García"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 disabled={loading}
                 required
               />
@@ -211,7 +216,7 @@ export default function RegistroPage() {
             <div>
               <label
                 htmlFor="documento"
-                className="block text-sm font-semibold text-gray-900 mb-3"
+                className="block text-sm font-semibold text-gray-900 dark:text-white mb-3"
               >
                 Documento de identidad *
               </label>
@@ -222,7 +227,7 @@ export default function RegistroPage() {
                 value={formData.documento}
                 onChange={handleChange}
                 placeholder="1023456789"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white text-gray-900 placeholder-gray-500"
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 disabled={loading}
                 required
               />
@@ -233,12 +238,12 @@ export default function RegistroPage() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-semibold text-gray-900 mb-3"
+              className="block text-sm font-semibold text-gray-900 dark:text-white mb-3"
             >
               Correo electrónico *
             </label>
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
               <input
                 id="email"
                 type="email"
@@ -246,7 +251,7 @@ export default function RegistroPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="correo@ejemplo.com"
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white text-gray-900 placeholder-gray-500"
+                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 disabled={loading}
                 required
               />
@@ -257,7 +262,7 @@ export default function RegistroPage() {
           <div>
             <label
               htmlFor="telefono"
-              className="block text-sm font-semibold text-gray-900 mb-3"
+              className="block text-sm font-semibold text-gray-900 dark:text-white mb-3"
             >
               Teléfono de contacto
             </label>
@@ -268,24 +273,24 @@ export default function RegistroPage() {
               value={formData.telefono}
               onChange={handleChange}
               placeholder="3001234567"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white text-gray-900 placeholder-gray-500"
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-axis-azul focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
               disabled={loading}
             />
           </div>
 
           {/* Row 4: Ubicación */}
-          <div className="bg-blue-50 rounded-xl p-6 space-y-4 border border-blue-200">
+          <div className="bg-blue-50 dark:bg-gray-750 rounded-xl p-6 space-y-4 border border-blue-200 dark:border-blue-900">
             <div className="flex items-start gap-2">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-300 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
               </svg>
-              <h3 className="font-semibold text-blue-900">Ubicación del estudiante</h3>
+              <h3 className="font-semibold text-blue-900 dark:text-white">Ubicación del estudiante</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Departamento */}
               <div>
-                <label htmlFor="departamento" className="block text-sm font-semibold text-gray-900 mb-2">
+                <label htmlFor="departamento" className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                   Departamento *
                 </label>
                 <select
@@ -293,16 +298,16 @@ export default function RegistroPage() {
                   name="departamento"
                   value={formData.departamento}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white text-gray-900"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   disabled={loadingDepts}
                   required
                 >
-                  <option value="" className="text-gray-500">
+                  <option value="" className="text-gray-500 dark:text-gray-400">
                     {loadingDepts ? "Cargando..." : "Selecciona un departamento"}
                   </option>
                   {Array.isArray(departamentos) &&
                     departamentos.map((dept) => (
-                      <option key={dept.id} value={dept.id} className="text-gray-900">
+                      <option key={dept.id} value={dept.id} className="text-gray-900 dark:text-gray-100">
                         {dept.name}
                       </option>
                     ))}
@@ -311,7 +316,7 @@ export default function RegistroPage() {
 
               {/* Municipio */}
               <div>
-                <label htmlFor="municipio" className="block text-sm font-semibold text-gray-900 mb-2">
+                <label htmlFor="municipio" className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                   Municipio *
                 </label>
                 <input
@@ -321,7 +326,7 @@ export default function RegistroPage() {
                   value={formData.municipio}
                   onChange={handleChange}
                   placeholder="Ej: Bogotá, Medellín"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   required
                 />
               </div>
@@ -331,7 +336,7 @@ export default function RegistroPage() {
           {/* Row 5: Contraseña */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-900 mb-2">
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Contraseña *
               </label>
               <div className="relative">
@@ -342,13 +347,13 @@ export default function RegistroPage() {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Min. 6 caracteres"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -366,7 +371,7 @@ export default function RegistroPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-900 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-900 dark:text-white mb-2">
                 Confirmar contraseña *
               </label>
               <div className="relative">
@@ -377,13 +382,13 @@ export default function RegistroPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Repite tu contraseña"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
                 >
                   {showConfirmPassword ? (
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -409,12 +414,12 @@ export default function RegistroPage() {
               name="acceptTerms"
               checked={formData.acceptTerms}
               onChange={handleChange}
-              className="w-4 h-4 mt-1 rounded border-gray-300 text-blue-600"
+              className="w-4 h-4 mt-1 rounded border-gray-300 dark:border-gray-700 text-blue-600"
               required
             />
-            <label htmlFor="acceptTerms" className="text-sm text-gray-600">
+            <label htmlFor="acceptTerms" className="text-sm text-gray-600 dark:text-gray-300">
               Acepto los{" "}
-              <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
+              <a href="#" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                 términos y condiciones
               </a>{" "}
               y la política de privacidad de AXIS Pre-ICFES.
@@ -422,11 +427,11 @@ export default function RegistroPage() {
           </div>
 
           {/* Alert */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
-            <svg className="w-5 h-5 text-yellow-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/30 rounded-lg p-4 flex gap-3">
+            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
-            <p className="text-sm text-yellow-800">
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
               Tu cuenta iniciará sin suscripción activa. Deberás contactar al equipo AXIS para habilitar acceso a los simulacros.
             </p>
           </div>
@@ -435,16 +440,16 @@ export default function RegistroPage() {
           <button
             type="submit"
             disabled={loading || loadingDepts}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-blue-600 dark:bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Creando cuenta..." : "Crear mi cuenta"}
           </button>
         </form>
 
         {/* Login Link */}
-        <p className="mt-8 text-center text-gray-600">
+        <p className="mt-8 text-center text-gray-600 dark:text-gray-400">
           ¿Ya tienes cuenta?{" "}
-          <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-semibold">
+          <Link href="/auth/login" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold">
             Inicia sesión aquí
           </Link>
         </p>

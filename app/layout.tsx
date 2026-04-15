@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import { Syne, DM_Sans } from "next/font/google";
 import { SessionProvider } from "@/components/shared/SessionProvider";
+import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import "./globals.css";
 
 const syne = Syne({
@@ -32,9 +33,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className={`${syne.variable} ${dmSans.variable}`}>
-      <body className="font-body antialiased">
-        <SessionProvider>{children}</SessionProvider>
+    <html lang="es" className={`${syne.variable} ${dmSans.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Anti-FOUC: aplica el tema antes de pintar la página */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function () {
+                try {
+                  const theme = localStorage.getItem("theme");
+                  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                  const shouldBeDark = theme === "dark" || (!theme && prefersDark);
+                  if (shouldBeDark) {
+                    document.documentElement.classList.add("dark");
+                  } else {
+                    document.documentElement.classList.remove("dark");
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className="font-body antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-50 transition-colors duration-300">
+        {/*
+          ThemeProvider va POR FUERA de SessionProvider
+          para que tanto la landing como el dashboard
+          tengan acceso al contexto de tema.
+        */}
+        <ThemeProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

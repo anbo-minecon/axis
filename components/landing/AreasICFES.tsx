@@ -10,31 +10,31 @@ export function AreasICFES() {
   ];
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Todas las materias ICFES</h2>
-          <p className="text-xl text-gray-600">Cobertura completa de las 5 áreas del examen</p>
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Todas las materias ICFES</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300">Cobertura completa de las 5 áreas del examen</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           {areas.map((area) => (
             <div
               key={area.nombre}
-              className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8 border border-gray-200 hover:shadow-lg transition-shadow"
+              className="bg-gradient-to-br from-gray-50 dark:from-gray-800 to-gray-100 dark:to-gray-700 rounded-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-lg dark:hover:shadow-xl transition-shadow"
             >
               <div className="mb-4">
                 <AreaIcon icon={area.icon} color={area.color} />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">{area.nombre}</h3>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{area.nombre}</h3>
               
               {/* Progress bar */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600 font-medium text-xs uppercase tracking-wide">Preparación</span>
+                  <span className="text-gray-600 dark:text-gray-400 font-medium text-xs uppercase tracking-wide">Preparación</span>
                   <span className="font-bold" style={{ color: area.color }}>{area.pct}%</span>
                 </div>
-                <div className="w-full h-2 bg-gray-300 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
                     style={{ width: `${area.pct}%`, backgroundColor: area.color }}
@@ -43,7 +43,7 @@ export function AreasICFES() {
               </div>
 
               <button
-                className="mt-6 w-full py-2 rounded-lg font-semibold transition-all"
+                className="mt-6 w-full py-2 rounded-lg font-semibold transition-all hover:opacity-90"
                 style={{
                   backgroundColor: area.color,
                   color: "white",

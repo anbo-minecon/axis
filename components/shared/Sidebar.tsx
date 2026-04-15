@@ -2,9 +2,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useSuscripcion } from "@/hooks/useUser";
+import { useTheme } from "@/hooks/useTheme";
 import { useState } from "react";
 import {
   LayoutDashboard,
@@ -16,11 +18,11 @@ import {
   Bell,
   Settings,
   LogOut,
-  Moon,
   Menu,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 interface NavItem {
   label: string;
@@ -35,8 +37,8 @@ export function Sidebar() {
   const router = useRouter();
   const { data: session } = useSession();
   const { tieneSubscripcion, loading: loadingSuscripcion } = useSuscripcion();
+  const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
 
   if (!session?.user) {
     return null;
@@ -121,9 +123,13 @@ export function Sidebar() {
         {/* Header del Sidebar */}
         <div className="p-6 border-b border-white/20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-bold">
-              AX
-            </div>
+            <Image 
+              src="/images/logo.png" 
+              alt="AXIS Logo" 
+              width={40} 
+              height={40}
+              className="rounded-lg"
+            />
             <div>
               <h1 className="font-bold text-lg">AXIS</h1>
               <p className="text-xs text-white/70">Pre-ICFES</p>
@@ -205,13 +211,10 @@ export function Sidebar() {
 
         {/* Footer del Sidebar */}
         <div className="border-t border-white/20 p-4 space-y-2">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition font-medium text-sm"
-          >
-            <Moon className="w-5 h-5" />
-            <span>Modo Oscuro</span>
-          </button>
+          <div className="w-full flex items-center gap-3 px-4 py-3 rounded-lg">
+            <ThemeToggle />
+            <span className="text-white/80 font-medium text-sm flex-1">Cambiar tema</span>
+          </div>
 
           <button
             onClick={() => router.push("/dashboard/perfil")}

@@ -26,28 +26,28 @@ export function Testimonials() {
   ];
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Lo que dicen nuestros usuarios</h2>
-          <p className="text-xl text-gray-600">Historias de éxito de estudiantes y docentes</p>
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Lo que dicen nuestros usuarios</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300">Historias de éxito de estudiantes y docentes</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, idx) => (
-            <div key={idx} className="bg-white rounded-xl p-8 shadow-md border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+            <div key={idx} className="bg-white dark:bg-gray-800 rounded-xl p-8 shadow-md dark:shadow-lg border-l-4 border-blue-600 dark:border-blue-500 hover:shadow-lg dark:hover:shadow-xl transition-shadow">
               <div className="flex items-center gap-2 mb-4">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <IconStar key={i} width={16} height={16} className="text-yellow-400" />
+                  <IconStar key={i} width={16} height={16} className="text-yellow-400 dark:text-yellow-500" />
                 ))}
               </div>
-              <p className="text-gray-600 mb-6 italic">"{testimonial.texto}"</p>
+              <p className="text-gray-600 dark:text-gray-300 mb-6 italic">"{testimonial.texto}"</p>
               
-              <div className="pt-6 border-t border-gray-200">
-                <p className="font-bold text-gray-900">{testimonial.nombre}</p>
-                <p className="text-sm text-gray-600 mb-3">{testimonial.rol}</p>
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <p className="font-bold text-gray-900 dark:text-white">{testimonial.nombre}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{testimonial.rol}</p>
                 <div className="text-sm">
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-semibold">
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full font-semibold">
                     {testimonial.puntaje} {testimonial.mejora}
                   </span>
                 </div>

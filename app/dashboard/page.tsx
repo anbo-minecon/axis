@@ -239,8 +239,8 @@ function PuntajeCircular({ puntaje }: { puntaje: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-gray-800">{puntaje}</span>
-          <span className="text-xs text-gray-500">/ 500</span>
+          <span className="text-2xl font-bold text-gray-800 dark:text-white">{puntaje}</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">/ 500</span>
         </div>
       </div>
       <span className={`rounded-full px-3 py-1 text-xs font-medium ${nivelBg}`}>
@@ -261,14 +261,14 @@ function BarraMateria({
   const color = COLORES_MATERIA[materia] ?? "bg-gray-400";
   return (
     <div className="flex items-center gap-3">
-      <span className="w-36 shrink-0 text-sm text-gray-600">{materia}</span>
-      <div className="flex-1 overflow-hidden rounded-full bg-gray-100 h-2.5">
+      <span className="w-36 shrink-0 text-sm text-gray-600 dark:text-gray-400">{materia}</span>
+      <div className="flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700 h-2.5">
         <div
           className={`h-full rounded-full ${color}`}
           style={{ width: `${porcentaje}%` }}
         />
       </div>
-      <span className="w-9 text-right text-sm font-medium text-gray-700">
+      <span className="w-9 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
         {porcentaje}%
       </span>
     </div>
@@ -305,29 +305,29 @@ export default async function DashboardPage() {
     <div className="min-h-full p-4 md:p-6">
       {/* ── Saludo ── */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           ¡Hola, {nombre}! 👋
         </h1>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Aquí está tu resumen de preparación para el Saber 11.
         </p>
       </div>
 
       {/* ── Tarjeta de grupo ── */}
       {grupo && (
-        <div className="mb-6 flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50 dark:bg-blue-900/10 px-4 py-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100">
-              <Trophy className="h-4 w-4 text-blue-600" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+              <Trophy className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-blue-900">{grupo.nombre}</p>
-              <p className="text-xs text-blue-600">Prof. {grupo.docente}</p>
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{grupo.nombre}</p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">Prof. {grupo.docente}</p>
             </div>
           </div>
           <Link
             href={`/dashboard/grupo`}
-            className="flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline"
+            className="flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-400 hover:underline"
           >
             Ver grupo <ChevronRight className="h-3 w-3" />
           </Link>
@@ -364,13 +364,13 @@ export default async function DashboardPage() {
         ].map(({ label, value, icon: Icon, color }) => (
           <div
             key={label}
-            className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+            className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm dark:shadow-md"
           >
             <div className={`mb-2 inline-flex rounded-lg p-2 ${color}`}>
               <Icon className="h-4 w-4" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-xs text-gray-500">{label}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
           </div>
         ))}
       </div>
@@ -378,11 +378,11 @@ export default async function DashboardPage() {
       {/* ── Puntaje + Rendimiento ── */}
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         {/* Puntaje actual */}
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-1 text-sm font-semibold text-gray-700">
+        <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm dark:shadow-md">
+          <h2 className="mb-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
             Puntaje actual
           </h2>
-          <p className="mb-4 text-xs text-gray-400">
+          <p className="mb-4 text-xs text-gray-400 dark:text-gray-500">
             Último simulacro (escala 0–500)
           </p>
           <div className="flex justify-center">
@@ -391,11 +391,11 @@ export default async function DashboardPage() {
         </div>
 
         {/* Rendimiento por materia */}
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <h2 className="mb-1 text-sm font-semibold text-gray-700">
+        <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm dark:shadow-md">
+          <h2 className="mb-1 text-sm font-semibold text-gray-700 dark:text-gray-200">
             Rendimiento por materia
           </h2>
-          <p className="mb-4 text-xs text-gray-400">Porcentaje de aciertos</p>
+          <p className="mb-4 text-xs text-gray-400 dark:text-gray-500">Porcentaje de aciertos</p>
           <div className="space-y-3">
             {rendimientoMateria.map(({ materia, porcentaje }) => (
               <BarraMateria
@@ -411,21 +411,21 @@ export default async function DashboardPage() {
       {/* ── Actividad reciente + Próximos simulacros ── */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Actividad reciente */}
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm dark:shadow-md">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               Actividad reciente
             </h2>
             <Link
               href="/dashboard/resultados"
-              className="text-xs font-medium text-blue-600 hover:underline"
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Ver todos →
             </Link>
           </div>
 
           {recientes.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-400">
+            <p className="py-4 text-center text-sm text-gray-400 dark:text-gray-500">
               Aún no has completado simulacros
             </p>
           ) : (
@@ -433,19 +433,19 @@ export default async function DashboardPage() {
               {recientes.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5"
+                  className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-700/50 px-3 py-2.5"
                 >
                   <div className="flex items-center gap-2.5">
                     <CheckCircle2 className="h-4 w-4 shrink-0 text-green-500" />
                     <div>
-                      <p className="text-sm font-medium text-gray-800">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {s.nombre}
                       </p>
-                      <p className="text-xs text-gray-400">{s.fecha}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{s.fecha}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-gray-800">{s.puntaje}</p>
+                    <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{s.puntaje}</p>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${nivelColor(s.nivel)}`}
                     >
@@ -459,21 +459,21 @@ export default async function DashboardPage() {
         </div>
 
         {/* Próximos simulacros */}
-        <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm dark:shadow-md">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
               Próximos simulacros
             </h2>
             <Link
               href="/dashboard/simulacros"
-              className="text-xs font-medium text-blue-600 hover:underline"
+              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
             >
               Ver todos →
             </Link>
           </div>
 
           {proximos.length === 0 ? (
-            <p className="py-4 text-center text-sm text-gray-400">
+            <p className="py-4 text-center text-sm text-gray-400 dark:text-gray-500">
               No hay simulacros pendientes
             </p>
           ) : (
@@ -481,22 +481,22 @@ export default async function DashboardPage() {
               {proximos.map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5"
+                  className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-700/50 px-3 py-2.5"
                 >
                   <div className="flex items-center gap-2.5">
                     <Clock className="h-4 w-4 shrink-0 text-blue-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-800">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                         {s.nombre}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
                         {s.fecha} · {s.materia}
                       </p>
                     </div>
                   </div>
                   <Link
                     href={`/dashboard/simulacros/${s.id}`}
-                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                    className="rounded-lg px-3 py-1.5 text-xs font-semibold text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                   >
                     Ir →
                   </Link>
@@ -506,8 +506,8 @@ export default async function DashboardPage() {
           )}
 
           {/* Aviso cuadernillo */}
-          <div className="mt-3 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
-            <span className="text-xs text-blue-600">
+          <div className="mt-3 flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 px-3 py-2">
+            <span className="text-xs text-blue-600 dark:text-blue-400">
               📄 Recuerda tener el cuadernillo PDF antes de iniciar el simulacro.
             </span>
           </div>

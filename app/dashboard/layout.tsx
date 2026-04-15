@@ -1,6 +1,7 @@
 // app/dashboard/layout.tsx
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { db } from "@/lib/db";
 
@@ -9,15 +10,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // ── 1. Verificar autenticación ──
-  const session = await auth();
+  const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     redirect("/auth/login");
   }
 
-  // ── 2. Obtener grupo asignado (para mostrar alerta) ──
-  // Si el modelo de usuario tiene grupoId, lo podemos leer directamente
   let grupoId: string | null = null;
   try {
     const usuario = await db.usuario.findUnique({

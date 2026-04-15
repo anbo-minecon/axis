@@ -5,41 +5,41 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
+    <footer className="bg-gray-900 dark:bg-gray-950 text-gray-300 dark:text-gray-400 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2 mb-4">
               <Image src="/images/logo.png" alt="AXIS Logo" width={32} height={32} />
-              <span className="font-bold text-lg text-white">AXIS</span>
+              <span className="font-bold text-lg text-white dark:text-gray-100">AXIS</span>
             </Link>
-            <p className="text-sm">
+            <p className="text-sm dark:text-gray-400">
               La plataforma completa para prepararte para las Pruebas de Estado ICFES en Colombia.
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h3 className="font-bold text-white mb-4">Producto</h3>
+            <h3 className="font-bold text-white dark:text-gray-100 mb-4">Producto</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="#caracteristicas" className="hover:text-blue-400 transition-colors">
+                <Link href="#caracteristicas" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   Características
                 </Link>
               </li>
               <li>
-                <Link href="#planes" className="hover:text-blue-400 transition-colors">
+                <Link href="#planes" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   Planes
                 </Link>
               </li>
               <li>
-                <Link href="#faq" className="hover:text-blue-400 transition-colors">
+                <Link href="#faq" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   FAQs
                 </Link>
               </li>
               <li>
-                <Link href="/auth/registro" className="hover:text-blue-400 transition-colors">
+                <Link href="/auth/registro" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   Registrarse
                 </Link>
               </li>
@@ -48,25 +48,25 @@ export function Footer() {
 
           {/* Institución */}
           <div>
-            <h3 className="font-bold text-white mb-4">Institución</h3>
+            <h3 className="font-bold text-white dark:text-gray-100 mb-4">Institución</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="mailto:info@axispreicfes.com" className="hover:text-blue-400 transition-colors">
+                <a href="mailto:info@axispreicfes.com" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   Contacto
                 </a>
               </li>
               <li>
-                <a href="mailto:ventas@axispreicfes.com" className="hover:text-blue-400 transition-colors">
+                <a href="mailto:ventas@axispreicfes.com" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   Ventas
                 </a>
               </li>
               <li>
-                <Link href="/terminos" className="hover:text-blue-400 transition-colors">
+                <Link href="/terminos" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   Términos de Servicio
                 </Link>
               </li>
               <li>
-                <Link href="/privacidad" className="hover:text-blue-400 transition-colors">
+                <Link href="/privacidad" className="hover:text-blue-400 dark:hover:text-blue-300 transition-colors">
                   Política de Privacidad
                 </Link>
               </li>

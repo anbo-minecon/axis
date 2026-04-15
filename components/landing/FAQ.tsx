@@ -33,26 +33,26 @@ export function FAQ() {
   ];
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Preguntas Frecuentes</h2>
-          <p className="text-xl text-gray-600">Resolvemos tus dudas más comunes</p>
+          <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Preguntas Frecuentes</h2>
+          <p className="text-xl text-gray-600 dark:text-gray-300">Resolvemos tus dudas más comunes</p>
         </div>
 
         <div className="space-y-4">
           {faqs.map((faq, idx) => (
             <div
               key={idx}
-              className="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition-colors"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:border-blue-300 dark:hover:border-blue-500 transition-colors"
             >
               <button
                 onClick={() => setExpanded(expanded === idx ? null : idx)}
-                className="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="w-full px-6 py-4 flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
-                <span className="font-semibold text-gray-900 text-left">{faq.pregunta}</span>
+                <span className="font-semibold text-gray-900 dark:text-white text-left">{faq.pregunta}</span>
                 <span
-                  className={`ml-2 text-blue-600 text-2xl transition-transform ${
+                  className={`ml-2 text-blue-600 dark:text-blue-400 text-2xl transition-transform ${
                     expanded === idx ? "rotate-180" : ""
                   }`}
                 >
@@ -60,7 +60,7 @@ export function FAQ() {
                 </span>
               </button>
               {expanded === idx && (
-                <div className="px-6 py-4 bg-white text-gray-600 border-t border-gray-200">
+                <div className="px-6 py-4 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-700">
                   {faq.respuesta}
                 </div>
               )}

@@ -1,5 +1,10 @@
 // app/admin/usuarios/page.tsx
-// TODO: Gestión de usuarios y suscripciones
-export default function AdminUsuariosPage() {
-  return <div>Admin Usuarios - En construcción</div>;
+import { UsuariosClient } from "@/components/admin/UsuariosClient";
+
+export const metadata = {
+  title: "Gestionar Usuarios | AXIS Admin",
+};
+
+export default function UsuariosPage() {
+  return <UsuariosClient />;
 }

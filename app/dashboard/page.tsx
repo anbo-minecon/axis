@@ -75,13 +75,9 @@ async function fetchDashboardData(userId: string) {
       },
       include: {
         simulacro: {
-          select: { nombre: true, totalPreguntas: true },
+          select: { totalPreguntas: true },
         },
-        respuestasUser: {
-          include: {
-            opcion: { select: { esCorrecta: true } },
-          },
-        },
+        respuestasUser: true,
       },
       orderBy: { fechaFin: "desc" },
     });
@@ -89,7 +85,7 @@ async function fetchDashboardData(userId: string) {
     // Calcular puntaje de cada intento (aciertos / total * 500)
     const intentosConPuntaje = intentos.map((intento) => {
       const aciertos = intento.respuestasUser.filter(
-        (r) => r.opcion?.esCorrecta
+        (r) => r.esCorrecta
       ).length;
       const total = intento.simulacro?.totalPreguntas ?? 1;
       const puntaje = Math.round((aciertos / total) * 500);
@@ -110,9 +106,9 @@ async function fetchDashboardData(userId: string) {
     // Últimos 3 para "actividad reciente"
     const recientes: SimulacroReciente[] = intentosConPuntaje
       .slice(0, 3)
-      .map((i) => ({
+      .map((i, idx) => ({
         id: i.id,
-        nombre: i.simulacro?.nombre ?? "Simulacro",
+        nombre: `Simulacro ${idx + 1}`,
         puntaje: i.puntaje,
         nivel: i.puntaje >= 400 ? "Alto" : i.puntaje >= 250 ? "Medio" : "Bajo",
         fecha: i.fechaFin
@@ -127,23 +123,23 @@ async function fetchDashboardData(userId: string) {
     // Próximos simulacros disponibles (no intentados)
     const todosSimulacros = await db.simulacro.findMany({
       take: 3,
-      orderBy: { fechaCreacion: "desc" },
-      select: { id: true, nombre: true, fechaCreacion: true },
+      orderBy: { fechaInicio: "desc" },
+      select: { id: true, tipo: true, fechaInicio: true },
     });
 
     const intentadosIds = new Set(intentos.map((i) => i.simulacroId));
     const proximos: ProximoSimulacro[] = todosSimulacros
       .filter((s) => !intentadosIds.has(s.id))
       .slice(0, 2)
-      .map((s) => ({
+      .map((s, idx) => ({
         id: s.id,
-        nombre: s.nombre,
-        fecha: new Date(s.fechaCreacion).toLocaleDateString("es-CO", {
+        nombre: `${s.tipo === "COMPLETO" ? "Simulacro Completo" : s.tipo === "POR_AREA" ? "Simulacro por Área" : "Práctica Rápida"}`,
+        fecha: new Date(s.fechaInicio).toLocaleDateString("es-CO", {
           day: "2-digit",
           month: "short",
           year: "numeric",
         }),
-        materia: s.nombre.split("–")[1]?.trim() ?? "General",
+        materia: "General",
       }));
 
     // Grupo del usuario

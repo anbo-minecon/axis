@@ -42,7 +42,10 @@ model Usuario {
   gruposDocencia Grupo[]      @relation("GrupoDocente")
 
   simulacros     Simulacro[]
+  intentos       Intento[]
   suscripcion    Suscripcion?
+  developerCred  DeveloperCredential?
+  auditLogs      AuditLog[]
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -53,6 +56,7 @@ enum Rol {
   ESTUDIANTE
   DOCENTE
   ADMIN
+  DEVELOPER
 }
 
 // ─── GRUPOS ───────────────────────────────────────────────────────────────────
@@ -123,18 +127,57 @@ model OpcionRespuesta {
 // ─── SIMULACROS ───────────────────────────────────────────────────────────────
 
 model Simulacro {
-  id           String             @id @default(cuid())
-  usuarioId    String
-  usuario      Usuario            @relation(fields: [usuarioId], references: [id])
-  tipo         TipoSimulacro      @default(COMPLETO)
-  estado       EstadoSimulacro    @default(EN_PROGRESO)
-  puntajeTotal Float?
-  fechaInicio  DateTime           @default(now())
-  fechaFin     DateTime?
-  duracionMin  Int                @default(210) // minutos
-  respuestas   RespuestaUsuario[]
+  id              String             @id @default(cuid())
+  usuarioId       String
+  usuario         Usuario            @relation(fields: [usuarioId], references: [id])
+  tipo            TipoSimulacro      @default(COMPLETO)
+  estado          EstadoSimulacro    @default(EN_PROGRESO)
+  puntajeTotal    Float?
+  fechaInicio     DateTime           @default(now())
+  fechaFin        DateTime?
+  duracionMin     Int                @default(210) // minutos
+  totalPreguntas  Int                @default(45) // número de preguntas del simulacro
+  respuestas      RespuestaUsuario[]
+  intentos        Intento[]
 
   @@map("simulacros")
+}
+
+// ─── INTENTOS ─────────────────────────────────────────────────────────────────
+
+model Intento {
+  id              String             @id @default(cuid())
+  usuarioId       String
+  usuario         Usuario            @relation(fields: [usuarioId], references: [id])
+  simulacroId     String?
+  simulacro       Simulacro?         @relation(fields: [simulacroId], references: [id])
+  estado          String             @default("en_progreso") // en_progreso, completado, abandonado
+  puntaje         Float?
+  aciertos        Int?
+  totalPreguntas  Int?
+  fechaInicio     DateTime           @default(now())
+  fechaFin        DateTime?
+  duracionMin     Int?
+  respuestasUser  RespuestaIntento[]
+
+  @@map("intentos")
+  @@index([usuarioId])
+  @@index([estado])
+  @@index([fechaInicio])
+}
+
+model RespuestaIntento {
+  id               String    @id @default(cuid())
+  intentoId        String
+  intento          Intento   @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  preguntaId       String
+  opcionId         String?
+  esCorrecta       Boolean?
+  tiempoSegundos   Int?
+  respondidaEn     DateTime  @default(now())
+
+  @@map("respuestas_intento")
+  @@index([intentoId])
 }
 
 enum TipoSimulacro {
@@ -192,4 +235,88 @@ model Suscripcion {
   activa      Boolean  @default(true)
 
   @@map("suscripciones")
+}
+
+// ─── DEVELOPER ACCESS ──────────────────────────────────────────────────────────
+
+model DeveloperCredential {
+  id            String    @id @default(cuid())
+  usuarioId     String    @unique
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  passwordHash  String
+  tokenSecret   String    @unique
+  activo        Boolean   @default(true)
+  ultimoAcceso  DateTime?
+  direccionIP   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("developer_credentials")
+}
+
+// ─── AUDIT & LOGS ─────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  usuarioId   String?   // null si es acción del sistema
+  usuario     Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  accion      String    // ej: CREAR_USUARIO, ELIMINAR_GRUPO, CAMBIAR_PLAN
+  recurso     String    // ej: usuario, grupo, plan
+  recursoId   String?
+  cambios     String?   // JSON con antes/después si aplica
+  resultado   String    @default("EXITOSO") // EXITOSO, ERROR
+  mensaje     String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@map("audit_logs")
+  @@index([createdAt])
+  @@index([usuarioId])
+}
+
+model SystemLog {
+  id        String    @id @default(cuid())
+  nivel     String    @default("INFO") // INFO, WARN, ERROR, CRITICAL
+  componente String   // ej: AUTH, DATABASE, API, BACKUP
+  mensaje   String
+  detalles  String?   // JSON con contexto adicional
+  stack     String?   // stack trace si es error
+  createdAt DateTime  @default(now())
+
+  @@map("system_logs")
+  @@index([createdAt])
+  @@index([nivel])
+}
+
+model BackupLog {
+  id          String    @id @default(cuid())
+  tipo        String    // FULL, INCREMENTAL
+  estado      String    @default("INICIADO") // INICIADO, EN_PROGRESO, COMPLETADO, ERROR
+  tamanio     Int?      // tamaño en MB
+  ubicacion   String?   // path o URL del backup
+  error       String?
+  duracionMs  Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("backup_logs")
+  @@index([createdAt])
+}
+
+model IntegrationLog {
+  id              String    @id @default(cuid())
+  nombre          String    // ej: Google Auth, Stripe Payment
+  estado          String    @default("CONECTADO") // CONECTADO, ERROR, DEGRADED
+  ultimaVerif     DateTime?
+  ultimoError     String?
+  responseTime    Int?      // ms
+  requestsHoy     Int?
+  tasaError       Float?    // porcentaje
+  detalles        String?   // JSON con info específica
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("integration_logs")
+  @@index([createdAt])
 }

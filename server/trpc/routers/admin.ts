@@ -7,6 +7,13 @@ import {
   revocarSuscripcion,
   obtenerDetallesSuscripcion,
 } from "@/lib/suscripcion-utils";
+import {
+  filterOutDevelopers,
+  validateRoleAssignment,
+  protectDeveloperAccess,
+  PUBLIC_ROLES,
+} from "@/lib/developer-protection";
+import { logAuditAction } from "@/lib/developer-auth";
 
 /**
  * Middleware para verificar acceso de administrador
@@ -191,11 +198,11 @@ export const adminRouter = router({
     }),
 
   /**
-   * Listar todos los usuarios
+   * Listar todos los usuarios (sin incluir DEVELOPER)
    */
   listarUsuarios: adminProcedure
     .input(z.object({
-      rol: z.enum(["ESTUDIANTE", "DOCENTE", "ADMIN"]).optional(),
+      rol: z.enum(PUBLIC_ROLES).optional(),
       conSuscripcion: z.boolean().optional(),
       skip: z.number().default(0),
       take: z.number().default(50),
@@ -204,7 +211,8 @@ export const adminRouter = router({
       const usuarios = await ctx.db.usuario.findMany({
         where: {
           rol: input.rol,
-          // TODO: Filtrar por conSuscripcion
+          // Excluir DEVELOPER
+          NOT: { rol: "DEVELOPER" },
         },
         include: {
           suscripcion: {
@@ -232,5 +240,168 @@ export const adminRouter = router({
           : null,
         createdAt: u.createdAt,
       }));
+    }),
+
+  /**
+   * Obtener detalles de un usuario
+   */
+  obtenerUsuario: adminProcedure
+    .input(z.object({ usuarioId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // Proteger contra acceso a DEVELOPER
+      await protectDeveloperAccess(input.usuarioId);
+
+      const usuario = await ctx.db.usuario.findUnique({
+        where: { id: input.usuarioId },
+        include: {
+          suscripcion: { include: { plan: true } },
+          grupo: true,
+        },
+      });
+
+      if (!usuario) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Usuario no encontrado",
+        });
+      }
+
+      return usuario;
+    }),
+
+  /**
+   * Crear nuevo usuario
+   */
+  crearUsuario: adminProcedure
+    .input(z.object({
+      email: z.string().email(),
+      nombre: z.string().min(2),
+      rol: z.enum(PUBLIC_ROLES), // Solo roles públicos
+      colegio: z.string().optional(),
+      grado: z.number().optional(),
+      documento: z.string().optional(),
+      telefono: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Validar que no intente crear DEVELOPER
+      validateRoleAssignment(input.rol);
+
+      try {
+        const usuario = await ctx.db.usuario.create({
+          data: {
+            email: input.email,
+            nombre: input.nombre,
+            rol: input.rol as "ESTUDIANTE" | "DOCENTE" | "ADMIN",
+            colegio: input.colegio,
+            grado: input.grado,
+            documento: input.documento,
+            telefono: input.telefono,
+            emailVerified: new Date(),
+          },
+        });
+
+        // Registrar en auditoría
+        await logAuditAction(
+          ctx.session.user.id,
+          "CREAR_USUARIO",
+          "usuario",
+          usuario.id
+        );
+
+        return { success: true, usuario };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error al crear usuario",
+        });
+      }
+    }),
+
+  /**
+   * Actua lizar usuario
+   */
+  actualizarUsuario: adminProcedure
+    .input(z.object({
+      usuarioId: z.string(),
+      nombre: z.string().min(2).optional(),
+      email: z.string().email().optional(),
+      rol: z.enum(PUBLIC_ROLES).optional(), // Solo roles públicos
+      colegio: z.string().optional(),
+      grado: z.number().optional(),
+      telefono: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Proteger contra acceso a DEVELOPER
+      await protectDeveloperAccess(input.usuarioId);
+
+      // Validar que no intente cambiar a DEVELOPER
+      if (input.rol) {
+        validateRoleAssignment(input.rol);
+      }
+
+      try {
+        const usuarioAntes = await ctx.db.usuario.findUnique({
+          where: { id: input.usuarioId },
+        });
+
+        const usuario = await ctx.db.usuario.update({
+          where: { id: input.usuarioId },
+          data: {
+            nombre: input.nombre,
+            email: input.email,
+            rol: input.rol as "ESTUDIANTE" | "DOCENTE" | "ADMIN" | undefined,
+            colegio: input.colegio,
+            grado: input.grado,
+            telefono: input.telefono,
+          },
+        });
+
+        // Registrar en auditoría
+        await logAuditAction(
+          ctx.session.user.id,
+          "EDITAR_USUARIO",
+          "usuario",
+          usuario.id,
+          JSON.stringify({ antes: usuarioAntes, despues: usuario })
+        );
+
+        return { success: true, usuario };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error al actualizar usuario",
+        });
+      }
+    }),
+
+  /**
+   * Eliminar usuario
+   */
+  eliminarUsuario: adminProcedure
+    .input(z.object({ usuarioId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // Proteger contra acceso a DEVELOPER
+      await protectDeveloperAccess(input.usuarioId);
+
+      try {
+        await ctx.db.usuario.delete({
+          where: { id: input.usuarioId },
+        });
+
+        // Registrar en auditoría
+        await logAuditAction(
+          ctx.session.user.id,
+          "ELIMINAR_USUARIO",
+          "usuario",
+          input.usuarioId
+        );
+
+        return { success: true };
+      } catch (error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Error al eliminar usuario",
+        });
+      }
     }),
 });

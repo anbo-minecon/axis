@@ -21,7 +21,7 @@ export const simulacroRouter = router({
       // TODO: seleccionar preguntas del banco y crear simulacro
       // TODO: guardar en Redis para performance
       throw new TRPCError({
-        code: "UNIMPLEMENTED",
+        code: "NOT_IMPLEMENTED",
         message: "Funcionalidad en desarrollo",
       });
     }),
@@ -34,7 +34,7 @@ export const simulacroRouter = router({
     .query(async ({ ctx, input }) => {
       // TODO: retornar simulacro con preguntas (desde caché Redis)
       throw new TRPCError({
-        code: "UNIMPLEMENTED",
+        code: "NOT_IMPLEMENTED",
         message: "Funcionalidad en desarrollo",
       });
     }),
@@ -55,7 +55,7 @@ export const simulacroRouter = router({
       // TODO: calcular puntaje y guardar resultados
       // TODO: actualizar percentiles
       throw new TRPCError({
-        code: "UNIMPLEMENTED",
+        code: "NOT_IMPLEMENTED",
         message: "Funcionalidad en desarrollo",
       });
     }),

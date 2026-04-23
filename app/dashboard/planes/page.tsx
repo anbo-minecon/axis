@@ -74,10 +74,10 @@ const planesData = [
 ];
 
 export default function PlanesPage() {
-  const { usuario, loading } = useUser();
+  const { user, isLoading } = useUser();
   const [procesando, setProcesando] = useState(false);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-screen">

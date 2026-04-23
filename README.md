@@ -1,177 +1,121 @@
 # 🎓 Axis Pre-ICFES
 
-Plataforma de preparación para las Pruebas de Estado ICFES en Colombia.
+Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia, diseñada con tecnología moderna y arquitectura escalable.
 
 ## 🚀 Stack Tecnológico
 
 ### Frontend
 - **Framework**: Next.js 14 (App Router)
 - **Lenguaje**: TypeScript (strict mode)
-- **Estilos**: Tailwind CSS
+- **Estilos**: Tailwind CSS + tailwindcss-animate
 - **Componentes**: shadcn/ui + Radix UI
 - **Iconos**: Lucide React
 - **State Management**: React Hooks + TanStack Query
+- **Fuentes**: Syne + DM Sans (Google Fonts)
 
 ### Backend
 - **API**: tRPC (full-stack type-safe)
 - **Base de datos**: PostgreSQL
 - **ORM**: Prisma v5
 - **Validación**: Zod
-- **Autenticación**: Auth.js (NextAuth v5)
+- **Autenticación**: Auth.js (NextAuth v5 beta)
 - **Password hashing**: bcryptjs
+- **Serialización**: SuperJSON
 
-### DevOps
+### DevOps & Herramientas
 - **Node.js**: v18+
 - **Package Manager**: npm
-- **Linter**: ESLint (Next.js)
+- **Linter**: ESLint (Next.js config)
+- **PostCSS**: Procesamiento de CSS
+- **Environment**: Variables de entorno seguras
 
 ---
 
 ## 📁 Estructura del Proyecto
 
+### **🗂️ Estructura General**
 ```
 axis-preicfes/
+├── � Archivos de configuración
+│   ├── .env, .env.example              # Variables de entorno
+│   ├── .gitignore                      # Archivos ignorados por git
+│   ├── package.json, package-lock.json # Dependencias y scripts
+│   ├── next.config.js                  # Configuración Next.js
+│   ├── tsconfig.json                   # Configuración TypeScript
+│   ├── tailwind.config.ts              # Configuración Tailwind CSS
+│   ├── postcss.config.js               # Configuración PostCSS
+│   └── next-env.d.ts                   # Tipos Next.js
 │
-├── 📂 app/                           # Next.js App Router
-│   ├── page.tsx                      # Landing page
-│   ├── layout.tsx                    # Root layout global
-│   ├── globals.css                   # Estilos globales
-│   │
-│   ├── 📂 landing/                   # Página pública de inicio
-│   │   └── page.tsx
-│   │
-│   ├── 📂 auth/                      # Autenticación
-│   │   ├── layout.tsx                # Layout para auth pages
-│   │   ├── 📂 login/
-│   │   │   └── page.tsx              # Formulario de login
-│   │   └── 📂 registro/
-│   │       └── page.tsx              # Formulario de registro
-│   │
-│   ├── 📂 dashboard/                 # Área protegida del estudiante
-│   │   ├── layout.tsx                # Sidebar navegación
-│   │   ├── page.tsx                  # Dashboard principal
-│   │   ├── 📂 estadisticas/
-│   │   │   └── page.tsx              # Estadísticas del estudiante
-│   │   ├── 📂 perfil/
-│   │   │   └── page.tsx              # Configuración de perfil
-│   │   ├── 📂 resultados/
-│   │   │   └── 📂 [id]/
-│   │   │       └── page.tsx          # Detalle de resultados
-│   │   └── 📂 simulacro/
-│   │       └── 📂 [id]/
-│   │           └── page.tsx          # Interfaz de examen
-│   │
-│   ├── 📂 admin/                     # Panel de administración
-│   │   ├── 📂 planes/
-│   │   │   └── page.tsx              # Gestión de planes
-│   │   ├── 📂 preguntas/
-│   │   │   └── page.tsx              # Banco de preguntas
-│   │   └── 📂 usuarios/
-│   │       └── page.tsx              # Gestión de usuarios
-│   │
-│   └── 📂 api/                       # API routes
-│       ├── 📂 auth/
-│       │   └── 📂 nextauth/
-│       │       └── [...nextauth].ts  # Configuración NextAuth
-│       └── 📂 trpc/
-│           └── 📂 trpc/
-│               └── [trpc].ts         # Endpoint tRPC
+├── 📂 app/                    # Next.js App Router
+│   ├── page.tsx              # Landing page (redirect)
+│   ├── layout.tsx            # Root layout global
+│   ├── globals.css           # Estilos globales
+│   ├── landing/              # Página principal pública
+│   ├── auth/                 # Login y registro
+│   ├── dashboard/            # Área estudiantil protegida
+│   ├── admin/                # Panel administración
+│   ├── developer/            # Rol técnico oculto �
+│   └── api/                  # Endpoints API
 │
-├── 📂 components/                    # Componentes React reutilizables
-│   ├── 📂 landing/                   # Componentes de la landing
-│   │   ├── HeroSection.tsx           # Sección hero
-│   │   ├── Navigation.tsx            # Barra de navegación
-│   │   ├── AreasICFES.tsx            # Áreas del examen
-│   │   ├── Caracteristicas.tsx       # Características principales
-│   │   ├── EducationalResources.tsx  # Recursos educativos
-│   │   ├── HowItWorks.tsx            # Cómo funciona
-│   │   ├── ImpactStats.tsx           # Estadísticas de impacto
-│   │   ├── PricingPlans.tsx          # Planes de precios
-│   │   ├── Testimonials.tsx          # Testimonios
-│   │   ├── WhyAXIS.tsx               # Por qué AXIS
-│   │   ├── FAQ.tsx                   # Preguntas frecuentes
-│   │   ├── FinalCTA.tsx              # Llamado a acción final
-│   │   └── Footer.tsx                # Pie de página
-│   │
-│   ├── 📂 dashboard/                 # Componentes del dashboard
-│   │   └── README.md
-│   │
-│   ├── 📂 simulacro/                 # Componentes del examen
-│   │   └── README.md
-│   │
-│   ├── 📂 shared/                    # Componentes compartidos
-│   │   ├── ToastContainer.tsx        # Sistema de notificaciones
-│   │   └── README.md
-│   │
-│   ├── 📂 ui/                        # Componentes básicos de UI
-│   │   └── (botones, inputs, etc.)
-│   │
-│   └── 📂 icons/                     # Iconos personalizados
-│       ├── AreaIcon.tsx
-│       ├── FeatureIcons.tsx
-│       ├── index.tsx
-│       └── README.md
+├── 📂 components/            # Componentes React
+│   ├── landing/              # Componentes página principal (13 archivos)
+│   ├── shared/               # Componentes reutilizables (6 archivos)
+│   ├── dashboard/            # Componentes dashboard (5 archivos)
+│   ├── simulacro/            # Componentes de exámenes (README only)
+│   ├── ui/                   # Componentes base shadcn/ui (🔴 vacía)
+│   ├── icons/                # Iconos personalizados
+│   └── developer/            # Componentes rol Developer
 │
-├── 📂 lib/                           # Funciones utilitarias
-│   ├── auth.ts                       # Configuración NextAuth
-│   ├── auth-guard.ts                 # Middleware de autenticación
-│   ├── db.ts                         # Cliente de Prisma
-│   ├── notifications.ts              # Sistema de toasts
-│   ├── utils.ts                      # Funciones auxiliares
-│   └── trpc-client.ts                # Cliente tRPC (frontend)
+├── 📂 lib/                   # Utilidades y configuración
+│   ├── auth.ts               # Configuración Auth.js
+│   ├── db.ts                 # Cliente Prisma
+│   ├── utils.ts              # Funciones auxiliares
+│   └── (otros archivos de configuración)
 │
-├── 📂 hooks/                         # Hooks React personalizados
-│   └── useUser.ts                    # Hook para datos del usuario
+├── 📂 hooks/                 # React Hooks personalizados
+│   ├── useTheme.ts           # Manejo de temas
+│   └── useUser.ts            # Datos de usuario
 │
-├── 📂 server/                        # Código del backend
-│   └── 📂 trpc/
-│       ├── context.ts                # Contexto de tRPC (sesión, BD)
-│       ├── router.ts                 # Router principal tRPC
-│       └── 📂 routers/               # Sub-routers de tRPC
-│           ├── auth.ts               # Procedimientos: registro, login, perfil
-│           └── simulacro.ts          # Procedimientos: exámenes, respuestas
+├── 📂 server/                # Backend tRPC
+│   └── trpc/                 # Configuración API type-safe
+│       ├── context.ts        # Contexto de requests
+│       ├── router.ts         # Router principal
+│       └── routers/          # Sub-routers especializados
 │
-├── 📂 types/                         # Tipos TypeScript
-│   ├── index.ts                      # Tipos principales
-│   └── auth.ts                       # Tipos de autenticación
+├── 📂 prisma/                # Base de datos
+│   ├── schema.prisma         # Modelo de datos completo
+│   └── migrations/           # Historial de cambios
 │
-├── 📂 prisma/                        # Base de datos
-│   ├── schema.prisma                 # Definición de tablas y relaciones
-│   └── 📂 migrations/                # Histórico de cambios de BD
+├── 📂 types/                 # Tipos TypeScript
+│   └── (definiciones globales)
 │
-├── 📂 styles/                        # Estilos (si es necesario)
+├── 📂 public/                # Archivos estáticos
+│   ├── images/               # Imágenes y logos (3 archivos)
+│   └── scripts/              # Scripts cliente (1 archivo)
 │
-├── 📂 store/                         # Almacenamiento de estado global (optional)
-│
-├── 📂 public/                        # Archivos estáticos
-│   └── 📂 images/
-│
-├── 📂 node_modules/                  # Dependencias instaladas
-│
-├── .env                              # Variables de entorno (gitignored)
-├── .env.local                        # Configuración local
-├── .env.example                      # Template de .env
-├── .gitignore                        # Archivos ignorados por git
-│
-├── next.config.js                    # Configuración de Next.js
-├── tsconfig.json                     # Configuración TypeScript
-├── tailwind.config.ts                # Configuración Tailwind CSS
-├── postcss.config.js                 # Configuración PostCSS
-│
-├── package.json                      # Dependencias y scripts
-├── package-lock.json                 # Lock de versiones
-│
-├── README.md                         # Este archivo
-├── BACKEND_SETUP.md                  # Guía de configuración backend
-├── BACKEND_ARCHITECTURE.md           # Arquitectura detallada backend
-├── FRONTEND_GUIDE.md                 # Guía frontend
-├── DIAGNOSTICO_CONEXION.md           # Diagnóstico de conexiones
-├── GUIA_RAPIDA_REGISTRO.md           # Guía rápida de registro
-│
-└── 🔧 Scripts de desarrollo
-    ├── verify-connection.js          # Verificar conexión del sistema
-    └── test-db-connection.js         # Test de conexión a BD
+├── 📂 styles/                # Estilos adicionales (🔴 vacía)
+├── 📂 store/                 # Estado global (🔴 vacía)
+├── 📂 scripts/               # Scripts de desarrollo
+├── 📂 node_modules/          # Dependencias instaladas
+├── 📂 .next/                 # Build de Next.js
+└── 📄 README.md              # Documentación del proyecto
 ```
+
+### **🚫 Carpetas Vacías (Preparadas para Futuro)**
+| Carpeta | Estado | Uso Planeado |
+|---------|--------|--------------|
+| `styles/` | **🔴 Vacía** | Estilos CSS adicionales personalizados |
+| `store/` | **🔴 Vacía** | Estado global (Redux/Zustand) si se requiere |
+| `components/ui/` | **🔴 Vacía** | Componentes base shadcn/ui (botones, inputs, dialogs) |
+
+### **📊 Distribución de Archivos**
+| Categoría | Carpetas | Con Contenido | Vacías |
+|-----------|----------|---------------|--------|
+| **Principales** | 12 | 9 | 3 |
+| **Components** | 6 | 5 | 1 |
+| **Total general** | 18+ | 14+ | 4+ |
+
+**Porcentaje de desarrollo:** ~75% completado
 
 ---
 
@@ -192,6 +136,8 @@ axis-preicfes/
 | `/admin/planes` | Gestión de planes | 🔄 |
 | `/admin/preguntas` | Banco de preguntas | 🔄 |
 | `/admin/usuarios` | Gestión de usuarios | 🔄 |
+| `/developer/login` | Login del Developer | ✅ |
+| `/developer/dashboard` | Dashboard técnico (rol oculto) | ✅ |
 
 ---
 
@@ -221,6 +167,10 @@ axis-preicfes/
 - `FeatureIcons.tsx` - Iconos de características
 - Íconos personalizados
 
+#### Developer (`components/developer/`) 🔐
+- `DeveloperLogin.tsx` - Formulario de autenticación
+- `DeveloperDashboard.tsx` - Dashboard técnico
+
 #### UI (`components/ui/`)
 - Componentes base de shadcn/ui (botones, inputs, dialogs, etc.)
 
@@ -236,6 +186,9 @@ axis-preicfes/
 | `notifications.ts` | Sistema de toast notifications |
 | `utils.ts` | Funciones auxiliares de uso general |
 | `trpc-client.ts` | Cliente tRPC configurado para el frontend |
+| `developer-auth.ts` | Autenticación del rol Developer (encriptado) |
+| `developer-guard.ts` | Middleware de protección para Developer |
+| `developer-protection.ts` | Funciones de ocultamiento del rol Developer |
 
 ---
 
@@ -264,13 +217,22 @@ Procedimientos disponibles:
 - `guardarRespuesta` - Almacenar respuesta del usuario
 - `obtenerResultados` - Ver resultados del examen
 
+#### `routers/admin.ts` (Actualizado)
+Procedimientos con protecciones:
+- `listarUsuarios` - Lista usuarios (sin incluir DEVELOPER)
+- `obtenerUsuario` - Detalles de usuario (protegido)
+- `crearUsuario` - Crear usuario con validación de rol
+- `actualizarUsuario` - Editar usuario (no permite rol DEVELOPER)
+- `eliminarUsuario` - Eliminar usuario (protegido)
+- Otros: planes, suscripciones, etc.
+
 ---
 
 ### 💾 **prisma/** - Base de Datos
 
 #### `schema.prisma`
 Define los modelos:
-- `Usuario` - Estudiantes registrados
+- `Usuario` - Estudiantes registrados (incluye rol DEVELOPER oculto)
 - `Suscripcion` - Planes de los usuarios
 - `Plan` - Tipos de planes disponibles
 - `Area` - Áreas del ICFES (Lectura, Matemáticas, etc.)
@@ -278,6 +240,11 @@ Define los modelos:
 - `OpcionRespuesta` - Opciones A, B, C, D
 - `Simulacro` - Exámenes
 - `RespuestaUsuario` - Respuestas del estudiante
+- `DeveloperCredential` - Credenciales del rol Developer (encriptadas)
+- `AuditLog` - Registro de acciones administrativas
+- `SystemLog` - Eventos internos del sistema
+- `BackupLog` - Historial de respaldos
+- `IntegrationLog` - Estado de integraciones externas
 
 #### Migraciones (`migrations/`)
 - Histórico de cambios en el esquema de BD
@@ -321,6 +288,9 @@ npm run db:studio        # Abre interfaz gráfica de Prisma
 npm run db:reset         # Resetea toda la BD (solo dev)
 npm run db:seed          # Ejecuta seeders (si existen)
 
+# Rol Developer (Setup)
+npx tsx scripts/setup-developer.ts  # Crear usuario Developer con credenciales
+
 # Linting
 npm run lint             # Ejecuta ESLint
 ```
@@ -329,44 +299,62 @@ npm run lint             # Ejecuta ESLint
 
 ## 🔧 Configuración Inicial
 
-### 1️⃣ **Instalar dependencias**
+### 1️⃣ **Prerrequisitos**
+- Node.js v18+ 
+- PostgreSQL instalado y corriendo
+- Git
+
+### 2️⃣ **Instalar dependencias**
 ```bash
 npm install
 ```
 
-### 2️⃣ **Configurar variables de entorno**
+### 3️⃣ **Configurar variables de entorno**
 ```bash
 # Copiar template
-cp .env.example .env.local
+cp .env.example .env
 
-# Editar .env.local con tus valores:
+# Editar .env con tus valores:
 # - DATABASE_URL (PostgreSQL)
-# - NEXTAUTH_SECRET
-# - NEXTAUTH_URL
+# - AUTH_SECRET (NextAuth v5)
+# - AUTH_URL
 ```
 
-**Ejemplo .env.local:**
+**Ejemplo .env:**
 ```env
-DATABASE_URL="postgresql://postgres:anbo2019@localhost:5432/axis_preicfes"
-NEXTAUTH_SECRET="tu-secret-muy-seguro-aqui"
-NEXTAUTH_URL="http://localhost:3000"
+# Base de datos PostgreSQL
+DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/axis_preicfes"
+
+# Auth.js (NextAuth v5)
+AUTH_SECRET="genera-un-secret-seguro-con-openssl-rand-base64-32"
+AUTH_URL="http://localhost:3000"
+
+# Google OAuth (opcional)
+AUTH_GOOGLE_ID=""
+AUTH_GOOGLE_SECRET=""
+
+# App
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_NAME="Axis Pre-ICFES"
 ```
 
-### 3️⃣ **Preparar Base de Datos**
+### 4️⃣ **Preparar Base de Datos**
 ```bash
 # Generar cliente Prisma
 npm run db:generate
 
-# Sincronizar tablas
+# Crear tablas en la base de datos
 npm run db:push
 ```
 
-### 4️⃣ **Iniciar servidor**
+### 5️⃣ **Iniciar servidor**
 ```bash
 npm run dev
 ```
 
 Accede a: **[http://localhost:3000](http://localhost:3000)**
+
+> **Nota:** Si el puerto 3000 está ocupado, Next.js automáticamente usará el 3001
 
 ---
 
@@ -375,8 +363,13 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | Variable | Descripción | Ejemplo |
 |----------|-------------|---------|
 | `DATABASE_URL` | Conexión a PostgreSQL | `postgresql://user:pass@localhost:5432/dbname` |
-| `NEXTAUTH_SECRET` | Secret para JWT (NextAuth) | `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | URL base de la app | `http://localhost:3000` |
+| `AUTH_SECRET` | Secret para Auth.js (NextAuth v5) | `openssl rand -base64 32` |
+| `AUTH_URL` | URL base de la app | `http://localhost:3000` |
+| `AUTH_GOOGLE_ID` | Google OAuth Client ID (opcional) | `tu-google-client-id` |
+| `AUTH_GOOGLE_SECRET` | Google OAuth Secret (opcional) | `tu-google-secret` |
+| `NEXT_PUBLIC_APP_URL` | URL pública de la app | `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_NAME` | Nombre de la aplicación | `Axis Pre-ICFES` |
+| `REDIS_URL` | Conexión a Redis (opcional caché) | `redis://localhost:6379` |
 
 ---
 
@@ -400,23 +393,41 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 - **[FRONTEND_GUIDE.md](FRONTEND_GUIDE.md)** - Guía de componentes frontend
 - **[DIAGNOSTICO_CONEXION.md](DIAGNOSTICO_CONEXION.md)** - Solución de problemas de conexión
 - **[GUIA_RAPIDA_REGISTRO.md](GUIA_RAPIDA_REGISTRO.md)** - Tutorial rápido de registro
+- **[INDEX_DOCUMENTATION.md](INDEX_DOCUMENTATION.md)** - Índice de documentación 🔐
+- **[DEVELOPER_QUICKSTART.md](DEVELOPER_QUICKSTART.md)** - Setup rápido rol Developer 🔐
+- **[DEVELOPER_ROLE.md](DEVELOPER_ROLE.md)** - Guía completa rol Developer 🔐
+- **[DEVELOPER_IMPLEMENTATION.md](DEVELOPER_IMPLEMENTATION.md)** - Detalles técnicos Developer 🔐
+- **[README_DEVELOPER_ROLE.md](README_DEVELOPER_ROLE.md)** - Resumen ejecutivo Developer 🔐
+- **[VERIFICATION_CHECKLIST.md](VERIFICATION_CHECKLIST.md)** - Checklist de verificación 🔐
 
 ---
 
 ## ✅ Status del Proyecto
 
-| Feature | Estado |
-|---------|--------|
-| Landing page | ✅ Completada |
-| Autenticación (Login/Registro) | ✅ Funcional |
-| Dashboard básico | ✅ Funcional |
-| Base de datos | ✅ Conectada |
-| Sistema de notificaciones | ✅ Implementado |
-| Banco de preguntas | 🔄 En desarrollo |
-| Simulacros | 🔄 En desarrollo |
-| Panel Admin | 🔄 En desarrollo |
-| Sistema de pagos | ⏳ Pendiente |
-| Reportes | ⏳ Pendiente |
+| Feature | Estado | Detalles |
+|---------|--------|----------|
+| **Configuración Base** | ✅ Completado | Dependencias, entorno, base de datos |
+| **Landing Page** | ✅ Completada | Diseño responsive, secciones completas |
+| **Autenticación** | ✅ Funcional | Login, registro, Auth.js v5 |
+| **Dashboard Estudiantil** | ✅ Funcional | Interfaz principal, navegación |
+| **Base de Datos** | ✅ Conectada | PostgreSQL + Prisma ORM |
+| **Sistema de Notificaciones** | ✅ Implementado | Toast notifications |
+| **Componentes UI** | ✅ Completados | shadcn/ui + componentes personalizados |
+| **Tipado TypeScript** | ✅ Completo | Strict mode, tipos globales |
+| **API tRPC** | ✅ Funcional | Routers de auth y simulacros |
+| **Banco de Preguntas** | 🔄 En desarrollo | Modelo de datos listo |
+| **Simulacros Interactivos** | 🔄 En desarrollo | Interfaz y lógica pendiente |
+| **Panel Administrativo** | 🔄 En desarrollo | Gestión de contenido |
+| **Estadísticas Avanzadas** | 🔄 En desarrollo | Reportes y análisis |
+| **Sistema de Pagos** | ⏳ Pendiente | Integración con pasarelas |
+| **Móvil (PWA)** | ⏳ Pendiente | Versión móvil optimizada |
+
+### 🎯 **Próximos Hitos**
+- [ ] Implementar motor de simulacros con temporizador
+- [ ] Cargar banco de preguntas inicial
+- [ ] Desarrollar panel de administración
+- [ ] Agregar estadísticas detalladas
+- [ ] Implementar sistema de suscripciones
 
 ---
 
@@ -439,4 +450,91 @@ Privado - AXIS Pre-ICFES © 2026
 
 Equipo AXIS Pre-ICFES
 
-**Última actualización:** Abril 11, 2026
+---
+
+## 🔐 Rol Developer (Nuevo)
+
+### Características Principales
+
+**Rol especializado de supervisión técnica** implementado con las siguientes características:
+
+- ✅ **Visibilidad Restringida**: No aparece en interfaces públicas
+- ✅ **Autenticación Independiente**: Login en `/developer/login`
+- ✅ **Dashboard Técnico**: Monitoreo en tiempo real del sistema
+- ✅ **Auditoría Completa**: Registro de todas las acciones administrativas
+- ✅ **Gestión de Respaldos**: Crear y verificar backups
+- ✅ **Monitoreo de Integraciones**: Estado de servicios externos
+
+### Acceso Rápido
+
+```bash
+# 1. Crear usuario Developer
+npx tsx scripts/setup-developer.ts
+
+# 2. Acceder a
+http://localhost:3000/developer/login
+
+# Credenciales por defecto
+# Email: developer@axis-preicfes.local
+# Password: Developer@2025#Secure
+```
+
+### Documentación
+
+Para información completa sobre el rol Developer, consulta:
+- [DEVELOPER_QUICKSTART.md](DEVELOPER_QUICKSTART.md) - Inicio rápido (3 min)
+- [DEVELOPER_ROLE.md](DEVELOPER_ROLE.md) - Guía completa (15 min)
+- [INDEX_DOCUMENTATION.md](INDEX_DOCUMENTATION.md) - Navegación de documentos
+
+### APIs Disponibles
+
+```
+POST   /api/developer/login              - Autenticación
+GET    /api/developer/dashboard          - Resumen del sistema
+GET    /api/developer/audit-logs         - Auditoría administrativas
+GET    /api/developer/system-logs        - Logs del sistema
+GET    /api/developer/backups            - Histórico de respaldos
+POST   /api/developer/backups            - Crear respaldo
+GET    /api/developer/integrations       - Estado de integraciones
+```
+
+---
+
+## 🐛 **Solución de Problemas Comunes**
+
+### Error: `Cannot find module 'tailwindcss-animate'`
+```bash
+# Solución:
+npm install tailwindcss-animate
+npm run dev
+```
+
+### Error: Puerto 3000 ocupado
+Next.js automáticamente usará el puerto 3001. Accede a `http://localhost:3001`
+
+### Error: Base de datos no conectada
+```bash
+# Verificar conexión:
+npm run db:generate
+npm run db:push
+# Asegúrate de que PostgreSQL esté corriendo
+```
+
+### Error: `AUTH_SECRET` faltante
+```bash
+# Generar secret seguro:
+openssl rand -base64 32
+# Agregarlo a tu archivo .env
+```
+
+## 📞 **Soporte**
+
+- **Documentación técnica**: Revisa los archivos `.md` en la raíz
+- **Issues**: Reporta problemas en el repositorio del proyecto
+- **Contacto del equipo**: Disponible en la documentación interna
+
+---
+
+**Última actualización:** Abril 15, 2026  
+**Versión:** v0.1.0  
+**Estado:** Desarrollo activo 🚀

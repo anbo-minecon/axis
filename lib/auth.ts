@@ -45,12 +45,13 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          console.log("✅ Usuario autenticado:", parsed.email);
+          console.log("✅ Usuario autenticado:", parsed.email, "Rol:", usuario.rol);
           return {
             id: usuario.id,
             email: usuario.email,
             name: usuario.nombre,
             image: usuario.imagen,
+            rol: usuario.rol,
           };
         } catch (error) {
           console.error("❌ Error en authorize:", error);
@@ -79,17 +80,20 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.rol = (user as any).rol || "ESTUDIANTE";
       }
 
       // Obtener suscripción en cada JWT refresh
       if (token.id) {
         try {
-          const suscripcion = await db.suscripcion.findUnique({
-            where: { usuarioId: token.id as string },
+          const usuario = await db.usuario.findUnique({
+            where: { id: token.id as string },
+            include: { suscripcion: true },
           });
-          token.tieneSubscripcion = suscripcion?.activa ?? false;
+          token.tieneSubscripcion = usuario?.suscripcion?.activa ?? false;
+          token.rol = usuario?.rol || token.rol || "ESTUDIANTE";
         } catch (error) {
-          console.error("Error al obtener suscripción:", error);
+          console.error("Error al obtener usuario:", error);
           token.tieneSubscripcion = false;
         }
       }
@@ -99,16 +103,20 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        const rol = token.rol as any;
+        session.user.rol = (rol && ["ESTUDIANTE", "DOCENTE", "ADMIN", "DEVELOPER"].includes(rol)) 
+          ? rol 
+          : "ESTUDIANTE";
         session.user.tieneSubscripcion = (token.tieneSubscripcion as boolean) ?? false;
       }
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Permitir redirecciones en el mismo sitio
+      // El middleware manejará la redirección según el rol
+      // Este callback solo permite redirecciones válidas
       if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Permitir si es del mismo origen
       if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+      return `${baseUrl}/dashboard`;
     },
   },
 };

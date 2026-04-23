@@ -36,7 +36,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
-  const { tieneSubscripcion, loading: loadingSuscripcion } = useSuscripcion();
+  const { tieneSubscripcion } = useSuscripcion();
   const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -145,8 +145,7 @@ export function Sidebar() {
         </div>
 
         {/* Estado de Suscripción */}
-        {!loadingSuscripcion && (
-          <div className="mx-4 mt-4 p-3 bg-white/10 rounded-lg border border-white/20">
+        <div className="mx-4 mt-4 p-3 bg-white/10 rounded-lg border border-white/20">
             {!tieneSubscripcion ? (
               <div className="text-center">
                 <p className="text-xs text-white/80 mb-2">Sin suscripción</p>
@@ -166,7 +165,6 @@ export function Sidebar() {
               </div>
             )}
           </div>
-        )}
 
         {/* Navegación */}
         <nav className="flex-1 overflow-y-auto py-6 px-4">

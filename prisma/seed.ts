@@ -1,5 +1,6 @@
 // prisma/seed.ts
 import { PrismaClient } from "@prisma/client";
+import { hash } from "bcryptjs";
 
 const db = new PrismaClient();
 
@@ -126,6 +127,86 @@ async function main() {
       console.log(`✨ Área "${area.nombre}" creada`);
     }
   }
+
+  // ─── CREAR USUARIOS DE PRUEBA (uno de cada rol) ───
+
+  const passwordHash = await hash("Password123", 10);
+  const planProFound = await db.plan.findUnique({ where: { nombre: "Pro" } });
+
+  // Estudiante
+  const estudiante = await db.usuario.upsert({
+    where: { email: "estudiante@axis.local" },
+    update: {},
+    create: {
+      email: "estudiante@axis.local",
+      nombre: "Juan Estudiante",
+      rol: "ESTUDIANTE",
+      passwordHash,
+      emailVerified: new Date(),
+      documento: "1234567890",
+      telefono: "3001234567",
+      colegio: "Colegio Técnico Central",
+      grado: 11,
+      ciudad: "Bogotá",
+    },
+  });
+  console.log(`✨ Estudiante creado: ${estudiante.email}`);
+
+  // Asignar plan Pro al estudiante
+  if (planProFound) {
+    const suscripcion = await db.suscripcion.upsert({
+      where: { usuarioId: estudiante.id },
+      update: {},
+      create: {
+        usuarioId: estudiante.id,
+        planId: planProFound.id,
+        fechaInicio: new Date(),
+        fechaFin: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 días
+        activa: true,
+      },
+    });
+    console.log(`✨ Suscripción Pro asignada a estudiante`);
+  }
+
+  // Docente
+  const docente = await db.usuario.upsert({
+    where: { email: "docente@axis.local" },
+    update: {},
+    create: {
+      email: "docente@axis.local",
+      nombre: "María Docente",
+      rol: "DOCENTE",
+      passwordHash,
+      emailVerified: new Date(),
+      documento: "0987654321",
+      telefono: "3009876543",
+      ciudad: "Bogotá",
+    },
+  });
+  console.log(`✨ Docente creado: ${docente.email}`);
+
+  // Admin
+  const admin = await db.usuario.upsert({
+    where: { email: "admin@axis.local" },
+    update: {},
+    create: {
+      email: "admin@axis.local",
+      nombre: "Carlos Admin",
+      rol: "ADMIN",
+      passwordHash,
+      emailVerified: new Date(),
+      documento: "1111111111",
+      telefono: "3001111111",
+      ciudad: "Bogotá",
+    },
+  });
+  console.log(`✨ Admin creado: ${admin.email}`);
+
+  console.log("\n📋 Usuarios de prueba creados:");
+  console.log(`   Estudiante: estudiante@axis.local / Password123`);
+  console.log(`   Docente:    docente@axis.local / Password123`);
+  console.log(`   Admin:      admin@axis.local / Password123`);
+  console.log(`   Developer:  Crear con: npx tsx scripts/setup-developer.ts\n`);
 
   console.log("✅ Seed completado!");
 }

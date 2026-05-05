@@ -1,35 +1,58 @@
-"use client";
-
-import { ReactNode } from "react";
-import { useSession } from "next-auth/react";
+// app/docente/layout.tsx
 import { redirect } from "next/navigation";
-import { DashboardLayout } from "@/components/shared/DashboardLayout";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { DocenteShell } from "@/components/docente/DocenteShell";
 
-interface Props {
-  children: ReactNode;
-}
+export default async function DocenteLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await getServerSession(authOptions);
 
-export default function DocenteLayout({ children }: Props) {
-  const { data: session, status } = useSession();
+  // ── 1. Autenticado ──
+  if (!session?.user) redirect("/auth/login");
 
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
-  }
+  // ── 2. Verificar rol DOCENTE en BD (no solo en JWT) ──
+  const usuario = await db.usuario.findUnique({
+    where: { id: session.user.id },
+    select: { rol: true, nombre: true },
+  });
 
-  if (!session || session.user?.rol !== "DOCENTE") {
+  if (!usuario || usuario.rol !== "DOCENTE") {
+    // Redirigir según su rol real
+    if (usuario?.rol === "ADMIN") redirect("/admin/dashboard");
+    if (usuario?.rol === "ESTUDIANTE") redirect("/dashboard");
     redirect("/auth/login");
   }
 
+  // ── 3. Contar estudiantes sin grupo asignados a este docente ──
+  // (por ahora cuenta globalmente; ajustar si el docente tiene grupos propios)
+  let estudiantesSinGrupo = 0;
+  try {
+    estudiantesSinGrupo = await db.usuario.count({
+      where: {
+        rol: "ESTUDIANTE",
+        grupoId: null,
+        NOT: { suscripcion: null },
+      },
+    });
+  } catch {
+    // Campo grupoId puede no existir aún
+  }
+
+  const user = {
+    id:    session.user.id,
+    name:  session.user.name ?? usuario.nombre ?? "Docente",
+    email: session.user.email ?? "",
+    image: session.user.image ?? null,
+  };
+
   return (
-    <DashboardLayout>
+    <DocenteShell user={user} estudiantesSinGrupo={estudiantesSinGrupo}>
       {children}
-    </DashboardLayout>
+    </DocenteShell>
   );
 }

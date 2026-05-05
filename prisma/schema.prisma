@@ -46,8 +46,13 @@ model Usuario {
   suscripcion    Suscripcion?
   developerCred  DeveloperCredential?
   auditLogs      AuditLog[]
+  resultados     ResultadoSimulacro[]
+  materiales     Material[]      @relation("CreadorMaterial")
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  conversacionesA  Conversacion[]  @relation("ConvParticipanteA")
+  conversacionesB  Conversacion[]  @relation("ConvParticipanteB")
+   mensajesEnviados Mensaje[]       @relation("MensajesEnviados")
 
   @@map("usuarios")
 }
@@ -289,6 +294,8 @@ model SystemLog {
   @@index([nivel])
 }
 
+
+
 model BackupLog {
   id          String    @id @default(cuid())
   tipo        String    // FULL, INCREMENTAL
@@ -319,4 +326,152 @@ model IntegrationLog {
 
   @@map("integration_logs")
   @@index([createdAt])
+}
+
+// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
+// Correr después: npx prisma migrate dev --name add_examenes_template
+
+model ExamenTemplate {
+  id              String           @id @default(cuid())
+  nombre          String
+  materia         String
+  totalPreguntas  Int              @default(50)
+  tiempoMin       Int              @default(120)
+  estado          EstadoExamen     @default(BORRADOR)
+  creadoPorId     String           // id del admin que lo creó
+  claves          ClaveExamen[]
+  resultados      ResultadoSimulacro[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("examenes_template")
+}
+
+model ClaveExamen {
+  id             String         @id @default(cuid())
+  examenId       String
+  examen         ExamenTemplate @relation(fields: [examenId], references: [id], onDelete: Cascade)
+  numeroPregunta Int
+  respuesta      String         // "A", "B", "C" o "D"
+
+  @@unique([examenId, numeroPregunta])
+  @@map("claves_examen")
+}
+
+enum EstadoExamen {
+  BORRADOR
+  PUBLICADO
+  ARCHIVADO
+}
+
+
+
+// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
+// Agregar también fechaDisponible a ExamenTemplate:
+//
+//   model ExamenTemplate {
+//     ...campos existentes...
+//     fechaDisponible DateTime?          // null = disponible inmediatamente
+//   }
+//
+// Luego correr: npx prisma migrate dev --name add_resultados_simulacro
+
+model ResultadoSimulacro {
+  id           String   @id @default(cuid())
+  estudianteId String
+  examenId     String
+  respuestas   Json     // { "1": "A", "2": "B", "3": "C", ... }
+  puntaje      Int      // respuestas correctas
+  total        Int      // total de claves definidas
+  tiempoUsado  Int      // segundos usados
+  completadoEn DateTime @default(now())
+
+  estudiante Usuario        @relation(fields: [estudianteId], references: [id])
+  examen     ExamenTemplate @relation(fields: [examenId], references: [id])
+
+  @@unique([estudianteId, examenId])   // un intento por estudiante por examen
+  @@map("resultados_simulacro")
+}
+
+// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
+// npx prisma migrate dev --name add_material_estudio
+
+model Material {
+  id          String        @id @default(cuid())
+  titulo      String
+  descripcion String?
+  tipo        TipoMaterial  // PDF | VIDEO
+  url         String
+  materia     String?       // opcional: "Matemáticas", "Inglés", etc.
+  gratis      Boolean       @default(true) // siempre true por ahora, para futuro
+  activo      Boolean       @default(true)
+  orden       Int           @default(0)    // para ordenar manualmente
+  creadoPorId String
+  creadoPor   Usuario       @relation("CreadorMaterial", fields: [creadoPorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("materiales")
+}
+
+enum TipoMaterial {
+  PDF
+  VIDEO
+}
+
+model Conversacion {
+  id               String    @id @default(cuid())
+  participanteAId  String                          // siempre el de menor rol o el que inicia
+  participanteBId  String
+  participanteA    Usuario   @relation("ConvParticipanteA", fields: [participanteAId], references: [id])
+  participanteB    Usuario   @relation("ConvParticipanteB", fields: [participanteBId], references: [id])
+  ultimoMensaje    String?
+  ultimoMensajeEn  DateTime?
+  noLeidosA        Int       @default(0)           // mensajes no leídos para participanteA
+  noLeidosB        Int       @default(0)           // mensajes no leídos para participanteB
+  creadaEn         DateTime  @default(now())
+  mensajes         Mensaje[]
+
+  @@unique([participanteAId, participanteBId])
+  @@index([participanteAId])
+  @@index([participanteBId])
+  @@map("conversaciones")
+}
+
+model Mensaje {
+  id             String       @id @default(cuid())
+  conversacionId String
+  conversacion   Conversacion @relation(fields: [conversacionId], references: [id], onDelete: Cascade)
+  remitenteId    String
+  remitente      Usuario      @relation("MensajesEnviados", fields: [remitenteId], references: [id])
+  contenido      String
+  leido          Boolean      @default(false)
+  creadoEn       DateTime     @default(now())
+
+  @@map("mensajes")
+  @@index([conversacionId, creadoEn])
+}
+
+
+
+// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
+// npx prisma migrate dev --name add_anuncios
+//
+// DIMENSIÓN RECOMENDADA PARA LAS IMÁGENES: 1280 x 720 px (proporción 16:9)
+// Formatos aceptados: JPG, PNG, WebP
+// Puedes alojar las imágenes en: Google Drive (compartido públicamente),
+// Imgur, Cloudinary, o cualquier CDN que devuelva una URL directa de imagen.
+
+model Anuncio {
+  id          String   @id @default(cuid())
+  titulo      String                        // texto alternativo / descripción interna
+  imagenUrl   String                        // URL directa de la imagen (1200x400)
+  linkUrl     String?                       // URL destino al hacer click (opcional)
+  activo      Boolean  @default(true)
+  orden       Int      @default(0)          // menor número = aparece primero
+  creadoPorId String
+  creadoEn    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("anuncios")
 }

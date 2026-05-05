@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { authenticateDeveloper } from "@/lib/developer-guard";
 import { db } from "@/lib/db";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const usuario = await authenticateDeveloper();
@@ -24,6 +26,7 @@ export async function GET(request: NextRequest) {
         {
           nombre: "Google OAuth",
           estado: "CONECTADO",
+          // campo correcto del schema: responseTime
           responseTime: 245,
           requestsHoy: 45,
           tasaError: 0,
@@ -31,28 +34,28 @@ export async function GET(request: NextRequest) {
         {
           nombre: "Base de Datos PostgreSQL",
           estado: "CONECTADO",
-          responseTime: 15,
+          latenciaMs: 15,
           requestsHoy: 3420,
           tasaError: 0.1,
         },
         {
           nombre: "Almacenamiento en Caché (Redis)",
           estado: "CONECTADO",
-          responseTime: 5,
+          latenciaMs: 5,
           requestsHoy: 12450,
           tasaError: 0,
         },
         {
           nombre: "Email Service (SMTP)",
           estado: "CONECTADO",
-          responseTime: 850,
+          latenciaMs: 850,
           requestsHoy: 23,
           tasaError: 2.5,
         },
         {
           nombre: "Generador de Reportes",
           estado: "CONECTADO",
-          responseTime: 1200,
+          latenciaMs: 1200,
           requestsHoy: 8,
           tasaError: 0,
         },
@@ -63,7 +66,7 @@ export async function GET(request: NextRequest) {
           data: {
             nombre: integracion.nombre,
             estado: integracion.estado,
-            responseTime: integracion.responseTime,
+            responseTime: integracion.responseTime || integracion.latenciaMs || 0,
             requestsHoy: integracion.requestsHoy,
             tasaError: integracion.tasaError,
             ultimaVerif: new Date(),
@@ -84,8 +87,20 @@ export async function GET(request: NextRequest) {
       total: integraciones.length,
     };
 
+    // ✅ ARREGLO: mapear correctamente usando los campos reales del schema
+    const integracionesFormato = integraciones.map((i) => ({
+      id: i.id,
+      nombre: i.nombre,
+      estado: i.estado,
+      responseTime: i.responseTime || 0,       // campo correcto del schema
+      requestsHoy: i.requestsHoy || 0,
+      tasaError: i.tasaError || 0,
+      ultimaVerif: i.ultimaVerif?.toLocaleTimeString("es-CO") || "—",
+      ultimoError: i.ultimoError || null,
+    }));
+
     return NextResponse.json({
-      integraciones,
+      integraciones: integracionesFormato,
       resumen,
     });
   } catch (error) {

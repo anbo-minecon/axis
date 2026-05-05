@@ -35,14 +35,14 @@ function ThemeToggleContent() {
   return (
     <button
       onClick={handleToggle}
-      className="p-2 rounded-lg transition-all duration-300 bg-white/10 text-white hover:bg-white/20 active:bg-white/30"
+      className="p-2 rounded-lg transition-all duration-300 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white hover:bg-gray-300 dark:hover:bg-white/20 active:bg-gray-400 dark:active:bg-white/30"
       aria-label="Cambiar tema"
       title={`Cambiar a modo ${currentTheme === "light" ? "oscuro" : "claro"}`}
     >
       {currentTheme === "light" ? (
-        <Moon width={20} height={20} />
+        <Moon width={20} height={20} className="text-gray-700" />
       ) : (
-        <Sun width={20} height={20} />
+        <Sun width={20} height={20} className="text-white" />
       )}
     </button>
   );

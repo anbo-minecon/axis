@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validateDeveloperCredentials, generateDeveloperToken } from "@/lib/developer-auth";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -25,7 +27,8 @@ export async function POST(request: NextRequest) {
 
     const token = generateDeveloperToken(usuario.id);
 
-    return NextResponse.json({
+    // Crear respuesta con el token
+    const response = NextResponse.json({
       token,
       usuario: {
         id: usuario.id,
@@ -34,6 +37,19 @@ export async function POST(request: NextRequest) {
         rol: usuario.rol,
       },
     });
+
+    // Establecer cookie con el token (24 horas)
+    response.cookies.set({
+      name: "developer_token",
+      value: token,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60, // 24 horas en segundos
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("Error en login de developer:", error);
     return NextResponse.json(

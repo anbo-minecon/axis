@@ -1,224 +1,280 @@
-"use client";
+// app/docente/dashboard/page.tsx
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { db } from "@/lib/db";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import {
+  Users, ClipboardList, BarChart2, AlertCircle,
+  TrendingUp, Plus, ChevronRight,
+} from "lucide-react";
 
-import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
-import { Users, FileText, TrendingUp, Calendar, AlertCircle } from "lucide-react";
+export const metadata = { title: "Panel Docente | AXIS Pre-ICFES" };
 
-interface Grupo {
-  id: string;
-  nombre: string;
-  estudiantes: number;
-  createdAt: string;
+function getNivel(pts: number) {
+  if (pts >= 400) return { label: "Alto",  color: "text-green-400" };
+  if (pts >= 250) return { label: "Medio", color: "text-amber-400" };
+  return           { label: "Bajo",  color: "text-red-400" };
 }
 
-export default function DocenteDashboard() {
-  const { data: session } = useSession();
-  const [loading, setLoading] = useState(true);
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [activeTab, setActiveTab] = useState("overview");
-  const [stats] = useState({
-    totalGrupos: 0,
-    totalEstudiantes: 0,
-    actividadesAsignadas: 0,
-    studentsActive: 0,
+function fmtFecha(iso: Date) {
+  return new Date(iso).toLocaleDateString("es-CO", {
+    day: "2-digit", month: "short", year: "numeric",
+  });
+}
+
+export default async function DocenteDashboard() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect("/auth/login");
+
+  // ── Datos reales desde la BD ──────────────────────────────────────────────
+
+  // Estudiantes activos (con suscripción)
+  const estudiantesActivos = await db.usuario.count({
+    where: { rol: "ESTUDIANTE", suscripcion: { activa: true } },
   });
 
-  useEffect(() => {
-    setLoading(false);
-  }, []);
+  // Simulacros creados (ExamenTemplate publicados)
+  let simulacrosCreados = 0;
+  try {
+    simulacrosCreados = await (db as any).examenTemplate.count({
+      where: { estado: "PUBLICADO" },
+    });
+  } catch { /* modelo puede no existir aún */ }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  // Promedio global de clase (de todos los ResultadoSimulacro)
+  let promedioClase = 0;
+  try {
+    const resultados = await db.resultadoSimulacro.findMany({
+      select: { puntaje: true, total: true },
+    });
+    if (resultados.length > 0) {
+      const avg = resultados.reduce((a, r) => a + (r.puntaje / r.total) * 500, 0) / resultados.length;
+      promedioClase = Math.round(avg);
+    }
+  } catch { /* modelo puede no existir aún */ }
+
+  // Pendientes de revisión: resultados con puntaje bajo (<50%)
+  let pendientesRevision = 0;
+  try {
+    const todos = await db.resultadoSimulacro.findMany({
+      select: { puntaje: true, total: true },
+    });
+    pendientesRevision = todos.filter((r) => (r.puntaje / r.total) < 0.5).length;
+  } catch { /* modelo puede no existir aún */ }
+
+  // Simulacros recientes
+  let simulacrosRecientes: any[] = [];
+  try {
+    simulacrosRecientes = await (db as any).examenTemplate.findMany({
+      where: { estado: "PUBLICADO" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { _count: { select: { claves: true } } },
+    });
+  } catch { /* modelo puede no existir aún */ }
+
+  // Resultados recientes para calcular promedios por simulacro
+  let resultadosPorExamen: Map<string, { puntajes: number[]; totales: number[] }> = new Map();
+  try {
+    const resultados = await db.resultadoSimulacro.findMany({
+      select: { examenId: true, puntaje: true, total: true },
+    });
+    for (const r of resultados) {
+      if (!resultadosPorExamen.has(r.examenId)) {
+        resultadosPorExamen.set(r.examenId, { puntajes: [], totales: [] });
+      }
+      resultadosPorExamen.get(r.examenId)!.puntajes.push(r.puntaje);
+      resultadosPorExamen.get(r.examenId)!.totales.push(r.total);
+    }
+  } catch { /* modelo puede no existir aún */ }
+
+  const stats = [
+    {
+      label: "Estudiantes activos",
+      value: estudiantesActivos,
+      sub: "Con suscripción activa",
+      icon: Users,
+      color: "text-blue-400",
+      bg: "bg-blue-500/20",
+    },
+    {
+      label: "Simulacros creados",
+      value: simulacrosCreados,
+      sub: "Publicados en la plataforma",
+      icon: ClipboardList,
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/20",
+    },
+    {
+      label: "Promedio de clase",
+      value: promedioClase,
+      sub: "Puntaje promedio (0–500)",
+      icon: BarChart2,
+      color: "text-purple-400",
+      bg: "bg-purple-500/20",
+    },
+    {
+      label: "Pendientes de revisión",
+      value: pendientesRevision,
+      sub: "Resultados bajo el 50%",
+      icon: AlertCircle,
+      color: "text-amber-400",
+      bg: "bg-amber-500/20",
+    },
+  ];
 
   return (
-    <div className="min-h-full p-4 md:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header - Responsive Typography */}
-        <div className="flex flex-col gap-1 md:gap-2">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
-            Panel de Docente
-          </h1>
-          <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">
-            Bienvenido, {session?.user?.name || "Docente"}
-          </p>
-        </div>
+    <div className="px-4 md:px-6 py-6 max-w-6xl mx-auto space-y-6">
 
-        {/* Alert - Responsive */}
-        <div className="border border-yellow-200 bg-yellow-50 dark:border-yellow-900/30 dark:bg-yellow-900/10 rounded-lg p-3 md:p-4 flex gap-2 md:gap-3">
-          <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs md:text-sm text-yellow-800 dark:text-yellow-200">
-              Los módulos de gestión de grupos y actividades están en desarrollo.
-            </p>
-          </div>
-        </div>
+      {/* ── Header ── */}
+      <div>
+        <h1 className="text-xl font-extrabold text-[var(--text-primary)]">Panel Docente</h1>
+        <p className="text-sm text-[var(--text-muted)] mt-0.5">
+          Bienvenido, {session.user.name}. Resumen del estado de tu clase.
+        </p>
+      </div>
 
-        {/* Stats Grid - Mobile responsive (grid-cols-2 for mobile, md:grid-cols-3, lg:grid-cols-4) */}
-        <div className="grid gap-3 md:gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {/* Stat Card 1 */}
-          <div className="border border-gray-100 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 md:p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Grupos</p>
-                <p className="text-xl md:text-2xl font-bold mt-1 md:mt-2 text-gray-900 dark:text-white">
-                  {stats.totalGrupos}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 md:mt-1">Grupos creados</p>
-              </div>
-              <Users className="h-7 w-7 md:h-8 md:w-8 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {stats.map(({ label, value, sub, icon: Icon, color, bg }) => (
+          <div
+            key={label}
+            className="rounded-2xl border border-white/10 bg-[var(--bg-card)] px-5 py-4 space-y-3"
+          >
+            <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", bg)}>
+              <Icon className={cn("h-5 w-5", color)} />
+            </div>
+            <div>
+              <p className="text-2xl font-extrabold text-[var(--text-primary)]">{value}</p>
+              <p className="text-xs font-semibold text-[var(--text-muted)] mt-0.5">{label}</p>
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Stat Card 2 */}
-          <div className="border border-gray-100 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 md:p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Estudiantes</p>
-                <p className="text-xl md:text-2xl font-bold mt-1 md:mt-2 text-gray-900 dark:text-white">
-                  {stats.totalEstudiantes}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 md:mt-1">Total de estudiantes</p>
-              </div>
-              <TrendingUp className="h-7 w-7 md:h-8 md:w-8 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-            </div>
-          </div>
+      {/* ── Cuerpo principal ── */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-          {/* Stat Card 3 */}
-          <div className="border border-gray-100 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 md:p-5 shadow-sm md:col-span-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Actividades</p>
-                <p className="text-xl md:text-2xl font-bold mt-1 md:mt-2 text-gray-900 dark:text-white">
-                  {stats.actividadesAsignadas}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 md:mt-1">Actividades asignadas</p>
-              </div>
-              <FileText className="h-7 w-7 md:h-8 md:w-8 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-            </div>
-          </div>
-
-          {/* Stat Card 4 */}
-          <div className="border border-gray-100 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 p-4 md:p-5 shadow-sm md:col-span-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs md:text-sm font-medium text-gray-600 dark:text-gray-400">Activos Hoy</p>
-                <p className="text-xl md:text-2xl font-bold mt-1 md:mt-2 text-gray-900 dark:text-white">
-                  {stats.studentsActive}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5 md:mt-1">Estudiantes activos</p>
-              </div>
-              <Calendar className="h-7 w-7 md:h-8 md:w-8 text-gray-400 dark:text-gray-500 flex-shrink-0" />
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs Section - Mobile friendly */}
-        <div className="border border-gray-100 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
-          {/* Tab List - Scrollable on mobile */}
-          <div className="flex border-b border-gray-100 dark:border-gray-700 overflow-x-auto">
-            <button
-              onClick={() => setActiveTab("overview")}
-              className={`px-4 md:px-6 py-3 md:py-4 font-medium text-xs md:text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === "overview"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                  : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-              }`}
+        {/* Simulacros recientes — ocupa 2 columnas */}
+        <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-[var(--bg-card)] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
+            <h2 className="text-sm font-bold text-[var(--text-primary)]">Simulacros recientes</h2>
+            <Link
+              href="/docente/simulacros"
+              className="flex items-center gap-1 text-xs font-semibold text-green-400 hover:text-green-300 transition"
             >
-              Resumen
-            </button>
-            <button
-              onClick={() => setActiveTab("grupos")}
-              className={`px-4 md:px-6 py-3 md:py-4 font-medium text-xs md:text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === "grupos"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                  : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-              }`}
-            >
-              Grupos
-            </button>
-            <button
-              onClick={() => setActiveTab("actividades")}
-              className={`px-4 md:px-6 py-3 md:py-4 font-medium text-xs md:text-sm border-b-2 transition-colors whitespace-nowrap ${
-                activeTab === "actividades"
-                  ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
-                  : "border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-              }`}
-            >
-              Actividades
-            </button>
+              <Plus className="h-3.5 w-3.5" />
+              Crear nuevo
+            </Link>
           </div>
 
-          {/* Tab Content - Responsive padding */}
-          <div className="p-4 md:p-6">
-            {activeTab === "overview" && (
-              <div className="space-y-3 md:space-y-4">
-                <h3 className="font-semibold text-base md:text-lg">Bienvenida</h3>
-                <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                  Esta es tu área de gestión como docente en AXIS PreICFES. Aquí podrás:
-                </p>
-                <ul className="space-y-2 text-xs md:text-sm">
-                  <li className="flex items-center gap-2">
-                    <span className="text-blue-600 dark:text-blue-400">•</span>
-                    <span className="text-gray-700 dark:text-gray-300">Crear y gestionar grupos de estudiantes</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-blue-600 dark:text-blue-400">•</span>
-                    <span className="text-gray-700 dark:text-gray-300">Asignar simulacros y actividades</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-blue-600 dark:text-blue-400">•</span>
-                    <span className="text-gray-700 dark:text-gray-300">Monitorear el progreso de tus estudiantes</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="text-blue-600 dark:text-blue-400">•</span>
-                    <span className="text-gray-700 dark:text-gray-300">Generar reportes de desempeño</span>
-                  </li>
-                </ul>
-              </div>
-            )}
-
-            {activeTab === "grupos" && (
-              <div>
-                <h3 className="font-semibold text-base md:text-lg mb-4">Mis Grupos</h3>
-                {grupos.length === 0 ? (
-                  <div className="text-center py-6 md:py-8">
-                    <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      Aun no has creado ningun grupo
-                    </p>
-                    <button className="px-3 md:px-4 py-2 md:py-3 bg-blue-600 dark:bg-blue-700 text-white text-xs md:text-base rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition font-medium">
-                      Crear Grupo
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3 md:space-y-4">
-                    {grupos.map((grupo) => (
-                      <div key={grupo.id} className="border border-gray-200 dark:border-gray-700 rounded p-3 md:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
-                        <h4 className="font-medium text-sm md:text-base text-gray-900 dark:text-white">{grupo.nombre}</h4>
-                        <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {grupo.estudiantes} estudiantes
-                        </p>
-                      </div>
+          {simulacrosRecientes.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+              <ClipboardList className="h-10 w-10 text-gray-700" />
+              <p className="text-sm text-gray-500">No hay simulacros publicados aún</p>
+              <Link
+                href="/docente/simulacros"
+                className="rounded-xl bg-green-700 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600 transition"
+              >
+                Crear primer simulacro
+              </Link>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/8 bg-white/[0.02]">
+                    {["Simulacro", "Preguntas", "Estudiantes", "Promedio", "Estado"].map((h) => (
+                      <th key={h} className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                        {h}
+                      </th>
                     ))}
-                  </div>
-                )}
-              </div>
-            )}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {simulacrosRecientes.map((s: any) => {
+                    const datos = resultadosPorExamen.get(s.id);
+                    const cantEstudiantes = datos?.puntajes.length ?? 0;
+                    const promedio = datos && cantEstudiantes > 0
+                      ? Math.round(
+                          datos.puntajes.reduce((a, p, i) => a + (p / datos.totales[i]) * 500, 0) /
+                          cantEstudiantes
+                        )
+                      : null;
+                    const nivel = promedio !== null ? getNivel(promedio) : null;
 
-            {activeTab === "actividades" && (
-              <div>
-                <h3 className="font-semibold text-base md:text-lg mb-4">Actividades Asignadas</h3>
-                <div className="text-center py-6 md:py-8">
-                  <p className="text-xs md:text-sm text-gray-600 dark:text-gray-400">
-                    No hay actividades asignadas por el momento
-                  </p>
+                    return (
+                      <tr key={s.id} className="hover:bg-white/[0.02] transition">
+                        <td className="px-5 py-3">
+                          <p className="font-semibold text-[var(--text-primary)] text-sm">{s.nombre}</p>
+                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{s.materia}</p>
+                        </td>
+                        <td className="px-5 py-3 text-[var(--text-muted)] text-sm">{s._count.claves}</td>
+                        <td className="px-5 py-3 text-[var(--text-muted)] text-sm">{cantEstudiantes}</td>
+                        <td className="px-5 py-3">
+                          {promedio !== null ? (
+                            <span className={cn("text-sm font-bold", nivel!.color)}>
+                              {promedio} pts
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-green-400">
+                            Publicado
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Panel derecho */}
+        <div className="space-y-4">
+
+          {/* Accesos rápidos */}
+          <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-5 space-y-2">
+            <h2 className="text-sm font-bold text-[var(--text-primary)] mb-3">Accesos rápidos</h2>
+            {[
+              { href: "/docente/simulacros", label: "Crear simulacro",    icon: ClipboardList, color: "text-emerald-400 bg-emerald-500/20" },
+              { href: "/docente/grupos",     label: "Ver mis grupos",     icon: Users,         color: "text-blue-400 bg-blue-500/20" },
+              { href: "/docente/estadisticas", label: "Ver estadísticas", icon: TrendingUp,    color: "text-purple-400 bg-purple-500/20" },
+              { href: "/docente/mensajes",   label: "Mensajes",           icon: BarChart2,     color: "text-amber-400 bg-amber-500/20" },
+            ].map(({ href, label, icon: Icon, color }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3 hover:bg-white/[0.05] hover:border-white/15 transition group"
+              >
+                <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", color.split(" ")[1])}>
+                  <Icon className={cn("h-4 w-4", color.split(" ")[0])} />
                 </div>
+                <span className="flex-1 text-sm font-semibold text-[var(--text-primary)]">{label}</span>
+                <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-[var(--text-muted)] transition" />
+              </Link>
+            ))}
+          </div>
+
+          {/* Estado de la plataforma */}
+          <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-5 space-y-3">
+            <h2 className="text-sm font-bold text-[var(--text-primary)]">Resumen</h2>
+            {[
+              { label: "Estudiantes con suscripción", value: estudiantesActivos, color: "text-green-400" },
+              { label: "Promedio global", value: promedioClase > 0 ? `${promedioClase} pts` : "—", color: promedioClase >= 400 ? "text-green-400" : promedioClase >= 250 ? "text-amber-400" : "text-red-400" },
+              { label: "Resultados bajos (<50%)", value: pendientesRevision, color: pendientesRevision > 0 ? "text-amber-400" : "text-green-400" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex items-center justify-between">
+                <p className="text-xs text-[var(--text-muted)]">{label}</p>
+                <p className={cn("text-sm font-bold", color)}>{value}</p>
               </div>
-            )}
+            ))}
           </div>
         </div>
       </div>

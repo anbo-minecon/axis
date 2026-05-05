@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import Image from "next/image";
 import { Mail, Lock, Loader, Eye, EyeOff } from "lucide-react";
 import { Toast } from "@/lib/notifications";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -185,5 +185,17 @@ export default function LoginPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-gray-600 dark:text-gray-300">Cargando...</div>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -32,7 +32,7 @@ interface NavItem {
   badge?: boolean;
 }
 
-export function Sidebar() {
+export function Sidebar({ ocultarMenuMobil = false }: { ocultarMenuMobil?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
@@ -92,17 +92,19 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Hamburger menu para mobile */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-axis-azul rounded-lg"
-      >
-        {isOpen ? (
-          <X className="w-6 h-6 text-white" />
-        ) : (
-          <Menu className="w-6 h-6 text-white" />
-        )}
-      </button>
+      {/* Hamburger menu para mobile - solo si no está oculto */}
+      {!ocultarMenuMobil && (
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-axis-azul rounded-lg"
+        >
+          {isOpen ? (
+            <X className="w-6 h-6 text-white" />
+          ) : (
+            <Menu className="w-6 h-6 text-white" />
+          )}
+        </button>
+      )}
 
       {/* Overlay para mobile */}
       {isOpen && (

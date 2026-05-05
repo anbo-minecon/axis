@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard, Users, UsersRound, BadgeCheck, BarChart3,
-  FileText, Megaphone, Moon, Sun, LogOut, ChevronRight, AlertTriangle,
+  FileText, Megaphone, Moon, Sun, LogOut, ChevronRight,
+  AlertTriangle, ClipboardList, MessageSquare,
 } from "lucide-react";
 
 export interface AdminUser {
@@ -28,6 +29,8 @@ const NAV_ITEMS = [
   { href: "/admin/usuarios",      label: "Gestionar Usuarios",    icon: Users },
   { href: "/admin/grupos",        label: "Gestionar Grupos",      icon: UsersRound },
   { href: "/admin/suscripciones", label: "Validar Suscripciones", icon: BadgeCheck },
+  { href: "/admin/simulacros",    label: "Simulacros",            icon: ClipboardList },
+  { href: "/admin/mensajes",      label: "Mensajes",              icon: MessageSquare },
   { href: "/admin/reportes",      label: "Reportes del Sistema",  icon: BarChart3 },
   { href: "/admin/contenido",     label: "Gestionar Contenido",   icon: FileText },
   { href: "/admin/anuncios",      label: "Anuncios",              icon: Megaphone },

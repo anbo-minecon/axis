@@ -7,7 +7,21 @@ export async function middleware(request: NextRequest) {
   const rol = token?.rol as string | undefined;
   const tieneSubscripcion = token?.tieneSubscripcion as boolean ?? false;
 
-  // 1. Redirect usuarios logueados lejos del login/registro
+  // 1. Permitir acceso a /developer/login sin autenticación
+  if (pathname === "/developer/login") {
+    // Si ya está logueado como developer, redirigir al dashboard
+    if (token && rol === "DEVELOPER") {
+      return NextResponse.redirect(new URL("/developer/dashboard", request.url));
+    }
+    // Si tiene cookie de developer, también permitir (ya está logueado)
+    const developerCookie = request.cookies.get("developer_token");
+    if (developerCookie) {
+      return NextResponse.redirect(new URL("/developer/dashboard", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 2. Verificar si es usuario logueado (NextAuth) y redirigir
   if (
     (pathname === "/auth/login" || pathname === "/auth/registro") &&
     token
@@ -72,20 +86,19 @@ export async function middleware(request: NextRequest) {
 
   // 4. Proteger rutas de developer
   if (pathname.startsWith("/developer")) {
-    if (!token) {
-      return NextResponse.redirect(
-        new URL(`/auth/login?callbackUrl=${pathname}`, request.url)
-      );
+    // Verificar si tiene cookie de developer
+    const developerCookie = request.cookies.get("developer_token");
+    
+    // Si tiene cookie de developer O es desarrollador por NextAuth, permitir acceso
+    if (developerCookie || (token && rol === "DEVELOPER")) {
+      return NextResponse.next();
     }
-    if (rol !== "DEVELOPER") {
-      // No es developer, redirigir a su dashboard según su rol
-      if (rol === "ADMIN") {
-        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-      }
-      if (rol === "DOCENTE") {
-        return NextResponse.redirect(new URL("/docente/dashboard", request.url));
-      }
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+
+    // Si no tiene autenticación de developer, redirigir
+    if (!token || rol !== "DEVELOPER") {
+      return NextResponse.redirect(
+        new URL(`/developer/login`, request.url)
+      );
     }
   }
 

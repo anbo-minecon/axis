@@ -18,6 +18,8 @@ import {
   Sun,
   LogOut,
   AlertTriangle,
+  ClipboardList,
+  MessageSquare,
 } from "lucide-react";
 
 export interface AdminUser {
@@ -39,6 +41,8 @@ const NAV_ITEMS = [
   { href: "/admin/usuarios",      label: "Usuarios",             icon: Users },
   { href: "/admin/grupos",        label: "Grupos",               icon: UsersRound },
   { href: "/admin/suscripciones", label: "Suscripciones",        icon: BadgeCheck },
+  { href: "/admin/simulacros",    label: "Simulacros",           icon: ClipboardList },
+  { href: "/admin/mensajes",      label: "Mensajes",             icon: MessageSquare },
   { href: "/admin/reportes",      label: "Reportes",             icon: BarChart3 },
   { href: "/admin/contenido",     label: "Contenido",            icon: FileText },
   { href: "/admin/anuncios",      label: "Anuncios",             icon: Megaphone },
@@ -82,7 +86,7 @@ export function AdminMobileMenu({
         style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       />
 
-      {/* Panel — "blooms" desde el botón + (abajo-centro hacia arriba) */}
+      {/* Panel */}
       <div
         className={cn(
           "fixed bottom-16 left-3 right-3 z-50 lg:hidden rounded-2xl overflow-hidden shadow-2xl",

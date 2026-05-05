@@ -9,11 +9,13 @@ import { Sidebar } from "./Sidebar";
 interface DashboardLayoutProps {
   children: ReactNode;
   requiereSubscripcion?: boolean;
+  ocultarMenuMobil?: boolean;
 }
 
 export function DashboardLayout({
   children,
   requiereSubscripcion = false,
+  ocultarMenuMobil = false,
 }: DashboardLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -43,7 +45,7 @@ export function DashboardLayout({
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar ocultarMenuMobil={ocultarMenuMobil} />
 
       {/* Contenido principal */}
       <main className="flex-1 ml-0 lg:ml-64 overflow-y-auto">

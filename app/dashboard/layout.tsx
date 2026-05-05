@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

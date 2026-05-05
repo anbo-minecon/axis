@@ -15,6 +15,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 /* ── Tipos ───────────────────────────────────────── */
 interface DashboardStats {
   simulacrosCompletados: number;
@@ -63,83 +65,72 @@ function nivelColor(nivel: string) {
 
 /* ── Fetch de datos del dashboard ────────────────── */
 async function fetchDashboardData(userId: string) {
-  // TODO: Ajustar nombres de modelos Prisma según tu schema.prisma
-  // Los intentos y simulacros son el núcleo de estas consultas
-
   try {
-    // Intentos completados del usuario
-    const intentos = await db.intento.findMany({
-      where: {
-        usuarioId: userId,
-        estado: "completado",
-      },
+    // Resultados completados del usuario usando ResultadoSimulacro
+    const resultados = await (db as any).resultadoSimulacro.findMany({
+      where: { estudianteId: userId },
       include: {
-        simulacro: {
-          select: { totalPreguntas: true },
+        examen: {
+          select: { nombre: true, materia: true, totalPreguntas: true },
         },
-        respuestasUser: true,
       },
-      orderBy: { fechaFin: "desc" },
+      orderBy: { completadoEn: "desc" },
     });
 
-    // Calcular puntaje de cada intento (aciertos / total * 500)
-    const intentosConPuntaje = intentos.map((intento) => {
-      const aciertos = intento.respuestasUser.filter(
-        (r) => r.esCorrecta
-      ).length;
-      const total = intento.simulacro?.totalPreguntas ?? 1;
-      const puntaje = Math.round((aciertos / total) * 500);
-      return { ...intento, puntaje };
+    // Calcular puntaje escalado (0-500) basado en el porcentaje
+    const resultadosConPuntaje = resultados.map((r: any) => {
+      const porcentaje = (r.puntaje / r.total) * 100;
+      const puntaje = Math.round((porcentaje / 100) * 500); // escala 0-500
+      return { ...r, puntajeEscalado: puntaje };
     });
 
-    const puntajeMasAlto = intentosConPuntaje.length
-      ? Math.max(...intentosConPuntaje.map((i) => i.puntaje))
+    const puntajeMasAlto = resultadosConPuntaje.length
+      ? Math.max(...resultadosConPuntaje.map((r: any) => r.puntajeEscalado))
       : 0;
 
-    const promedioGeneral = intentosConPuntaje.length
+    const promedioGeneral = resultadosConPuntaje.length
       ? Math.round(
-          intentosConPuntaje.reduce((sum, i) => sum + i.puntaje, 0) /
-            intentosConPuntaje.length
+          resultadosConPuntaje.reduce((sum: number, r: any) => sum + r.puntajeEscalado, 0) /
+            resultadosConPuntaje.length
         )
       : 0;
 
-    // Últimos 3 para "actividad reciente"
-    const recientes: SimulacroReciente[] = intentosConPuntaje
+    // Últimos 3 resultados para "actividad reciente"
+    const recientes: SimulacroReciente[] = resultadosConPuntaje
       .slice(0, 3)
-      .map((i, idx) => ({
-        id: i.id,
-        nombre: `Simulacro ${idx + 1}`,
-        puntaje: i.puntaje,
-        nivel: i.puntaje >= 400 ? "Alto" : i.puntaje >= 250 ? "Medio" : "Bajo",
-        fecha: i.fechaFin
-          ? new Date(i.fechaFin).toLocaleDateString("es-CO", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "",
-      }));
-
-    // Próximos simulacros disponibles (no intentados)
-    const todosSimulacros = await db.simulacro.findMany({
-      take: 3,
-      orderBy: { fechaInicio: "desc" },
-      select: { id: true, tipo: true, fechaInicio: true },
-    });
-
-    const intentadosIds = new Set(intentos.map((i) => i.simulacroId));
-    const proximos: ProximoSimulacro[] = todosSimulacros
-      .filter((s) => !intentadosIds.has(s.id))
-      .slice(0, 2)
-      .map((s, idx) => ({
-        id: s.id,
-        nombre: `${s.tipo === "COMPLETO" ? "Simulacro Completo" : s.tipo === "POR_AREA" ? "Simulacro por Área" : "Práctica Rápida"}`,
-        fecha: new Date(s.fechaInicio).toLocaleDateString("es-CO", {
+      .map((r: any, idx: number) => ({
+        id: r.id,
+        nombre: r.examen.nombre || `Simulacro ${idx + 1}`,
+        puntaje: r.puntajeEscalado,
+        nivel: r.puntajeEscalado >= 400 ? "Alto" : r.puntajeEscalado >= 250 ? "Medio" : "Bajo",
+        fecha: new Date(r.completadoEn).toLocaleDateString("es-CO", {
           day: "2-digit",
           month: "short",
           year: "numeric",
         }),
-        materia: "General",
+      }));
+
+    // Próximos simulacros disponibles (no completados)
+    const todosExamenes = await (db as any).examenTemplate.findMany({
+      where: { estado: "PUBLICADO" },
+      select: { id: true, nombre: true, materia: true },
+      take: 5,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const completadosIds = new Set(resultados.map((r: any) => r.examenId));
+    const proximos: ProximoSimulacro[] = todosExamenes
+      .filter((e: any) => !completadosIds.has(e.id))
+      .slice(0, 2)
+      .map((e: any) => ({
+        id: e.id,
+        nombre: e.nombre,
+        fecha: new Date().toLocaleDateString("es-CO", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        materia: e.materia,
       }));
 
     // Grupo del usuario
@@ -170,7 +161,7 @@ async function fetchDashboardData(userId: string) {
 
     return {
       stats: {
-        simulacrosCompletados: intentos.length,
+        simulacrosCompletados: resultados.length,
         puntajeMasAlto,
         posicionRanking: 0, // TODO: calcular ranking real
         promedioGeneral,
@@ -180,7 +171,6 @@ async function fetchDashboardData(userId: string) {
       grupo,
     };
   } catch (error) {
-    // Si los modelos aún no existen, retornar datos vacíos
     console.error("[Dashboard] Error fetching data:", error);
     return {
       stats: {

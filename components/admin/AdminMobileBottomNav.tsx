@@ -4,13 +4,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, BadgeCheck, BarChart3, Plus } from "lucide-react";
+import { LayoutDashboard, Users, BadgeCheck, ClipboardList, Plus } from "lucide-react";
 
+// Los 4 atajos más usados en móvil (2 izquierda + botón central + 2 derecha)
 const NAV_ITEMS = [
-  { href: "/admin/dashboard",     label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/usuarios",      label: "Usuarios",  icon: Users },
-  { href: "/admin/suscripciones", label: "Suscrip.",  icon: BadgeCheck },
-  { href: "/admin/reportes",      label: "Reportes",  icon: BarChart3 },
+  { href: "/admin/dashboard",     label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/admin/usuarios",      label: "Usuarios",    icon: Users },
+  { href: "/admin/simulacros",    label: "Simulacros",  icon: ClipboardList },
+  { href: "/admin/suscripciones", label: "Suscrip.",    icon: BadgeCheck },
 ];
 
 interface AdminMobileBottomNavProps {

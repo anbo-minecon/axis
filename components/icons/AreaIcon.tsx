@@ -2,53 +2,62 @@ export function AreaIcon({ icon, color }: { icon: "math" | "lectura" | "ciencias
   switch (icon) {
     case "math":
       return (
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-          {/* Símbolos matemáticos: + - * / */}
-          <text x="2" y="16" fontSize="18" fontWeight="bold" fill="currentColor">+</text>
-          <text x="10" y="16" fontSize="18" fontWeight="bold" fill="currentColor">−</text>
-          <text x="18" y="16" fontSize="18" fontWeight="bold" fill="currentColor">×</text>
-          <text x="26" y="16" fontSize="18" fontWeight="bold" fill="currentColor">÷</text>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+          <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+          <g id="SVGRepo_iconCarrier"> 
+            <path d="M14.4207 5.63965H21.7007" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> 
+            <path d="M2.29956 5.64014H9.57956" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> 
+            <path d="M14.4207 15.3301H21.7007" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> 
+            <path d="M14.4207 21.3896H21.7007" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> 
+            <path d="M18.0894 9.27V2" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> 
+            <path d="M2.29956 22L9.57956 14.73" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> 
+            <path d="M9.57956 22L2.29956 14.73" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> 
+          </g>
         </svg>
       );
     case "lectura":
       return (
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-          {/* Libro abierto */}
-          <path d="M12 2C10.9 2 10 2.9 10 4V20C10 21.1 10.9 22 12 22C13.1 22 14 21.1 14 20V4C14 2.9 13.1 2 12 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          <path d="M8 5C8 3.9 7.1 3 6 3C4.9 3 4 3.9 4 5V19C4 20.1 4.9 21 6 21C7.1 21 8 20.1 8 19V5Z" fill="currentColor" opacity="0.3"/>
-          <path d="M16 5C16 3.9 16.9 3 18 3C19.1 3 20 3.9 20 5V19C20 20.1 19.1 21 18 21C16.9 21 16 20.1 16 19V5Z" fill="currentColor" opacity="0.3"/>
-          <path d="M8 8H16M8 12H16M8 16H14" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+          <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+          <g id="SVGRepo_iconCarrier">
+            <path d="M12 6.90909C10.8999 5.50893 9.20406 4.10877 5.00119 4.00602C4.72513 3.99928 4.5 4.22351 4.5 4.49965C4.5 6.54813 4.5 14.3034 4.5 16.597C4.5 16.8731 4.72515 17.09 5.00114 17.099C9.20405 17.2364 10.8999 19.0998 12 20.5M12 6.90909C13.1001 5.50893 14.7959 4.10877 18.9988 4.00602C19.2749 3.99928 19.5 4.21847 19.5 4.49461C19.5 6.78447 19.5 14.3064 19.5 16.5963C19.5 16.8724 19.2749 17.09 18.9989 17.099C14.796 17.2364 13.1001 19.0998 12 20.5M12 6.90909L12 20.5" stroke={color} strokeWidth="2" strokeLinejoin="round"></path>
+            <path d="M19.2353 6H21.5C21.7761 6 22 6.22386 22 6.5V19.539C22 19.9436 21.5233 20.2124 21.1535 20.0481C20.3584 19.6948 19.0315 19.2632 17.2941 19.2632C14.3529 19.2632 12 21 12 21C12 21 9.64706 19.2632 6.70588 19.2632C4.96845 19.2632 3.64156 19.6948 2.84647 20.0481C2.47668 20.2124 2 19.9436 2 19.539V6.5C2 6.22386 2.22386 6 2.5 6H4.76471" stroke={color} strokeWidth="2" strokeLinejoin="round"></path>
+          </g>
         </svg>
       );
     case "ciencias":
       return (
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-          {/* Hoja */}
-          <path d="M7 2C5.9 2 5 2.9 5 4V18C5 19.66 6.34 21 8 21H18C18.55 21 19 20.55 19 20V5C19 3.9 18.1 3 17 3H8C6.9 3 6 3.9 6 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          <path d="M7 2L12 2L17 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
-          <path d="M10 7H14M10 11H16M10 15H14" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+        <svg fill={color} viewBox="0 0 15 15" id="natural" xmlns="http://www.w3.org/2000/svg">
+          <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+          <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+          <g id="SVGRepo_iconCarrier">
+            <path d="M8.753,6.278a.5.5,0,0,1-.51,0A4.109,4.109,0,0,1,6.5,3.5a2.779,2.779,0,0,0-.59-1.506l-.019-.027a.257.257,0,0,1-.056-.144.237.237,0,0,1,.25-.25.264.264,0,0,1,.057.011A3.523,3.523,0,0,1,7.5,2.5L8.28.94a.246.246,0,0,1,.44,0L9.5,2.5a3.4,3.4,0,0,1,1.339-.907.283.283,0,0,1,.1-.021c.175.009.212.119.221.249a.35.35,0,0,1-.043.141A5.2,5.2,0,0,0,10.5,3.5,4.113,4.113,0,0,1,8.753,6.278ZM5,8H6.289a.25.25,0,0,0,.25-.25.241.241,0,0,0-.061-.15L4.7,5.235a.255.255,0,0,0-.391,0L2.518,7.589a.274.274,0,0,0-.062.161.25.25,0,0,0,.25.25H4L1.335,10.6a.273.273,0,0,0-.058.152A.25.25,0,0,0,1.529,11H3L1.435,12.565a.255.255,0,0,0,.18.435H4v1H5V13H7.385a.255.255,0,0,0,.18-.435L6,11H7.471a.25.25,0,0,0,.25-.25.233.233,0,0,0-.058-.149Zm9.345,3.748a.252.252,0,0,1-.252.252H8.908a.252.252,0,0,1-.226-.365L11.27,6.451a.252.252,0,0,1,.451,0l2.6,5.184h0A.251.251,0,0,1,14.345,11.748ZM12.75,10,11.5,7.5,10.25,10Z"></path>
+          </g>
         </svg>
       );
     case "sociales":
       return (
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-          {/* Globo terráqueo */}
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M12 2C12 2 8 6 8 12C8 15 10 18 12 21" stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.3"/>
-          <path d="M12 2C12 2 16 6 16 12C16 15 14 18 12 21" stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.5"/>
-          <ellipse cx="12" cy="12" rx="10" ry="4" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
-          <path d="M2 12H22" stroke="currentColor" strokeWidth="1" opacity="0.5"/>
+        <svg fill={color} viewBox="0 -8 72 72" id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg">
+          <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+          <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+          <g id="SVGRepo_iconCarrier">
+            <title>world</title>
+            <path d="M59.25,12.42l-.83.27L54,13.08l-1.27,2-.91-.29L48.23,11.6l-.52-1.66L47,8.16l-2.23-2-2.63-.51-.06,1.2,2.58,2.52,1.26,1.48-1.42.75-1.15-.34-1.73-.73,0-1.39L39.42,8.2l-.75,3.29L36.38,12l.23,1.84,3,.57.52-2.93,2.46.37,1.14.67h1.84L46.8,15l3.34,3.38-.25,1.32-2.69-.34-4.64,2.34-3.34,4-.43,1.78H37.58l-2.23-1-2.17,1,.54,2.29.94-1.09,1.67,0-.12,2,1.38.4L39,32.67,41.2,32l2.57.4,3,.8,1.48.18,2.52,2.86,4.87,2.86-3.15,6-3.32,1.54-1.26,3.44-4.81,3.21-.51,1.85A28,28,0,0,0,59.25,12.42Z"></path>
+            <path d="M39.22,42.63l-2-3.78L39.05,35l-1.87-.56-2.1-2.11-4.66-1L28.88,28v1.92H28.2l-4-5.44V20l-2.94-4.78-4.67.83H13.43l-1.59-1,2-1.6-2,.46A28,28,0,0,0,36,56a29,29,0,0,0,3.51-.25l-.29-3.39s1.29-5,1.29-5.2S39.22,42.63,39.22,42.63Z"></path>
+            <path d="M18.41,9l5-.7,2.29-1.25,2.58.74,4.12-.23,1.42-2.22,2.05.34,5-.47,1.38-1.52,2-1.29,2.74.41,1-.15a27.91,27.91,0,0,0-33.51,7.49h0ZM37.18,2.78,40,1.21l1.84,1.06-2.66,2-2.54.26-1.14-.74ZM28.71,3,30,3.54,31.63,3l.9,1.56-3.82,1L26.88,4.5S28.67,3.35,28.71,3Z"></path>
+          </g>
         </svg>
       );
     case "ingles":
       return (
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color }}>
-          {/* Mundo/Globo */}
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-          <path d="M2 12C2 12 5 8 12 8C19 8 22 12 22 12C22 12 19 16 12 16C5 16 2 12 2 12Z" fill="currentColor" opacity="0.2"/>
-          <path d="M5 7C7 5 10 4 12 4C14 4 17 5 19 7" stroke="currentColor" strokeWidth="1"/>
-          <path d="M5 17C7 19 10 20 12 20C14 20 17 19 19 17" stroke="currentColor" strokeWidth="1"/>
-          <circle cx="12" cy="12" r="2" fill="currentColor"/>
+        <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" fill={color}>
+          <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+          <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+          <g id="SVGRepo_iconCarrier">
+            <path fill={color} d="M256 18v29h238V18H256zm-208 .002l-9.404 19.053-21.03 3.056 15.217 14.833L29.19 75.89l18.812-9.892 18.807 9.89-3.593-20.945L78.434 40.11l-21.032-3.055L48 18.002zm80 0l-9.404 19.053-21.032 3.056 15.217 14.833-3.59 20.946L128 65.997l18.807 9.89-3.592-20.945 15.217-14.832-21.03-3.055L128 18.002zm80 0l-9.404 19.053-21.032 3.056 15.217 14.833-3.59 20.946L208 65.997l18.807 9.89-3.592-20.945 15.217-14.832-21.03-3.055L208 18.002zm-39.404 54.385L159.19 91.44l-21.028 3.056 15.217 14.832-3.593 20.945 18.81-9.89 18.807 9.89-3.59-20.945 15.215-14.832-21.032-3.057-9.402-19.053zm-79.998 1.998L79.193 93.44l-21.03 3.056 15.218 14.832-3.593 20.945 18.81-9.89 18.807 9.89-3.59-20.945 15.215-14.832L98 93.44l-9.402-19.055zM256 81v30h238V81H256zM48 130.004l-9.404 19.053-21.03 3.056 15.217 14.832-3.592 20.946L48.003 178l18.807 9.89-3.593-20.945 15.217-14.832-21.032-3.056L48 130.004zm80 0l-9.404 19.053-21.032 3.056 15.217 14.832-3.59 20.946L128 178l18.807 9.89-3.592-20.945 15.217-14.832-21.03-3.056L128 130.004zm80 0l-9.404 19.053-21.032 3.056 15.217 14.832-3.59 20.946L208 178l18.807 9.89-3.592-20.945 15.217-14.832-21.03-3.056L208 130.004zM256 145v30h238v-30H256zM88.598 186.385l-9.405 19.054-21.03 3.056 15.218 14.832-3.593 20.945 18.81-9.89 18.807 9.89-3.59-20.945 15.215-14.832L98 205.44l-9.402-19.055zm79.998.002l-9.405 19.052-21.028 3.056 15.217 14.832-3.593 20.945 18.81-9.89 18.807 9.89-3.59-20.945 15.215-14.832-21.032-3.057-9.402-19.053zM256 209v30h238v-30H256zM18 273v30h476v-30H18zm0 64v30h476v-30H18zm0 64v30h476v-30H18zm0 64v29h476v-29H18z"></path>
+          </g>
         </svg>
       );
     default:

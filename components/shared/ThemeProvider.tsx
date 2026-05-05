@@ -59,11 +59,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   }, [applyTheme]);
 
-  // Evitar flash de contenido sin estilos
-  if (!isMounted) {
-    return <>{children}</>;
-  }
-
+  // Siempre proveer el contexto, incluso antes de montar
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}

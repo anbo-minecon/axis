@@ -128,11 +128,12 @@ axis-preicfes/
 | `/` | Landing page pública | ✅ |
 | `/auth/login` | Página de login | ✅ |
 | `/auth/registro` | Página de registro | ✅ |
-| `/dashboard` | Dashboard del estudiante | ✅ |
+| `/dashboard` | Dashboard del estudiante | ✅ Datos actualizados |
+| `/dashboard/simulacros` | Lista de simulacros con imágenes | ✅ Con tarjetas visuales |
+| `/dashboard/simulacro/[id]/resultado` | Detalle de resultados | ✅ Funcional |
+| `/dashboard/planes` | Planes de suscripción | ✅ Funcional |
 | `/dashboard/estadisticas` | Estadísticas personales | 🔄 |
 | `/dashboard/perfil` | Configuración de perfil | 🔄 |
-| `/dashboard/resultados/[id]` | Detalle de resultados | 🔄 |
-| `/dashboard/simulacro/[id]` | Interfaz del examen | 🔄 |
 | `/admin/planes` | Gestión de planes | 🔄 |
 | `/admin/preguntas` | Banco de preguntas | 🔄 |
 | `/admin/usuarios` | Gestión de usuarios | 🔄 |
@@ -416,16 +417,23 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | **Tipado TypeScript** | ✅ Completo | Strict mode, tipos globales |
 | **API tRPC** | ✅ Funcional | Routers de auth y simulacros |
 | **Banco de Preguntas** | 🔄 En desarrollo | Modelo de datos listo |
-| **Simulacros Interactivos** | 🔄 En desarrollo | Interfaz y lógica pendiente |
+| **Simulacros con Imágenes** | ✅ Completado | Tarjetas visuales por materia |
+| **Resultados de Simulacros** | ✅ Completado | Análisis detallado con gráficos |
+| **Dashboard Datos en Vivo** | ✅ Completado | Queries corregidas a BD correcta |
 | **Panel Administrativo** | 🔄 En desarrollo | Gestión de contenido |
-| **Estadísticas Avanzadas** | 🔄 En desarrollo | Reportes y análisis |
+| **Estadísticas Avanzadas** | ✅ Completado | Gráficos, progresión, rendimiento por materia |
+| **Manejo de Errores** | ✅ Mejorado | Mejor debugging y feedback en componentes |
 | **Sistema de Pagos** | ⏳ Pendiente | Integración con pasarelas |
 | **Móvil (PWA)** | ⏳ Pendiente | Versión móvil optimizada |
-
-### 🎯 **Próximos Hitos**
+x] Mostrar imágenes en simulacros de estudiantes
+- [x] Corregir layouts duplicados en dashboard
+- [x] Arreglar queries de datos del dashboard
+- [x] Resolver conflictos de ThemeProvider
 - [ ] Implementar motor de simulacros con temporizador
 - [ ] Cargar banco de preguntas inicial
-- [ ] Desarrollar panel de administración
+- [ ] Desarrollar panel de administración completo
+- [ ] Agregar estadísticas detalladas por materia
+- [ ] Implementar sistema de suscripciones integrado
 - [ ] Agregar estadísticas detalladas
 - [ ] Implementar sistema de suscripciones
 
@@ -531,8 +539,119 @@ openssl rand -base64 32
 
 - **Documentación técnica**: Revisa los archivos `.md` en la raíz
 - **Issues**: Reporta problemas en el repositorio del proyecto
-- **Contacto del equipo**: Disponible en la documentación interna
+## 📝 Cambios Recientes (Mayo 2, 2026)
 
+### ✨ Mejoras Implementadas
+- **EstadísticasClient Mejorado**: Mejor manejo de errores HTTP con feedback específico
+- **Debug API**: Nuevo endpoint `/api/debug/estadisticas` para verificar datos en BD
+- **Error Logging**: Consola ahora registra errores de carga con detalles completos
+- **Response Validation**: API valida respuesta JSON antes de renderizar
+- **Status Update**: Sección de STATUS del proyecto actualizada con componentes completos
+
+### 🔧 Cambios Técnicos
+- Agregado verificación de status HTTP en fetch (no solo JSON parse)
+- Mejorado catch block en EstadisticasClient para detectar errores reales
+- Creado endpoint de debug para diagnóstico rápido
+- Error messages más descriptivos para usuarios
+
+### 📊 Funcionalidades de Estadísticas ✅ Completas
+- Métricas globales (simulacros, promedio, mejor/peor)
+- Tendencia de mejora/caída entre períodos
+- Rendimiento por materia con colores
+- Gráfica de progresión cronológica (SVG optimizado)
+- Historial detallado con timestamp
+
+### 🐛 Bugs Arreglados
+- Error silencioso en EstadisticasClient al fallar fetch
+- No había feedback visual cuando API retornaba error 401/500
+- JSON parse error no capturaba respuestas inválidas
+
+---
+
+**Versión:** v0.3  
+**Última actualización:** Mayo 2, 2026
+
+---
+
+## 🎯 **Cómo Probar las Estadísticas Recientemente Actualizadas**
+
+### 📊 Características de Estadísticas ✅
+Las estadísticas ahora muestran (cuando hay datos):
+- ✅ Total de simulacros completados
+- ✅ Promedio general de porcentaje
+- ✅ Mejor y peor resultado
+- ✅ Tiempo total invertido
+- ✅ Tendencia de mejora/caída
+- ✅ Rendimiento por materia con gráficas
+- ✅ Gráfica de progresión cronológica
+- ✅ Historial detallado
+
+### 🚀 Setup Inicial
+```bash
+# 1. Instalar dependencias
+npm install
+
+# 2. Configurar .env (copiar de .env.example)
+cp .env.example .env
+
+# 3. Sincronizar BD
+npm run db:push
+
+# 4. Ejecutar seed (crea usuarios y planes)
+npm run db:seed
+
+# 5. Iniciar servidor
+npm run dev
+```
+
+### 👤 Credenciales de Prueba (tras ejecutar seed)
+```
+Email:    estudiante@axis.local
+Password: Password123
+Suscripción: Plan Pro (activa por 90 días)
+```
+
+### 📍 Rutas Importantes
+- Landing: `http://localhost:3001/`
+- Login: `http://localhost:3001/auth/login`
+- Dashboard: `http://localhost:3001/dashboard`
+- **Estadísticas:** `http://localhost:3001/dashboard/estadisticas` ⭐ **NUEVA**
+- Debug API: `http://localhost:3001/api/debug/estadisticas` (requiere sesión activa)
+
+### 🔍 Mensaje "Sin datos aún"
+Si ves este mensaje en la página de estadísticas:
+```json
+{ "sinDatos": true }
+```
+
+**Esto es NORMAL porque:**
+- El seed crea usuario con suscripción activa ✅
+- Pero NO crea simulacros completados (aún no hay motor de simulacros)
+- Sin resultados de simulacros, no hay estadísticas que mostrar
+
+**Próximo paso:** Cuando se implemente el motor de simulacros completo, se guardarán automáticamente resultados en `ResultadoSimulacro` y las estadísticas se mostrarán inmediatamente.
+
+---
+
+**Versión anterior (Abril 26, 2026):**
+
+### ✨ Mejoras Implementadas (Abril)
+- **Simulacros Visuales**: Agregadas imágenes por materia en todas las tarjetas de simulacros (Matemáticas, Lectura Crítica, Ciencias, etc.)
+- **Dashboard Corregido**: Datos ahora se obtienen de `ResultadoSimulacro` en lugar de `Intento` inexistente
+- **Layouts Unificados**: Removidos `DashboardLayout` duplicados en todas las páginas (`simulacros`, `resultado`, `planes`)
+- **ThemeProvider**: Corregido problema de contexto duplicado que causaba errores en reinicio
+- **Navegación Consistente**: Una sola barra de navegación en todo el módulo dashboard
+
+### 🐛 Bugs Arreglados (Abril)
+- Error de contexto "useTheme debe usarse dentro de ThemeProvider"
+- Conflicto de dos barras de navegación en simulacros
+- Queries de dashboard intentando usar modelos inexistentes
+- ThemeProvider renderizado dos veces causando conflictos
+
+---
+
+**Última actualización:** Abril 26, 2026  
+**Versión:** v0.2
 ---
 
 **Última actualización:** Abril 15, 2026  

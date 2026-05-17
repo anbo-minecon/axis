@@ -87,6 +87,9 @@ export default async function ResultadoPage({
               {resultado.examen.nombre}
             </h1>
             <p className="text-sm text-[var(--text-muted)] mt-1">{resultado.examen.materia}</p>
+            <span className="inline-flex mt-3 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+              {resultado.estadoCalif ?? "PRELIMINAR"}
+            </span>
           </div>
           <div className={cn("shrink-0 p-3 rounded-xl", nivel.bg)}>
             <Trophy className={cn("h-6 w-6", nivel.color)} />

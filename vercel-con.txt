@@ -1,0 +1,29 @@
+// ── vercel.json ───────────────────────────────────────────────────────────
+// Agrega esto a tu vercel.json (créalo en la raíz si no existe)
+// El cron se ejecuta cada hora para verificar simulacros cuya fechaCierre ya pasó
+
+{
+  "crons": [
+    {
+      "path": "/api/cron/calcular-tri",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
+
+
+// ── .env additions ────────────────────────────────────────────────────────
+// Agregar esta variable al .env y en Vercel → Settings → Environment Variables
+
+// CRON_SECRET=una_clave_segura_aleatoria_aqui
+// Ejemplo: openssl rand -hex 32
+
+
+// ── Si NO usas Vercel (VPS propio) ────────────────────────────────────────
+// Agregar al crontab del servidor:
+// 0 * * * * curl -H "Authorization: Bearer TU_CRON_SECRET" https://tu-dominio.com/api/cron/calcular-tri
+
+// ── Llamada manual desde el admin (para forzar TRI sin esperar el cron) ──
+// POST /api/cron/calcular-tri
+// Headers: x-admin-secret: TU_CRON_SECRET
+// Body: { "examenId": "el_id_del_examen" }

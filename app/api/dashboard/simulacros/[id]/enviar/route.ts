@@ -10,6 +10,11 @@ const bodySchema = z.object({
   tiempoUsado: z.number().int().nonnegative(),
 });
 
+function calcularPuntajePreliminar(aciertos: number, total: number) {
+  if (total <= 0) return 0;
+  return Number((Math.pow(aciertos / total, 1.8) * 100).toFixed(2));
+}
+
 export async function POST(
   req: Request,
   { params }: { params: { id: string } }
@@ -52,41 +57,100 @@ export async function POST(
       return NextResponse.json({ error: "Ya completaste este simulacro" }, { status: 409 });
     }
 
-    // Calcular puntaje
-    const claveMap = new Map<number, string>(
-      examen.claves.map((c: any) => [c.numeroPregunta, c.respuesta])
-    );
+    const sesiones = await (db as any).sesionExamen.findMany({
+      where: { examenId: params.id },
+      orderBy: { numero: "asc" },
+    });
 
-    let puntaje = 0;
-    const detalles: Record<string, { dada: string | null; correcta: string; correcto: boolean }> = {};
+    const clavesPorSesion = new Map<string, any[]>();
+    examen.claves.forEach((clave: any) => {
+      const sesionId = clave.sesionId ?? sesiones[0]?.id;
+      if (!sesionId) return;
+      const current = clavesPorSesion.get(sesionId) ?? [];
+      current.push(clave);
+      clavesPorSesion.set(sesionId, current);
+    });
 
-    for (const [numStr, correcta] of claveMap.entries()) {
-      const dada = respuestas[String(numStr)] ?? null;
-      const correcto = dada === correcta;
-      if (correcto) puntaje++;
-      detalles[String(numStr)] = { dada, correcta, correcto };
+    if (clavesPorSesion.size === 0) {
+      const fallbackSesion =
+        sesiones[0] ||
+        (await (db as any).sesionExamen.create({
+          data: {
+            examenId: params.id,
+            numero: 1,
+            nombre: "Sesión única",
+            tiempoMin: examen.tiempoMin,
+          },
+        }));
+      clavesPorSesion.set(fallbackSesion.id, examen.claves);
     }
 
-    const total = claveMap.size;
+    let totalCorrectas = 0;
+    let totalPreguntas = 0;
+    let acumuladoPreliminar = 0;
+    const resumenSesiones: Array<any> = [];
 
-    // Guardar resultado
+    for (const [sesionId, claves] of clavesPorSesion.entries()) {
+      const respuestasSesion: Record<string, string | null> = {};
+      let aciertosSesion = 0;
+
+      claves.forEach((clave) => {
+        const actual = respuestas[String(clave.numeroPregunta)] ?? null;
+        respuestasSesion[String(clave.numeroPregunta)] = actual;
+        if (actual === clave.respuesta) aciertosSesion++;
+      });
+
+      const totalSesion = claves.length;
+      const puntajePreliminar = calcularPuntajePreliminar(aciertosSesion, totalSesion);
+
+      await (db as any).resultadoSesion.create({
+        data: {
+          estudianteId: session.user.id,
+          examenId: params.id,
+          sesionId,
+          respuestas: respuestasSesion,
+          aciertos: aciertosSesion,
+          total: totalSesion,
+          puntajePreliminar,
+        },
+      });
+
+      totalCorrectas += aciertosSesion;
+      totalPreguntas += totalSesion;
+      acumuladoPreliminar += puntajePreliminar * totalSesion;
+
+      resumenSesiones.push({
+        sesionId,
+        total: totalSesion,
+        aciertos: aciertosSesion,
+        puntajePreliminar,
+      });
+    }
+
+    const puntajePreliminarGlobal = totalPreguntas
+      ? Number((acumuladoPreliminar / totalPreguntas).toFixed(2))
+      : 0;
+
     await (db as any).resultadoSimulacro.create({
       data: {
         estudianteId: session.user.id,
         examenId: params.id,
         respuestas,
-        puntaje,
-        total,
+        puntaje: totalCorrectas,
+        total: totalPreguntas,
+        puntajePreliminar: puntajePreliminarGlobal,
         tiempoUsado,
+        estadoCalif: "PRELIMINAR",
       },
     });
 
     return NextResponse.json({
       ok: true,
-      puntaje,
-      total,
-      porcentaje: Math.round((puntaje / total) * 100),
-      detalles, // { "1": { dada: "A", correcta: "B", correcto: false }, ... }
+      puntaje: totalCorrectas,
+      total: totalPreguntas,
+      puntajePreliminar: puntajePreliminarGlobal,
+      porcentaje: totalPreguntas ? Math.round((totalCorrectas / totalPreguntas) * 100) : 0,
+      sesiones: resumenSesiones,
     });
   } catch (error: any) {
     if (error?.code === "P2002") {

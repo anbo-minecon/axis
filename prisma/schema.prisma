@@ -9,50 +9,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── USUARIOS ────────────────────────────────────────────────────────────────
+// ─── USUARIOS ─────────────────────────────────────────────────────────────────
 
 model Usuario {
-  id             String       @id @default(cuid())
-  nombre         String
-  email          String       @unique
-  emailVerified  DateTime?
-  passwordHash   String?
-  imagen         String?
+  id            String    @id @default(cuid())
+  nombre        String
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  imagen        String?
 
-  // Campos de perfil extendido (DB anterior)
-  documento      String?      // número de documento de identidad
-  telefono       String?
-  departamento   String?
-  municipio      String?
+  // Perfil extendido
+  documento    String?
+  telefono     String?
+  departamento String?
+  municipio    String?
 
-  // Campos académicos
-  colegio        String?
-  grado          Int?         // 9, 10, 11
-  ciudad         String?
+  // Académico
+  colegio String?
+  grado   Int?
+  ciudad  String?
 
-  rol            Rol          @default(ESTUDIANTE)
-  planId         String?
-  plan           Plan?        @relation(fields: [planId], references: [id])
+  rol    Rol  @default(ESTUDIANTE)
+  planId String?
+  plan   Plan? @relation(fields: [planId], references: [id])
 
-  // Grupo de estudio asignado
+  // Grupo
   grupoId        String?
-  grupo          Grupo?       @relation(fields: [grupoId], references: [id])
+  grupo          Grupo?  @relation(fields: [grupoId], references: [id])
+  gruposDocencia Grupo[] @relation("GrupoDocente")
 
-  // Grupos que dirige como docente
-  gruposDocencia Grupo[]      @relation("GrupoDocente")
+  // Relaciones
+  simulacros       Simulacro[]
+  intentos         Intento[]
+  suscripcion      Suscripcion?
+  developerCred    DeveloperCredential?
+  auditLogs        AuditLog[]
+  resultados       ResultadoSimulacro[]
+  resultadosSesion ResultadoSesion[]
+  materiales       Material[]           @relation("CreadorMaterial")
+  conversacionesA  Conversacion[]       @relation("ConvParticipanteA")
+  conversacionesB  Conversacion[]       @relation("ConvParticipanteB")
+  mensajesEnviados Mensaje[]            @relation("MensajesEnviados")
 
-  simulacros     Simulacro[]
-  intentos       Intento[]
-  suscripcion    Suscripcion?
-  developerCred  DeveloperCredential?
-  auditLogs      AuditLog[]
-  resultados     ResultadoSimulacro[]
-  materiales     Material[]      @relation("CreadorMaterial")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  conversacionesA  Conversacion[]  @relation("ConvParticipanteA")
-  conversacionesB  Conversacion[]  @relation("ConvParticipanteB")
-   mensajesEnviados Mensaje[]       @relation("MensajesEnviados")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("usuarios")
 }
@@ -72,18 +73,11 @@ model Grupo {
   descripcion  String?
   departamento String?
   municipio    String?
-
-  // Docente responsable del grupo
   docenteId    String?
   docente      Usuario?  @relation("GrupoDocente", fields: [docenteId], references: [id])
-
-  // Estudiantes del grupo
   estudiantes  Usuario[]
-
-  // Horario / info adicional
-  horario      String?   // ej: "Sábados 8am - 12pm"
+  horario      String?
   activo       Boolean   @default(true)
-
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -93,10 +87,10 @@ model Grupo {
 // ─── ÁREAS Y PREGUNTAS ────────────────────────────────────────────────────────
 
 model Area {
-  id          String      @id @default(cuid())
-  nombre      String      @unique  // "Matemáticas", "Lectura Crítica", etc.
+  id          String     @id @default(cuid())
+  nombre      String     @unique
   descripcion String?
-  color       String?     // color hex para UI
+  color       String?
   icono       String?
   preguntas   Pregunta[]
 
@@ -104,15 +98,15 @@ model Area {
 }
 
 model Pregunta {
-  id                String             @id @default(cuid())
-  enunciado         String
-  imagenUrl         String?
-  nivelDificultad   Int                @default(1) // 1=fácil, 2=medio, 3=difícil
-  anioReferencia    Int?
-  activa            Boolean            @default(true)
-  areaId            String
-  area              Area               @relation(fields: [areaId], references: [id])
-  opciones          OpcionRespuesta[]
+  id              String             @id @default(cuid())
+  enunciado       String
+  imagenUrl       String?
+  nivelDificultad Int                @default(1)
+  anioReferencia  Int?
+  activa          Boolean            @default(true)
+  areaId          String
+  area            Area               @relation(fields: [areaId], references: [id])
+  opciones        OpcionRespuesta[]
   respuestasUsuario RespuestaUsuario[]
 
   @@map("preguntas")
@@ -129,41 +123,39 @@ model OpcionRespuesta {
   @@map("opciones_respuesta")
 }
 
-// ─── SIMULACROS ───────────────────────────────────────────────────────────────
+// ─── SIMULACROS (modelo legado) ───────────────────────────────────────────────
 
 model Simulacro {
-  id              String             @id @default(cuid())
-  usuarioId       String
-  usuario         Usuario            @relation(fields: [usuarioId], references: [id])
-  tipo            TipoSimulacro      @default(COMPLETO)
-  estado          EstadoSimulacro    @default(EN_PROGRESO)
-  puntajeTotal    Float?
-  fechaInicio     DateTime           @default(now())
-  fechaFin        DateTime?
-  duracionMin     Int                @default(210) // minutos
-  totalPreguntas  Int                @default(45) // número de preguntas del simulacro
-  respuestas      RespuestaUsuario[]
-  intentos        Intento[]
+  id             String             @id @default(cuid())
+  usuarioId      String
+  usuario        Usuario            @relation(fields: [usuarioId], references: [id])
+  tipo           TipoSimulacro      @default(COMPLETO)
+  estado         EstadoSimulacro    @default(EN_PROGRESO)
+  puntajeTotal   Float?
+  fechaInicio    DateTime           @default(now())
+  fechaFin       DateTime?
+  duracionMin    Int                @default(210)
+  totalPreguntas Int                @default(45)
+  respuestas     RespuestaUsuario[]
+  intentos       Intento[]
 
   @@map("simulacros")
 }
 
-// ─── INTENTOS ─────────────────────────────────────────────────────────────────
-
 model Intento {
-  id              String             @id @default(cuid())
-  usuarioId       String
-  usuario         Usuario            @relation(fields: [usuarioId], references: [id])
-  simulacroId     String?
-  simulacro       Simulacro?         @relation(fields: [simulacroId], references: [id])
-  estado          String             @default("en_progreso") // en_progreso, completado, abandonado
-  puntaje         Float?
-  aciertos        Int?
-  totalPreguntas  Int?
-  fechaInicio     DateTime           @default(now())
-  fechaFin        DateTime?
-  duracionMin     Int?
-  respuestasUser  RespuestaIntento[]
+  id             String             @id @default(cuid())
+  usuarioId      String
+  usuario        Usuario            @relation(fields: [usuarioId], references: [id])
+  simulacroId    String?
+  simulacro      Simulacro?         @relation(fields: [simulacroId], references: [id])
+  estado         String             @default("en_progreso")
+  puntaje        Float?
+  aciertos       Int?
+  totalPreguntas Int?
+  fechaInicio    DateTime           @default(now())
+  fechaFin       DateTime?
+  duracionMin    Int?
+  respuestasUser RespuestaIntento[]
 
   @@map("intentos")
   @@index([usuarioId])
@@ -172,14 +164,14 @@ model Intento {
 }
 
 model RespuestaIntento {
-  id               String    @id @default(cuid())
-  intentoId        String
-  intento          Intento   @relation(fields: [intentoId], references: [id], onDelete: Cascade)
-  preguntaId       String
-  opcionId         String?
-  esCorrecta       Boolean?
-  tiempoSegundos   Int?
-  respondidaEn     DateTime  @default(now())
+  id             String   @id @default(cuid())
+  intentoId      String
+  intento        Intento  @relation(fields: [intentoId], references: [id], onDelete: Cascade)
+  preguntaId     String
+  opcionId       String?
+  esCorrecta     Boolean?
+  tiempoSegundos Int?
+  respondidaEn   DateTime @default(now())
 
   @@map("respuestas_intento")
   @@index([intentoId])
@@ -216,11 +208,11 @@ model RespuestaUsuario {
 
 model Plan {
   id              String        @id @default(cuid())
-  nombre          String        @unique // "Básico", "Pro", "Institucional"
+  nombre          String        @unique
   descripcion     String?
   precio          Float
   duracionDias    Int
-  simulacrosMax   Int           @default(-1) // -1 = ilimitados
+  simulacrosMax   Int           @default(-1)
   caracteristicas String[]
   activo          Boolean       @default(true)
   usuarios        Usuario[]
@@ -242,38 +234,32 @@ model Suscripcion {
   @@map("suscripciones")
 }
 
-// ─── DEVELOPER ACCESS ──────────────────────────────────────────────────────────
+// ─── DEVELOPER ACCESS ────────────────────────────────────────────────────────
 
 model DeveloperCredential {
-  id            String    @id @default(cuid())
-  usuarioId     String    @unique
-  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  passwordHash  String
-  tokenSecret   String    @unique
-  activo        Boolean   @default(true)
-  ultimoAcceso  DateTime?
-  direccionIP   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  usuarioId    String   @unique
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("developer_credentials")
 }
 
-// ─── AUDIT & LOGS ─────────────────────────────────────────────────────────────
+// ─── LOGS ────────────────────────────────────────────────────────────────────
 
 model AuditLog {
-  id          String    @id @default(cuid())
-  usuarioId   String?   // null si es acción del sistema
-  usuario     Usuario?  @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
-  accion      String    // ej: CREAR_USUARIO, ELIMINAR_GRUPO, CAMBIAR_PLAN
-  recurso     String    // ej: usuario, grupo, plan
-  recursoId   String?
-  cambios     String?   // JSON con antes/después si aplica
-  resultado   String    @default("EXITOSO") // EXITOSO, ERROR
-  mensaje     String?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime  @default(now())
+  id         String   @id @default(cuid())
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  accion     String
+  recurso    String?
+  recursoId  String?
+  resultado  String   @default("EXITOSO")
+  mensaje    String?
+  ip         String?
+  createdAt  DateTime @default(now())
 
   @@map("audit_logs")
   @@index([createdAt])
@@ -281,55 +267,52 @@ model AuditLog {
 }
 
 model SystemLog {
-  id        String    @id @default(cuid())
-  nivel     String    @default("INFO") // INFO, WARN, ERROR, CRITICAL
-  componente String   // ej: AUTH, DATABASE, API, BACKUP
-  mensaje   String
-  detalles  String?   // JSON con contexto adicional
-  stack     String?   // stack trace si es error
-  createdAt DateTime  @default(now())
+  id         String   @id @default(cuid())
+  nivel      String   @default("INFO")
+  componente String
+  mensaje    String
+  detalles   String?
+  stack      String?
+  createdAt  DateTime @default(now())
 
   @@map("system_logs")
   @@index([createdAt])
   @@index([nivel])
 }
 
-
-
 model BackupLog {
-  id          String    @id @default(cuid())
-  tipo        String    // FULL, INCREMENTAL
-  estado      String    @default("INICIADO") // INICIADO, EN_PROGRESO, COMPLETADO, ERROR
-  tamanio     Int?      // tamaño en MB
-  ubicacion   String?   // path o URL del backup
-  error       String?
-  duracionMs  Int?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String   @id @default(cuid())
+  tipo       String
+  estado     String   @default("INICIADO")
+  tamanio    Int?
+  ubicacion  String?
+  error      String?
+  duracionMs Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@map("backup_logs")
   @@index([createdAt])
 }
 
 model IntegrationLog {
-  id              String    @id @default(cuid())
-  nombre          String    // ej: Google Auth, Stripe Payment
-  estado          String    @default("CONECTADO") // CONECTADO, ERROR, DEGRADED
-  ultimaVerif     DateTime?
-  ultimoError     String?
-  responseTime    Int?      // ms
-  requestsHoy     Int?
-  tasaError       Float?    // porcentaje
-  detalles        String?   // JSON con info específica
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  nombre       String
+  estado       String    @default("CONECTADO")
+  ultimaVerif  DateTime?
+  ultimoError  String?
+  responseTime Int?
+  requestsHoy  Int?
+  tasaError    Float?
+  detalles     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@map("integration_logs")
   @@index([createdAt])
 }
 
-// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
-// Correr después: npx prisma migrate dev --name add_examenes_template
+// ─── EXÁMENES TEMPLATE (sistema nuevo con TRI) ────────────────────────────────
 
 model ExamenTemplate {
   id              String           @id @default(cuid())
@@ -337,24 +320,57 @@ model ExamenTemplate {
   materia         String
   totalPreguntas  Int              @default(50)
   tiempoMin       Int              @default(120)
+
+  // Sesiones
+  tieneSesiones   Boolean          @default(false)
+  sesiones        SesionExamen[]
+
+  // Fechas
+  fechaDisponible DateTime?        // null = disponible inmediatamente
+  fechaCierre     DateTime?        // dispara cálculo TRI automáticamente
+
+  // Estado y TRI
   estado          EstadoExamen     @default(BORRADOR)
-  creadoPorId     String           // id del admin que lo creó
+  triCalculado    Boolean          @default(false)
+
+  creadoPorId     String
   claves          ClaveExamen[]
   resultados      ResultadoSimulacro[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  resultadosSesion ResultadoSesion[]
+  pesos           PesosPregunta[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("examenes_template")
+}
+
+model SesionExamen {
+  id        String         @id @default(cuid())
+  examenId  String
+  examen    ExamenTemplate @relation(fields: [examenId], references: [id], onDelete: Cascade)
+  numero    Int            // 1 o 2
+  nombre    String         // "Sesión 1 – Matemáticas y Ciencias"
+  tiempoMin Int            @default(60)
+  claves    ClaveExamen[]
+  resultados ResultadoSesion[]
+  pesos     PesosPregunta[]
+
+  @@unique([examenId, numero])
+  @@map("sesiones_examen")
 }
 
 model ClaveExamen {
   id             String         @id @default(cuid())
   examenId       String
   examen         ExamenTemplate @relation(fields: [examenId], references: [id], onDelete: Cascade)
+  sesionId       String?
+  sesion         SesionExamen?  @relation(fields: [sesionId], references: [id], onDelete: SetNull)
   numeroPregunta Int
   respuesta      String         // "A", "B", "C" o "D"
 
-  @@unique([examenId, numeroPregunta])
+  // Unique: por examen + sesión (null se trata como valor único en PG con NULLS NOT DISTINCT)
+  @@unique([examenId, numeroPregunta, sesionId])
   @@map("claves_examen")
 }
 
@@ -364,52 +380,89 @@ enum EstadoExamen {
   ARCHIVADO
 }
 
+// ─── RESULTADOS CON TRI ───────────────────────────────────────────────────────
 
+enum EstadoCalificacion {
+  PRELIMINAR
+  OFICIAL
+}
 
-// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
-// Agregar también fechaDisponible a ExamenTemplate:
-//
-//   model ExamenTemplate {
-//     ...campos existentes...
-//     fechaDisponible DateTime?          // null = disponible inmediatamente
-//   }
-//
-// Luego correr: npx prisma migrate dev --name add_resultados_simulacro
+// Resultado por sesión individual
+model ResultadoSesion {
+  id                String         @id @default(cuid())
+  estudianteId      String
+  examenId          String
+  sesionId          String
+  respuestas        Json           // { "1": "A", "2": "B", ... }
+  correctas         Int
+  total             Int
+  puntajePreliminar Int            // round((correctas/total)^1.8 * 100)
+  puntajeTRI        Float?         // calculado tras fechaCierre
+  tiempoUsado       Int            @default(0)
+  completadoEn      DateTime       @default(now())
 
+  estudiante Usuario        @relation(fields: [estudianteId], references: [id])
+  examen     ExamenTemplate @relation(fields: [examenId], references: [id])
+  sesion     SesionExamen   @relation(fields: [sesionId], references: [id])
+
+  @@unique([estudianteId, sesionId])
+  @@map("resultados_sesion")
+}
+
+// Resultado global por simulacro (suma/promedio de sesiones)
 model ResultadoSimulacro {
-  id           String   @id @default(cuid())
-  estudianteId String
-  examenId     String
-  respuestas   Json     // { "1": "A", "2": "B", "3": "C", ... }
-  puntaje      Int      // respuestas correctas
-  total        Int      // total de claves definidas
-  tiempoUsado  Int      // segundos usados
-  completadoEn DateTime @default(now())
+  id                String             @id @default(cuid())
+  estudianteId      String
+  examenId          String
+  respuestas        Json               @default("{}")
+  puntaje           Int                @default(0)  // correctas (calificación simple)
+  total             Int                @default(0)
+  puntajePreliminar Int                @default(0)  // calculado al instante
+  puntajeTRI        Float?             // calculado al cerrar (null hasta entonces)
+  estadoCalif       EstadoCalificacion @default(PRELIMINAR)
+  tiempoUsado       Int                @default(0)
+  completadoEn      DateTime           @default(now())
 
   estudiante Usuario        @relation(fields: [estudianteId], references: [id])
   examen     ExamenTemplate @relation(fields: [examenId], references: [id])
 
-  @@unique([estudianteId, examenId])   // un intento por estudiante por examen
+  @@unique([estudianteId, examenId])
   @@map("resultados_simulacro")
 }
 
-// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
-// npx prisma migrate dev --name add_material_estudio
+// Pesos TRI calculados por pregunta al cerrar el simulacro
+model PesosPregunta {
+  id              String         @id @default(cuid())
+  examenId        String
+  sesionId        String?
+  numeroPregunta  Int
+  dificultad      Float
+  discriminacion  Float
+  pesoNormalizado Float
+
+  examen ExamenTemplate @relation(fields: [examenId], references: [id], onDelete: Cascade)
+  sesion SesionExamen?  @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+
+  @@unique([examenId, numeroPregunta, sesionId])
+  @@map("pesos_pregunta")
+}
+
+// ─── MATERIALES ───────────────────────────────────────────────────────────────
 
 model Material {
-  id          String        @id @default(cuid())
+  id          String       @id @default(cuid())
   titulo      String
   descripcion String?
-  tipo        TipoMaterial  // PDF | VIDEO
+  tipo        TipoMaterial
   url         String
-  materia     String?       // opcional: "Matemáticas", "Inglés", etc.
-  gratis      Boolean       @default(true) // siempre true por ahora, para futuro
-  activo      Boolean       @default(true)
-  orden       Int           @default(0)    // para ordenar manualmente
+  materia     String?
+  gratis      Boolean      @default(true)
+  activo      Boolean      @default(true)
+  orden       Int          @default(0)
   creadoPorId String
-  creadoPor   Usuario       @relation("CreadorMaterial", fields: [creadoPorId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  creadoPor   Usuario      @relation("CreadorMaterial", fields: [creadoPorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@map("materiales")
 }
@@ -419,18 +472,20 @@ enum TipoMaterial {
   VIDEO
 }
 
+// ─── MENSAJERÍA ───────────────────────────────────────────────────────────────
+
 model Conversacion {
-  id               String    @id @default(cuid())
-  participanteAId  String                          // siempre el de menor rol o el que inicia
-  participanteBId  String
-  participanteA    Usuario   @relation("ConvParticipanteA", fields: [participanteAId], references: [id])
-  participanteB    Usuario   @relation("ConvParticipanteB", fields: [participanteBId], references: [id])
-  ultimoMensaje    String?
-  ultimoMensajeEn  DateTime?
-  noLeidosA        Int       @default(0)           // mensajes no leídos para participanteA
-  noLeidosB        Int       @default(0)           // mensajes no leídos para participanteB
-  creadaEn         DateTime  @default(now())
-  mensajes         Mensaje[]
+  id              String    @id @default(cuid())
+  participanteAId String
+  participanteBId String
+  participanteA   Usuario   @relation("ConvParticipanteA", fields: [participanteAId], references: [id])
+  participanteB   Usuario   @relation("ConvParticipanteB", fields: [participanteBId], references: [id])
+  ultimoMensaje   String?
+  ultimoMensajeEn DateTime?
+  noLeidosA       Int       @default(0)
+  noLeidosB       Int       @default(0)
+  creadaEn        DateTime  @default(now())
+  mensajes        Mensaje[]
 
   @@unique([participanteAId, participanteBId])
   @@index([participanteAId])
@@ -452,23 +507,16 @@ model Mensaje {
   @@index([conversacionId, creadoEn])
 }
 
-
-
-// ─── AGREGAR AL FINAL DE prisma/schema.prisma ────────────────────────────────
-// npx prisma migrate dev --name add_anuncios
-//
-// DIMENSIÓN RECOMENDADA PARA LAS IMÁGENES: 1280 x 720 px (proporción 16:9)
-// Formatos aceptados: JPG, PNG, WebP
-// Puedes alojar las imágenes en: Google Drive (compartido públicamente),
-// Imgur, Cloudinary, o cualquier CDN que devuelva una URL directa de imagen.
+// ─── ANUNCIOS ─────────────────────────────────────────────────────────────────
+// Dimensión recomendada: 1280 × 720 px (16:9)
 
 model Anuncio {
   id          String   @id @default(cuid())
-  titulo      String                        // texto alternativo / descripción interna
-  imagenUrl   String                        // URL directa de la imagen (1200x400)
-  linkUrl     String?                       // URL destino al hacer click (opcional)
+  titulo      String
+  imagenUrl   String
+  linkUrl     String?
   activo      Boolean  @default(true)
-  orden       Int      @default(0)          // menor número = aparece primero
+  orden       Int      @default(0)
   creadoPorId String
   creadoEn    DateTime @default(now())
   updatedAt   DateTime @updatedAt

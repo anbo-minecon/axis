@@ -1,4 +1,4 @@
-// app/dashboard/simulacro/[id]/page.tsx
+// app/dashboard/simulacro/[id]/page.tsx  (REEMPLAZA el existente)
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -6,8 +6,7 @@ import { db } from "@/lib/db";
 import { SimulacroExamen } from "@/components/dashboard/SimulacroExamen";
 
 export const metadata = { title: "Simulacro en curso | AXIS Pre-ICFES" };
-
-export const dynamic = "force-dynamic";
+export const dynamic  = "force-dynamic";
 
 export default async function SimulacroPage({
   params,
@@ -17,39 +16,75 @@ export default async function SimulacroPage({
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/auth/login");
 
-  // Obtener examen (sin claves de respuesta)
+  // Obtener examen sin revelar claves
   const examen = await (db as any).examenTemplate.findUnique({
     where: { id: params.id, estado: "PUBLICADO" },
     select: {
-      id: true,
-      nombre: true,
-      materia: true,
-      tiempoMin: true,
-      _count: { select: { claves: true } },
+      id:            true,
+      nombre:        true,
+      materia:       true,
+      tiempoMin:     true,
+      tieneSesiones: true,
+      fechaCierre:   true,
+      _count:        { select: { claves: true } },
+      sesiones: {
+        orderBy: { numero: "asc" },
+        select: {
+          id:        true,
+          numero:    true,
+          nombre:    true,
+          tiempoMin: true,
+          _count:    { select: { claves: true } },
+        },
+      },
     },
   });
 
   if (!examen) redirect("/dashboard/simulacros");
 
-  // Verificar si ya lo completó
-  const resultado = await (db as any).resultadoSimulacro.findUnique({
-    where: {
-      estudianteId_examenId: {
+  // Verificar qué sesiones ya completó el estudiante
+  if (examen.tieneSesiones && examen.sesiones.length > 0) {
+    const sesionesCompletadas = await (db as any).resultadoSesion.findMany({
+      where: {
         estudianteId: session.user.id,
-        examenId: params.id,
+        examenId:     params.id,
       },
-    },
-    select: { id: true },
-  });
+      select: { sesionId: true },
+    });
 
-  if (resultado) redirect(`/dashboard/simulacros`);
+    const idsCompletadas = new Set(sesionesCompletadas.map((r: any) => r.sesionId));
+    const todasCompletadas = examen.sesiones.every((s: any) => idsCompletadas.has(s.id));
 
+    if (todasCompletadas) redirect("/dashboard/simulacros");
+  } else {
+    // Sin sesiones — verificar resultado global
+    const resultado = await (db as any).resultadoSimulacro.findUnique({
+      where: {
+        estudianteId_examenId: {
+          estudianteId: session.user.id,
+          examenId:     params.id,
+        },
+      },
+      select: { id: true },
+    });
+    if (resultado) redirect("/dashboard/simulacros");
+  }
+
+  // Construir objeto examen para el cliente
   const examenData = {
-    id: examen.id,
-    nombre: examen.nombre,
-    materia: examen.materia,
-    tiempoMin: examen.tiempoMin,
+    id:            examen.id,
+    nombre:        examen.nombre,
+    materia:       examen.materia,
+    tiempoMin:     examen.tiempoMin,
     totalPreguntas: examen._count.claves,
+    tieneSesiones: examen.tieneSesiones ?? false,
+    sesiones:      (examen.sesiones ?? []).map((s: any) => ({
+      id:             s.id,
+      numero:         s.numero,
+      nombre:         s.nombre,
+      tiempoMin:      s.tiempoMin,
+      totalPreguntas: s._count.claves,
+    })),
   };
 
   return <SimulacroExamen examen={examenData} />;

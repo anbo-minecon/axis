@@ -20,10 +20,19 @@ export async function GET() {
     const examenes = await (db as any).examenTemplate.findMany({
       where: {
         estado: "PUBLICADO",
-        // Si tiene fechaDisponible, solo mostrar los que ya están disponibles
+        // ✅ Validar fechaDisponible: no empezar antes de esta fecha
         OR: [
           { fechaDisponible: null },
           { fechaDisponible: { lte: now } },
+        ],
+        // ✅ Validar fechaCierre: no mostrar si ya pasó la fecha de cierre
+        AND: [
+          {
+            OR: [
+              { fechaCierre: null },
+              { fechaCierre: { gte: now } }, // Solo si el cierre es futuro (o hoy)
+            ],
+          },
         ],
       },
       include: {

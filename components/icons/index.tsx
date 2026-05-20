@@ -31,34 +31,14 @@ export function IconWrapper({
 // Logo AXIS
 export function LogoAxis({ width = 40, height = 40, className = "" }: IconProps) {
   return (
-    <svg
+    <img
+      src="/images/logo.png"
+      alt="AXIS Logo"
       width={width}
       height={height}
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
       className={className}
-    >
-      <defs>
-        <linearGradient id="gradientLogo" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2563eb" />
-          <stop offset="100%" stopColor="#06b6d4" />
-        </linearGradient>
-      </defs>
-      <rect width="40" height="40" rx="8" fill="url(#gradientLogo)" />
-      <text
-        x="50%"
-        y="50%"
-        dominantBaseline="middle"
-        textAnchor="middle"
-        fontSize="20"
-        fontWeight="bold"
-        fill="white"
-        fontFamily="Arial, sans-serif"
-      >
-        A
-      </text>
-    </svg>
+      style={{ display: "block" }}
+    />
   );
 }
 

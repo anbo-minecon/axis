@@ -1,6 +1,7 @@
 // components/admin/AdminShell.tsx
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { AdminSidebar, type AdminUser } from "./AdminSidebar";
 import { AdminMobileBottomNav } from "./AdminMobileBottomNav";
@@ -26,9 +27,13 @@ export function AdminShell({ user, children, estudiantesSinGrupo }: AdminShellPr
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header móvil — solo logo, sin hamburguesa */}
         <header className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 lg:hidden">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-700 text-xs font-bold text-white">
-            AX
-          </div>
+          <Image
+            src="/images/logo2.png"
+            alt="AXIS Logo"
+            width={28}
+            height={28}
+            className="rounded-lg"
+          />
           <span className="text-sm font-semibold text-gray-800 dark:text-white">AXIS Admin</span>
         </header>
 

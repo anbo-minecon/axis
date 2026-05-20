@@ -1,6 +1,7 @@
 // components/docente/DocenteSidebar.tsx
 "use client";
 
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -87,9 +88,13 @@ function SidebarDesktop({
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-xs font-extrabold text-white">
-          AX
-        </div>
+        <Image
+          src="/images/logo2.png"
+          alt="AXIS Logo"
+          width={32}
+          height={32}
+          className="rounded-lg"
+        />
         <div className="leading-tight">
           <p className="text-sm font-extrabold text-white tracking-wide">AXIS</p>
           <p className="text-[11px] text-green-200 font-medium">Pre-ICFES</p>

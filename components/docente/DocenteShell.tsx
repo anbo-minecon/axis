@@ -1,6 +1,7 @@
 // components/docente/DocenteShell.tsx
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { DocenteSidebar, type DocenteUser } from "./DocenteSidebar";
 import { Plus, LayoutDashboard, Users, ClipboardList, BarChart2 } from "lucide-react";
@@ -117,9 +118,13 @@ export function DocenteShell({ user, children, estudiantesSinGrupo = 0 }: Docent
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header móvil */}
         <header className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 lg:hidden">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-green-700 text-[10px] font-extrabold text-white shrink-0">
-            AX
-          </div>
+          <Image
+            src="/images/logo2.png"
+            alt="AXIS Logo"
+            width={24}
+            height={24}
+            className="rounded-md"
+          />
           <div className="leading-tight">
             <p className="text-[11px] font-extrabold text-gray-900 dark:text-white tracking-wide">AXIS</p>
             <p className="text-[9px] text-gray-400 dark:text-gray-500 leading-none">Docente</p>

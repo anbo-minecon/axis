@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, Lock, Loader, Eye, EyeOff } from "lucide-react";
 import { Toast } from "@/lib/notifications";
+import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 
 function LoginContent() {
   const router = useRouter();
@@ -171,6 +172,18 @@ function LoginContent() {
             {loading && <Loader className="w-5 h-5 animate-spin" />}
             {loading ? "Iniciando sesión..." : "Iniciar sesión"}
           </button>
+
+          {/* Separador */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white dark:bg-gray-900 px-3 text-gray-400">o continúa con</span>
+            </div>
+          </div>
+
+          <GoogleLoginButton callbackUrl="/dashboard" />
         </form>
 
         {/* Signup Link */}

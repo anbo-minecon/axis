@@ -1,6 +1,7 @@
 // components/admin/AdminSidebar.tsx
 "use client";
 
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -9,7 +10,7 @@ import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard, Users, UsersRound, BadgeCheck, BarChart3,
   FileText, Megaphone, Moon, Sun, LogOut, ChevronRight,
-  AlertTriangle, ClipboardList, MessageSquare,
+  AlertTriangle, ClipboardList, MessageSquare, GraduationCap
 } from "lucide-react";
 
 export interface AdminUser {
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { href: "/admin/reportes",      label: "Reportes del Sistema",  icon: BarChart3 },
   { href: "/admin/contenido",     label: "Gestionar Contenido",   icon: FileText },
   { href: "/admin/anuncios",      label: "Anuncios",              icon: Megaphone },
+  { href: "/admin/classroom",     label: "Classroom",             icon: GraduationCap },
 ];
 
 function getInitials(name: string) {
@@ -75,7 +77,13 @@ export function AdminSidebar({ user, estudiantesSinGrupo = 0 }: AdminSidebarProp
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-xs font-extrabold text-white">AX</div>
+        <Image
+          src="/images/logo2.png"
+          alt="AXIS Logo"
+          width={32}
+          height={32}
+          className="rounded-lg"
+        />
         <div className="leading-tight">
           <p className="text-sm font-extrabold text-white tracking-wide">AXIS</p>
           <p className="text-[11px] text-purple-200 font-medium">Pre-ICFES</p>

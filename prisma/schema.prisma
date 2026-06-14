@@ -1,4 +1,5 @@
 // prisma/schema.prisma
+// VERSIÓN COMPLETA — reemplaza el archivo existente
 
 generator client {
   provider = "prisma-client-js"
@@ -13,7 +14,7 @@ datasource db {
 
 model Usuario {
   id            String    @id @default(cuid())
-  nombre        String
+  nombre        String?   // Opcional para Google OAuth — se completa en /auth/registro-google
   email         String    @unique
   emailVerified DateTime?
   passwordHash  String?
@@ -30,16 +31,24 @@ model Usuario {
   grado   Int?
   ciudad  String?
 
-  rol    Rol  @default(ESTUDIANTE)
+  rol    Rol     @default(ESTUDIANTE)
   planId String?
-  plan   Plan? @relation(fields: [planId], references: [id])
+  plan   Plan?   @relation(fields: [planId], references: [id])
 
   // Grupo
   grupoId        String?
   grupo          Grupo?  @relation(fields: [grupoId], references: [id])
   gruposDocencia Grupo[] @relation("GrupoDocente")
 
-  // Relaciones
+  // ── Relaciones NextAuth (NUEVO — requeridas por PrismaAdapter) ────────────
+  accounts Account[]
+  sessions Session[]
+
+  //── Relacion con Classroom (NUEVO — para integración con Google Classroom) ────────────
+  classroomToken   ClassroomToken?
+  classroomClases  ClassroomClase[] @relation("ClaseDocente")
+
+  // ── Relaciones de negocio ─────────────────────────────────────────────────
   simulacros       Simulacro[]
   intentos         Intento[]
   suscripcion      Suscripcion?
@@ -65,6 +74,49 @@ enum Rol {
   DEVELOPER
 }
 
+// ─── NEXTAUTH — Account, Session, VerificationToken ──────────────────────────
+// Requeridos por PrismaAdapter para que Google OAuth guarde correctamente
+// los tokens y vincule la cuenta Google al Usuario
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user Usuario @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
 // ─── GRUPOS ───────────────────────────────────────────────────────────────────
 
 model Grupo {
@@ -76,6 +128,7 @@ model Grupo {
   docenteId    String?
   docente      Usuario?  @relation("GrupoDocente", fields: [docenteId], references: [id])
   estudiantes  Usuario[]
+  clases       ClassroomClase[]
   horario      String?
   activo       Boolean   @default(true)
   createdAt    DateTime  @default(now())
@@ -98,15 +151,15 @@ model Area {
 }
 
 model Pregunta {
-  id              String             @id @default(cuid())
-  enunciado       String
-  imagenUrl       String?
-  nivelDificultad Int                @default(1)
-  anioReferencia  Int?
-  activa          Boolean            @default(true)
-  areaId          String
-  area            Area               @relation(fields: [areaId], references: [id])
-  opciones        OpcionRespuesta[]
+  id                String             @id @default(cuid())
+  enunciado         String
+  imagenUrl         String?
+  nivelDificultad   Int                @default(1)
+  anioReferencia    Int?
+  activa            Boolean            @default(true)
+  areaId            String
+  area              Area               @relation(fields: [areaId], references: [id])
+  opciones          OpcionRespuesta[]
   respuestasUsuario RespuestaUsuario[]
 
   @@map("preguntas")
@@ -251,8 +304,9 @@ model DeveloperCredential {
 
 model AuditLog {
   id         String   @id @default(cuid())
-  usuarioId  String
-  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  // usuarioId es nullable para permitir logs de acciones sin usuario autenticado
+  usuarioId  String?
+  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
   accion     String
   recurso    String?
   recursoId  String?
@@ -315,29 +369,26 @@ model IntegrationLog {
 // ─── EXÁMENES TEMPLATE (sistema nuevo con TRI) ────────────────────────────────
 
 model ExamenTemplate {
-  id              String           @id @default(cuid())
-  nombre          String
-  materia         String
-  totalPreguntas  Int              @default(50)
-  tiempoMin       Int              @default(120)
+  id             String  @id @default(cuid())
+  nombre         String
+  materia        String
+  totalPreguntas Int     @default(50)
+  tiempoMin      Int     @default(120)
 
-  // Sesiones
-  tieneSesiones   Boolean          @default(false)
-  sesiones        SesionExamen[]
+  tieneSesiones Boolean        @default(false)
+  sesiones      SesionExamen[]
 
-  // Fechas
-  fechaDisponible DateTime?        // null = disponible inmediatamente
-  fechaCierre     DateTime?        // dispara cálculo TRI automáticamente
+  fechaDisponible DateTime?
+  fechaCierre     DateTime?
 
-  // Estado y TRI
-  estado          EstadoExamen     @default(BORRADOR)
-  triCalculado    Boolean          @default(false)
+  estado       EstadoExamen @default(BORRADOR)
+  triCalculado Boolean      @default(false)
 
-  creadoPorId     String
-  claves          ClaveExamen[]
-  resultados      ResultadoSimulacro[]
+  creadoPorId      String
+  claves           ClaveExamen[]
+  resultados       ResultadoSimulacro[]
   resultadosSesion ResultadoSesion[]
-  pesos           PesosPregunta[]
+  pesos            PesosPregunta[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -346,15 +397,15 @@ model ExamenTemplate {
 }
 
 model SesionExamen {
-  id        String         @id @default(cuid())
-  examenId  String
-  examen    ExamenTemplate @relation(fields: [examenId], references: [id], onDelete: Cascade)
-  numero    Int            // 1 o 2
-  nombre    String         // "Sesión 1 – Matemáticas y Ciencias"
-  tiempoMin Int            @default(60)
-  claves    ClaveExamen[]
+  id         String            @id @default(cuid())
+  examenId   String
+  examen     ExamenTemplate    @relation(fields: [examenId], references: [id], onDelete: Cascade)
+  numero     Int
+  nombre     String
+  tiempoMin  Int               @default(60)
+  claves     ClaveExamen[]
   resultados ResultadoSesion[]
-  pesos     PesosPregunta[]
+  pesos      PesosPregunta[]
 
   @@unique([examenId, numero])
   @@map("sesiones_examen")
@@ -367,9 +418,8 @@ model ClaveExamen {
   sesionId       String?
   sesion         SesionExamen?  @relation(fields: [sesionId], references: [id], onDelete: SetNull)
   numeroPregunta Int
-  respuesta      String         // "A", "B", "C" o "D"
+  respuesta      String
 
-  // Unique: por examen + sesión (null se trata como valor único en PG con NULLS NOT DISTINCT)
   @@unique([examenId, numeroPregunta, sesionId])
   @@map("claves_examen")
 }
@@ -377,6 +427,7 @@ model ClaveExamen {
 enum EstadoExamen {
   BORRADOR
   PUBLICADO
+  CERRADO
   ARCHIVADO
 }
 
@@ -387,19 +438,18 @@ enum EstadoCalificacion {
   OFICIAL
 }
 
-// Resultado por sesión individual
 model ResultadoSesion {
-  id                String         @id @default(cuid())
+  id                String   @id @default(cuid())
   estudianteId      String
   examenId          String
   sesionId          String
-  respuestas        Json           // { "1": "A", "2": "B", ... }
-  correctas         Int
+  respuestas        Json
+  aciertos          Int      @default(0)
   total             Int
-  puntajePreliminar Int            // round((correctas/total)^1.8 * 100)
-  puntajeTRI        Float?         // calculado tras fechaCierre
-  tiempoUsado       Int            @default(0)
-  completadoEn      DateTime       @default(now())
+  puntajePreliminar Float    @default(0)
+  puntajeTRI        Float?
+  tiempoUsado       Int      @default(0)
+  completadoEn      DateTime @default(now())
 
   estudiante Usuario        @relation(fields: [estudianteId], references: [id])
   examen     ExamenTemplate @relation(fields: [examenId], references: [id])
@@ -409,16 +459,15 @@ model ResultadoSesion {
   @@map("resultados_sesion")
 }
 
-// Resultado global por simulacro (suma/promedio de sesiones)
 model ResultadoSimulacro {
   id                String             @id @default(cuid())
   estudianteId      String
   examenId          String
   respuestas        Json               @default("{}")
-  puntaje           Int                @default(0)  // correctas (calificación simple)
+  puntaje           Int                @default(0)
   total             Int                @default(0)
-  puntajePreliminar Int                @default(0)  // calculado al instante
-  puntajeTRI        Float?             // calculado al cerrar (null hasta entonces)
+  puntajePreliminar Float              @default(0)
+  puntajeTRI        Float?
   estadoCalif       EstadoCalificacion @default(PRELIMINAR)
   tiempoUsado       Int                @default(0)
   completadoEn      DateTime           @default(now())
@@ -430,9 +479,8 @@ model ResultadoSimulacro {
   @@map("resultados_simulacro")
 }
 
-// Pesos TRI calculados por pregunta al cerrar el simulacro
 model PesosPregunta {
-  id              String         @id @default(cuid())
+  id              String  @id @default(cuid())
   examenId        String
   sesionId        String?
   numeroPregunta  Int
@@ -508,7 +556,6 @@ model Mensaje {
 }
 
 // ─── ANUNCIOS ─────────────────────────────────────────────────────────────────
-// Dimensión recomendada: 1280 × 720 px (16:9)
 
 model Anuncio {
   id          String   @id @default(cuid())
@@ -522,4 +569,130 @@ model Anuncio {
   updatedAt   DateTime @updatedAt
 
   @@map("anuncios")
+}
+
+// Guarda los tokens OAuth de Classroom por usuario (admin/docente)
+model ClassroomToken {
+  id           String   @id @default(cuid())
+  usuarioId    String   @unique
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  accessToken  String   @db.Text
+  refreshToken String?  @db.Text
+  expiresAt    DateTime
+  scope        String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("classroom_tokens")
+}
+
+// Clase sincronizada desde Google Classroom
+model ClassroomClase {
+  id             String   @id @default(cuid())
+  googleCourseId String   @unique  // ID de Google Classroom
+  nombre         String
+  descripcion    String?
+  materia        String?
+  seccion        String?
+  enlaceAlternativo String?         // meet link u otro
+  estado         EstadoClase @default(ACTIVA)
+
+  // Vinculación con el sistema AXIS
+  grupoId        String?
+  grupo          Grupo?   @relation(fields: [grupoId], references: [id])
+  docenteId      String?
+  docente        Usuario? @relation("ClaseDocente", fields: [docenteId], references: [id])
+
+  // Relaciones
+  eventos        ClassroomEvento[]
+  grabaciones    ClassroomGrabacion[]
+  tareas         ClassroomTarea[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("classroom_clases")
+  @@index([docenteId])
+  @@index([grupoId])
+}
+
+enum EstadoClase {
+  ACTIVA
+  ARCHIVADA
+  ELIMINADA
+}
+
+// Evento del calendario (clase en vivo, examen, evento)
+model ClassroomEvento {
+  id             String      @id @default(cuid())
+  googleEventId  String?     // ID del evento en Google Calendar (si se sincroniza)
+  claseId        String
+  clase          ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  titulo         String
+  descripcion    String?
+  tipo           TipoEvento  @default(CLASE)
+  fechaInicio    DateTime
+  fechaFin       DateTime?
+  linkMeet       String?     // link de Google Meet
+  linkGrabacion  String?     // link de grabación post-evento
+  completado     Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@map("classroom_eventos")
+  @@index([claseId])
+  @@index([fechaInicio])
+}
+
+enum TipoEvento {
+  CLASE
+  TAREA
+  EXAMEN
+  EVENTO
+}
+
+// Grabación de una clase (link almacenado manualmente o sincronizado)
+model ClassroomGrabacion {
+  id          String         @id @default(cuid())
+  claseId     String
+  clase       ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  titulo      String
+  descripcion String?
+  linkUrl     String         // link de Drive, YouTube, Meet recording, etc.
+  materia     String?
+  fecha       DateTime
+  duracionMin Int?
+  activa      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("classroom_grabaciones")
+  @@index([claseId])
+  @@index([fecha])
+}
+
+// Tarea asignada desde Classroom
+model ClassroomTarea {
+  id               String         @id @default(cuid())
+  googleWorkId     String?        @unique // ID del coursework en Google
+  claseId          String
+  clase            ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  titulo           String
+  descripcion      String?
+  linkUrl          String?
+  fechaEntrega     DateTime?
+  puntosPosibles   Float?
+  estado           EstadoTarea    @default(ASIGNADA)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("classroom_tareas")
+  @@index([claseId])
+  @@index([fechaEntrega])
+}
+
+enum EstadoTarea {
+  BORRADOR
+  ASIGNADA
+  CERRADA
 }

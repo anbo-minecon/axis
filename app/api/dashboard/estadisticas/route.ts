@@ -4,103 +4,136 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user?.id)
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
 
-    const resultados = await db.resultadoSimulacro.findMany({
+    const resultados = await (db as any).resultadoSimulacro.findMany({
       where: { estudianteId: session.user.id },
       include: {
-        examen: { select: { nombre: true, materia: true, tiempoMin: true } },
+        examen: {
+          select: {
+            nombre:        true,
+            materia:       true,
+            tiempoMin:     true,
+            tieneSesiones: true,
+            estado:        true,
+          },
+        },
       },
       orderBy: { completadoEn: "asc" },
     });
 
-    if (resultados.length === 0) {
+    if (resultados.length === 0)
       return NextResponse.json({ sinDatos: true });
-    }
 
-    // ── Métricas globales ──────────────────────────────────────────────────
-    const porcentajes  = resultados.map((r) => (r.puntaje / r.total) * 100);
-    const promedioGlobal = porcentajes.reduce((a, b) => a + b, 0) / porcentajes.length;
-    const mejorPct     = Math.max(...porcentajes);
-    const peorPct      = Math.min(...porcentajes);
-    const tiempoTotal  = resultados.reduce((a, r) => a + r.tiempoUsado, 0);
+    // ── Helper: puntaje efectivo (TRI oficial si existe, preliminar si no) ──
+    const puntajeEfectivo = (r: any): number => {
+      if (r.estadoCalif === "OFICIAL" && r.puntajeTRI != null)
+        return Number(r.puntajeTRI);
+      return r.puntajePreliminar ?? (r.total > 0 ? (r.puntaje / r.total) * 100 : 0);
+    };
 
-    // Tendencia: diferencia entre segunda mitad y primera mitad
-    const mitad   = Math.floor(resultados.length / 2);
-    const primera = resultados.slice(0, mitad || 1).map((r) => (r.puntaje / r.total) * 100);
-    const segunda = resultados.slice(mitad).map((r) => (r.puntaje / r.total) * 100);
-    const avgPrimera = primera.reduce((a, b) => a + b, 0) / primera.length;
-    const avgSegunda = segunda.reduce((a, b) => a + b, 0) / segunda.length;
-    const tendencia  = resultados.length < 2 ? 0 : Math.round((avgSegunda - avgPrimera) * 10) / 10;
+    const pctEfectivo = (r: any): number => {
+      const ef = puntajeEfectivo(r);
+      // puntajePreliminar y puntajeTRI ya están en escala 0-100
+      return Math.min(100, Math.max(0, ef));
+    };
 
-    // ── Por materia ────────────────────────────────────────────────────────
-    const porMateria: Record<string, { pcts: number[]; tiempos: number[] }> = {};
+    // ── Métricas globales ─────────────────────────────────────────────────
+    const porcentajes    = resultados.map(pctEfectivo);
+    const promedioGlobal = porcentajes.reduce((a: number, b: number) => a + b, 0) / porcentajes.length;
+    const mejorPct       = Math.max(...porcentajes);
+    const peorPct        = Math.min(...porcentajes);
+    const tiempoTotal    = resultados.reduce((a: number, r: any) => a + (r.tiempoUsado ?? 0), 0);
+    const oficiales      = resultados.filter((r: any) => r.estadoCalif === "OFICIAL").length;
+
+    // Tendencia entre primera y segunda mitad
+    const mitad      = Math.floor(resultados.length / 2);
+    const primera    = resultados.slice(0, mitad || 1).map(pctEfectivo);
+    const segunda    = resultados.slice(mitad).map(pctEfectivo);
+    const avgPrimera = primera.reduce((a: number, b: number) => a + b, 0) / primera.length;
+    const avgSegunda = segunda.reduce((a: number, b: number) => a + b, 0) / segunda.length;
+    const tendencia  = resultados.length < 2
+      ? 0
+      : Math.round((avgSegunda - avgPrimera) * 10) / 10;
+
+    // ── Por materia ───────────────────────────────────────────────────────
+    const porMateria: Record<string, {
+      pcts: number[]; tiempos: number[]; oficiales: number;
+    }> = {};
+
     for (const r of resultados) {
       const m = r.examen.materia;
-      if (!porMateria[m]) porMateria[m] = { pcts: [], tiempos: [] };
-      porMateria[m].pcts.push((r.puntaje / r.total) * 100);
-      porMateria[m].tiempos.push(r.tiempoUsado);
+      if (!porMateria[m]) porMateria[m] = { pcts: [], tiempos: [], oficiales: 0 };
+      porMateria[m].pcts.push(pctEfectivo(r));
+      porMateria[m].tiempos.push(r.tiempoUsado ?? 0);
+      if (r.estadoCalif === "OFICIAL") porMateria[m].oficiales++;
     }
 
-    const materias = Object.entries(porMateria).map(([materia, { pcts, tiempos }]) => {
-      const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
-      return {
-        materia,
-        cantidad: pcts.length,
-        promedioPorc: Math.round(avg),
-        puntajeEscalado: Math.round((avg / 100) * 500),
-        mejorPorc: Math.round(Math.max(...pcts)),
-        tiempoPromedio: Math.round(tiempos.reduce((a, b) => a + b, 0) / tiempos.length),
-      };
-    }).sort((a, b) => b.promedioPorc - a.promedioPorc);
+    const materias = Object.entries(porMateria)
+      .map(([materia, { pcts, tiempos, oficiales }]) => {
+        const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+        return {
+          materia,
+          cantidad:        pcts.length,
+          promedioPorc:    Math.round(avg),
+          puntajeEscalado: Math.round((avg / 100) * 500),
+          mejorPorc:       Math.round(Math.max(...pcts)),
+          peorPorc:        Math.round(Math.min(...pcts)),
+          tiempoPromedio:  Math.round(tiempos.reduce((a, b) => a + b, 0) / tiempos.length),
+          oficiales,
+        };
+      })
+      .sort((a, b) => b.promedioPorc - a.promedioPorc);
 
-    // ── Progresión cronológica ─────────────────────────────────────────────
-    const progresion = resultados.map((r) => ({
-      nombre: r.examen.nombre,
-      materia: r.examen.materia,
-      pct: Math.round((r.puntaje / r.total) * 100),
-      puntaje: r.puntaje,
-      total: r.total,
-      tiempoUsado: r.tiempoUsado,
+    // ── Progresión cronológica (para gráfica de línea) ────────────────────
+    const progresion = resultados.map((r: any) => ({
+      nombre:       r.examen.nombre,
+      materia:      r.examen.materia,
+      pct:          Math.round(pctEfectivo(r)),
+      puntaje:      r.puntaje,
+      total:        r.total,
+      puntajeTRI:   r.puntajeTRI,
+      estadoCalif:  r.estadoCalif,
+      tiempoUsado:  r.tiempoUsado ?? 0,
       completadoEn: r.completadoEn,
     }));
 
-    // ── Mejor y peor simulacro ─────────────────────────────────────────────
-    const sorted    = [...resultados].sort((a, b) => (b.puntaje / b.total) - (a.puntaje / a.total));
-    const mejorRes  = sorted[0];
-    const peorRes   = sorted[sorted.length - 1];
+    // ── Mejor y peor ──────────────────────────────────────────────────────
+    const sorted   = [...resultados].sort((a: any, b: any) => pctEfectivo(b) - pctEfectivo(a));
+    const mejorRes = sorted[0];
+    const peorRes  = sorted[sorted.length - 1];
 
     return NextResponse.json({
       sinDatos: false,
       global: {
-        totalSimulacros: resultados.length,
-        promedioPorc: Math.round(promedioGlobal),
-        puntajeEscalado: Math.round((promedioGlobal / 100) * 500),
-        mejorPct: Math.round(mejorPct),
-        peorPct: Math.round(peorPct),
-        tiempoTotal,             // segundos
-        tendencia,               // positivo = mejora, negativo = baja
+        totalSimulacros:  resultados.length,
+        oficiales,
+        promedioPorc:     Math.round(promedioGlobal),
+        puntajeEscalado:  Math.round((promedioGlobal / 100) * 500),
+        mejorPct:         Math.round(mejorPct),
+        peorPct:          Math.round(peorPct),
+        tiempoTotal,
+        tendencia,
       },
       materias,
       progresion,
       mejorSimulacro: {
-        nombre: mejorRes.examen.nombre,
+        nombre:  mejorRes.examen.nombre,
         materia: mejorRes.examen.materia,
-        pct: Math.round((mejorRes.puntaje / mejorRes.total) * 100),
-        puntaje: mejorRes.puntaje,
-        total: mejorRes.total,
+        pct:     Math.round(pctEfectivo(mejorRes)),
+        estadoCalif: mejorRes.estadoCalif,
       },
       peorSimulacro: {
-        nombre: peorRes.examen.nombre,
+        nombre:  peorRes.examen.nombre,
         materia: peorRes.examen.materia,
-        pct: Math.round((peorRes.puntaje / peorRes.total) * 100),
-        puntaje: peorRes.puntaje,
-        total: peorRes.total,
+        pct:     Math.round(pctEfectivo(peorRes)),
+        estadoCalif: peorRes.estadoCalif,
       },
     });
   } catch (error) {

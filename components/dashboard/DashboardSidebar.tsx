@@ -1,6 +1,7 @@
 // components/dashboard/DashboardSidebar.tsx
 "use client";
 
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -22,6 +23,7 @@ import {
   X,
   ChevronRight,
   AlertCircle,
+  GraduationCap,
 } from "lucide-react";
 
 /* ── Tipos ── */
@@ -57,6 +59,7 @@ const NAV_MAIN: NavItem[] = [
   { href: "/dashboard/ranking",      label: "Ranking",             icon: Trophy },
   { href: "/dashboard/material",     label: "Material de Estudio", icon: BookOpen },
   { href: "/dashboard/mensajes",     label: "Mensajes",            icon: MessageSquare, premium: true },
+  { href: "/dashboard/classroom",    label: "Classroom",           icon: GraduationCap,  premium: true },
 ];
 
 const NAV_BOTTOM: NavItem[] = [
@@ -168,9 +171,13 @@ function SidebarDesktop({ user }: { user: SidebarUser }) {
     >
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-xs font-extrabold text-white">
-          AX
-        </div>
+        <Image
+          src="/images/logo2.png"
+          alt="AXIS Logo"
+          width={32}
+          height={32}
+          className="rounded-lg"
+        />
         <div className="leading-tight">
           <p className="text-sm font-extrabold text-white tracking-wide">AXIS</p>
           <p className="text-[11px] text-blue-200 font-medium">Pre-ICFES</p>

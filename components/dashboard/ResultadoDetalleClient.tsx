@@ -2,40 +2,60 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  ArrowLeft, CheckCircle2, XCircle, MinusCircle,
-  Trophy, Clock, Hash, TrendingUp, TrendingDown,
-  Minus, BarChart3, AlertCircle, Loader2, Filter,
+  CheckCircle2, XCircle, Minus, Clock, Hash, Trophy,
+  TrendingUp, TrendingDown, ArrowLeft, Loader2, AlertCircle,
+  BarChart3, Filter, Layers, Info, CheckCheck,
 } from "lucide-react";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
-interface Pregunta {
+interface PreguntaDetalle {
   numero: number;
   respuestaCorrecta: string;
   respuestaDada: string | null;
   correcto: boolean;
+  sinResponder: boolean;
 }
 
-interface Resumen {
-  puntaje: number;
+interface ResumenSesion {
+  sesionId: string;
+  numero: number;
+  nombre: string;
+  aciertos: number;
   total: number;
+  puntajePreliminar: number;
+  puntajeTRI: number | null;
   pct: number;
   tiempoUsado: number;
   completadoEn: string;
-  totalCorrectas: number;
-  totalIncorrectas: number;
-  sinResponder: number;
 }
 
-interface DetalleData {
-  examen: { id: string; nombre: string; materia: string; tiempoMin: number };
-  resumen: Resumen;
-  preguntas: Pregunta[];
+interface DatosDetalle {
+  examen: {
+    id: string;
+    nombre: string;
+    materia: string;
+    tiempoMin: number;
+    tieneSesiones: boolean;
+  };
+  resumen: {
+    puntaje: number;
+    total: number;
+    pct: number;
+    puntajePreliminar: number;
+    puntajeTRI: number | null;
+    estadoCalif: string;
+    tiempoUsado: number;
+    completadoEn: string;
+    totalCorrectas: number;
+    totalIncorrectas: number;
+    sinResponder: number;
+  };
+  preguntas: PreguntaDetalle[];
+  sesiones: ResumenSesion[];
 }
-
-type Filtro = "todas" | "correctas" | "incorrectas" | "sin_responder";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 const MATERIA_COLORS: Record<string, string> = {
@@ -44,330 +64,350 @@ const MATERIA_COLORS: Record<string, string> = {
   "Ciencias Naturales":    "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   "Sociales y Ciudadanas": "bg-amber-500/20 text-amber-400 border-amber-500/30",
   "Inglés":                "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
+  "Multi-materia":         "bg-violet-500/20 text-violet-400 border-violet-500/30",
 };
-const getMateriaColor = (m: string) =>
-  MATERIA_COLORS[m] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30";
+const getMC = (m: string) => MATERIA_COLORS[m] ?? "bg-gray-500/20 text-gray-400 border-gray-500/30";
 
 function getNivel(pct: number) {
-  if (pct >= 80) return { label: "Nivel Alto",  color: "text-green-400",  barColor: "bg-green-500",  icon: TrendingUp };
-  if (pct >= 50) return { label: "Nivel Medio", color: "text-amber-400",  barColor: "bg-amber-500",  icon: Minus };
-  return           { label: "Nivel Bajo",  color: "text-red-400",    barColor: "bg-red-500",    icon: TrendingDown };
+  if (pct >= 80) return { label: "Nivel Alto",  color: "text-green-400",  bg: "bg-green-500",  icon: TrendingUp   };
+  if (pct >= 50) return { label: "Nivel Medio", color: "text-amber-400",  bg: "bg-amber-500",  icon: Minus        };
+  return           { label: "Nivel Bajo",  color: "text-red-400",    bg: "bg-red-500",    icon: TrendingDown };
+}
+
+function fmtTiempo(segs: number) {
+  if (!segs) return "—";
+  const h = Math.floor(segs / 3600);
+  const m = Math.floor((segs % 3600) / 60);
+  const s = segs % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${String(s).padStart(2, "0")}s`;
+  return `${s}s`;
 }
 
 function fmtFecha(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", {
-    day: "2-digit", month: "long", year: "numeric",
+  return new Date(iso).toLocaleString("es-CO", {
+    day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
 }
 
-function fmtTiempo(segs: number) {
-  const m = Math.floor(segs / 60);
-  const s = segs % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-// ── Fila de pregunta ───────────────────────────────────────────────────────
-function PreguntaFila({ p }: { p: Pregunta }) {
-  const sinResp = p.respuestaDada === null;
-
+// ── Mini gauge ─────────────────────────────────────────────────────────────
+function Gauge({ pct, color }: { pct: number; color: string }) {
+  const stroke = pct >= 80 ? "#22c55e" : pct >= 50 ? "#f59e0b" : "#ef4444";
   return (
-    <div className={cn(
-      "flex items-center gap-3 rounded-xl border px-4 py-3 transition",
-      p.correcto
-        ? "border-green-500/20 bg-green-500/5 hover:bg-green-500/10"
-        : sinResp
-        ? "border-white/8 bg-white/[0.02] hover:bg-white/[0.04]"
-        : "border-red-500/20 bg-red-500/5 hover:bg-red-500/10"
-    )}>
-      {/* Ícono de estado */}
-      <div className="shrink-0">
-        {p.correcto ? (
-          <CheckCircle2 className="h-5 w-5 text-green-400" />
-        ) : sinResp ? (
-          <MinusCircle className="h-5 w-5 text-gray-600" />
-        ) : (
-          <XCircle className="h-5 w-5 text-red-400" />
-        )}
-      </div>
-
-      {/* Número */}
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/8">
-        <span className="text-xs font-bold text-[var(--text-muted)]">{p.numero}</span>
-      </div>
-
-      {/* Descripción */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-[var(--text-primary)]">
-          Pregunta {p.numero}
-        </p>
-        <p className={cn(
-          "text-xs mt-0.5",
-          p.correcto ? "text-green-400" : sinResp ? "text-gray-600" : "text-red-400"
-        )}>
-          {p.correcto
-            ? "Respuesta correcta"
-            : sinResp
-            ? "Sin responder"
-            : "Respuesta incorrecta"}
-        </p>
-      </div>
-
-      {/* Respuestas */}
-      <div className="flex items-center gap-2 shrink-0">
-        {/* Tu respuesta */}
-        <div className="text-center">
-          <p className="text-[10px] text-[var(--text-muted)] mb-1">Tu resp.</p>
-          <div className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg text-sm font-extrabold border",
-            p.correcto
-              ? "border-green-500/40 bg-green-500/20 text-green-300"
-              : sinResp
-              ? "border-white/10 bg-white/5 text-gray-600"
-              : "border-red-500/40 bg-red-500/20 text-red-300"
-          )}>
-            {p.respuestaDada ?? "–"}
-          </div>
-        </div>
-
-        {/* Flecha solo si es incorrecta */}
-        {!p.correcto && !sinResp && (
-          <span className="text-gray-600 text-sm">→</span>
-        )}
-
-        {/* Respuesta correcta (siempre visible si no acertó) */}
-        {!p.correcto && (
-          <div className="text-center">
-            <p className="text-[10px] text-[var(--text-muted)] mb-1">Correcta</p>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-green-500/40 bg-green-500/20 text-sm font-extrabold text-green-300">
-              {p.respuestaCorrecta}
-            </div>
-          </div>
-        )}
+    <div className="relative h-16 w-16 shrink-0">
+      <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="12" />
+        <circle cx="50" cy="50" r="40" fill="none" stroke={stroke} strokeWidth="12"
+          strokeDasharray={`${pct * 2.51} 251`} strokeLinecap="round" />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={cn("text-xs font-extrabold", color)}>{pct}%</span>
       </div>
     </div>
   );
 }
 
-// ── Componente principal ───────────────────────────────────────────────────
+// ── Fila de pregunta ───────────────────────────────────────────────────────
+function FilaPregunta({ p }: { p: PreguntaDetalle }) {
+  return (
+    <div className={cn(
+      "flex items-center gap-3 px-4 py-3 rounded-xl border transition-all",
+      p.correcto
+        ? "border-green-500/20 bg-green-500/5"
+        : p.sinResponder
+        ? "border-white/8 bg-white/[0.02]"
+        : "border-red-500/20 bg-red-500/5",
+    )}>
+      {/* Ícono estado */}
+      <div className="shrink-0">
+        {p.correcto
+          ? <CheckCircle2 className="h-4 w-4 text-green-400" />
+          : p.sinResponder
+          ? <Minus className="h-4 w-4 text-gray-600" />
+          : <XCircle className="h-4 w-4 text-red-400" />}
+      </div>
+
+      {/* Número */}
+      <span className="text-xs font-bold text-gray-500 w-12 shrink-0">
+        Preg. {p.numero}
+      </span>
+
+      {/* Respuesta dada */}
+      <div className="flex-1 flex items-center gap-2">
+        <span className="text-[10px] text-gray-600">Tu resp.:</span>
+        <span className={cn(
+          "inline-flex h-6 w-6 items-center justify-center rounded-lg text-xs font-extrabold",
+          p.sinResponder
+            ? "bg-white/5 text-gray-600"
+            : p.correcto
+            ? "bg-green-500/20 text-green-400"
+            : "bg-red-500/20 text-red-400",
+        )}>
+          {p.respuestaDada ?? "—"}
+        </span>
+      </div>
+
+      {/* Respuesta correcta */}
+      <div className="flex items-center gap-2 shrink-0">
+        <span className="text-[10px] text-gray-600">Correcta:</span>
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400 text-xs font-extrabold">
+          {p.respuestaCorrecta}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// COMPONENTE PRINCIPAL
+// ══════════════════════════════════════════════════════════════════════════
 export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
-  const [data, setData]       = useState<DetalleData | null>(null);
+  const router = useRouter();
+  const [datos,   setDatos]   = useState<DatosDetalle | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState("");
-  const [filtro, setFiltro]   = useState<Filtro>("todas");
+  const [error,   setError]   = useState("");
+  const [filtro,  setFiltro]  = useState<"todas" | "correctas" | "incorrectas" | "sinResponder">("todas");
+  const [sesionFiltro, setSesionFiltro] = useState<string>("todas");
 
   useEffect(() => {
     fetch(`/api/dashboard/resultados/${examenId}`)
       .then((r) => r.json())
-      .then(setData)
-      .catch(() => setError("No se pudo cargar el detalle del resultado."))
+      .then((d) => {
+        if (d.error) throw new Error(d.error);
+        setDatos(d);
+      })
+      .catch((e) => setError(e?.message ?? "Error al cargar el resultado."))
       .finally(() => setLoading(false));
   }, [examenId]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-7 w-7 animate-spin text-blue-500" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center py-24">
+      <Loader2 className="h-7 w-7 animate-spin text-blue-500" />
+    </div>
+  );
 
-  if (error || !data) {
-    return (
-      <div className="px-4 md:px-6 py-6 max-w-3xl mx-auto">
-        <div className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-400">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error || "No se encontró el resultado."}
-        </div>
-      </div>
-    );
-  }
+  if (error) return (
+    <div className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-400 m-6">
+      <AlertCircle className="h-4 w-4 shrink-0" />{error}
+    </div>
+  );
 
-  const { examen, resumen, preguntas } = data;
+  if (!datos) return null;
+
+  const { examen, resumen, preguntas, sesiones } = datos;
   const nivel     = getNivel(resumen.pct);
   const NivelIcon = nivel.icon;
+  const esOficial = resumen.estadoCalif === "OFICIAL";
 
-  const preguntasFiltradas = preguntas.filter((p) => {
-    if (filtro === "correctas")     return p.correcto;
-    if (filtro === "incorrectas")   return !p.correcto && p.respuestaDada !== null;
-    if (filtro === "sin_responder") return p.respuestaDada === null;
-    return true;
-  });
+  // Filtrar preguntas
+  let preguntasFiltradas = preguntas;
+  if (filtro === "correctas")    preguntasFiltradas = preguntas.filter((p) => p.correcto);
+  if (filtro === "incorrectas")  preguntasFiltradas = preguntas.filter((p) => !p.correcto && !p.sinResponder);
+  if (filtro === "sinResponder") preguntasFiltradas = preguntas.filter((p) => p.sinResponder);
 
-  const filtros: { id: Filtro; label: string; count: number; color: string }[] = [
-    { id: "todas",         label: "Todas",          count: preguntas.length,           color: "" },
-    { id: "correctas",     label: "Correctas",      count: resumen.totalCorrectas,     color: "text-green-400" },
-    { id: "incorrectas",   label: "Incorrectas",    count: resumen.totalIncorrectas,   color: "text-red-400" },
-    { id: "sin_responder", label: "Sin responder",  count: resumen.sinResponder,       color: "text-gray-500" },
+  const filtros = [
+    { id: "todas",        label: `Todas ${preguntas.length}`,                  },
+    { id: "correctas",    label: `Correctas ${resumen.totalCorrectas}`,         },
+    { id: "incorrectas",  label: `Incorrectas ${resumen.totalIncorrectas}`,     },
+    { id: "sinResponder", label: `Sin responder ${resumen.sinResponder}`,       },
   ];
 
   return (
-    <div className="px-4 md:px-6 py-6 max-w-3xl mx-auto space-y-5">
+    <div className="px-4 md:px-6 py-6 max-w-4xl mx-auto space-y-5">
 
-      {/* ── Volver ── */}
-      <Link
-        href="/dashboard/resultados"
-        className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Volver a resultados
-      </Link>
+      {/* Volver */}
+      <button onClick={() => router.back()}
+        className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition">
+        <ArrowLeft className="h-4 w-4" />Volver a resultados
+      </button>
 
-      {/* ── Header ── */}
+      {/* ── Card principal ── */}
       <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-600/10 to-purple-600/10 p-6 space-y-5">
 
-        <div className="flex items-start justify-between gap-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-extrabold text-[var(--text-primary)]">{examen.nombre}</h1>
-            <span className={cn(
-              "mt-2 inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold",
-              getMateriaColor(examen.materia)
-            )}>
-              {examen.materia}
-            </span>
+            <h1 className="text-xl font-extrabold text-white">{examen.nombre}</h1>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className={cn("inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold", getMC(examen.materia))}>
+                {examen.materia}
+              </span>
+              <span className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold",
+                esOficial
+                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                  : "bg-amber-500/20 text-amber-400 border-amber-500/30",
+              )}>
+                {esOficial
+                  ? <><CheckCheck className="h-2.5 w-2.5" />Puntaje TRI oficial</>
+                  : <><Info className="h-2.5 w-2.5" />Puntaje preliminar</>}
+              </span>
+              {examen.tieneSesiones && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/30 bg-violet-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-violet-400">
+                  <Layers className="h-2.5 w-2.5" />{sesiones.length} sesiones
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1.5">{fmtFecha(resumen.completadoEn)}</p>
           </div>
-          <div className={cn(
-            "shrink-0 p-2.5 rounded-xl",
-            resumen.pct >= 80 ? "bg-green-500/20" : resumen.pct >= 50 ? "bg-amber-500/20" : "bg-red-500/20"
-          )}>
-            <Trophy className={cn("h-5 w-5", nivel.color)} />
-          </div>
+          <Gauge pct={resumen.pct} color={nivel.color} />
         </div>
 
-        {/* Métricas */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Métricas principales */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {/* Puntaje */}
           <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-            <p className="text-xs text-[var(--text-muted)] mb-1.5">Puntaje</p>
-            <p className="text-xl font-extrabold text-[var(--text-primary)]">
-              {resumen.puntaje}
-              <span className="text-sm font-semibold text-gray-500"> /{resumen.total}</span>
+            <p className="text-[10px] text-gray-500 mb-1">
+              {esOficial ? "Puntaje TRI" : "Puntaje prelim."}
             </p>
-            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
-              <div
-                className={cn("h-full rounded-full", nivel.barColor)}
-                style={{ width: `${resumen.pct}%` }}
-              />
+            <p className={cn("text-2xl font-extrabold", nivel.color)}>
+              {resumen.pct}
+              <span className="text-sm text-gray-600 font-normal">/100</span>
+            </p>
+            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
+              <div className={cn("h-full rounded-full", nivel.bg)} style={{ width: `${resumen.pct}%` }} />
             </div>
           </div>
 
-          {/* % + nivel */}
+          {/* Aciertos */}
           <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-            <p className="text-xs text-[var(--text-muted)] mb-1.5">Aciertos</p>
-            <p className={cn("text-xl font-extrabold", nivel.color)}>{resumen.pct}%</p>
-            <p className={cn("flex items-center gap-1 text-xs font-semibold mt-1.5", nivel.color)}>
-              <NivelIcon className="h-3 w-3" />
-              {nivel.label}
+            <p className="text-[10px] text-gray-500 mb-1">Aciertos</p>
+            <p className="text-2xl font-extrabold text-white">
+              {resumen.totalCorrectas}
+              <span className="text-sm text-gray-600 font-normal">/{resumen.total}</span>
+            </p>
+            <p className={cn("text-[10px] mt-1 flex items-center gap-1 font-semibold", nivel.color)}>
+              <NivelIcon className="h-3 w-3" />{nivel.label}
             </p>
           </div>
 
           {/* Tiempo */}
           <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-            <p className="text-xs text-[var(--text-muted)] mb-1.5">Tiempo</p>
-            <p className="text-xl font-extrabold text-[var(--text-primary)]">
-              {fmtTiempo(resumen.tiempoUsado)}
+            <p className="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
+              <Clock className="h-2.5 w-2.5" />Tiempo
             </p>
-            <p className="text-xs text-[var(--text-muted)] mt-1.5">
-              de {examen.tiempoMin} min
+            <p className="text-2xl font-extrabold text-white">{fmtTiempo(resumen.tiempoUsado)}</p>
+            <p className="text-[10px] text-gray-600 mt-1">de {examen.tiempoMin} min</p>
+          </div>
+
+          {/* Sin responder */}
+          <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+            <p className="text-[10px] text-gray-500 mb-1">Sin responder</p>
+            <p className={cn("text-2xl font-extrabold",
+              resumen.sinResponder > 0 ? "text-amber-400" : "text-green-400")}>
+              {resumen.sinResponder}
             </p>
+            <p className="text-[10px] text-gray-600 mt-1">de {resumen.total} preguntas</p>
           </div>
         </div>
 
-        {/* Fecha */}
-        <p className="text-xs text-[var(--text-muted)]">
-          Realizado el {fmtFecha(resumen.completadoEn)}
-        </p>
-      </div>
-
-      {/* ── Resumen de respuestas ── */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-green-500/20 bg-green-500/5 px-4 py-3 text-center">
-          <CheckCircle2 className="h-5 w-5 text-green-400 mx-auto mb-1" />
-          <p className="text-2xl font-extrabold text-green-400">{resumen.totalCorrectas}</p>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">Correctas</p>
-        </div>
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-center">
-          <XCircle className="h-5 w-5 text-red-400 mx-auto mb-1" />
-          <p className="text-2xl font-extrabold text-red-400">{resumen.totalIncorrectas}</p>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">Incorrectas</p>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center">
-          <MinusCircle className="h-5 w-5 text-gray-600 mx-auto mb-1" />
-          <p className="text-2xl font-extrabold text-gray-500">{resumen.sinResponder}</p>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">Sin resp.</p>
-        </div>
-      </div>
-
-      {/* ── Preguntas ── */}
-      <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] overflow-hidden">
-
-        {/* Header + filtros */}
-        <div className="border-b border-white/10 px-5 py-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-blue-400" />
-            <h2 className="text-sm font-bold text-[var(--text-primary)]">
-              Revisión pregunta por pregunta
-            </h2>
-          </div>
-
-          {/* Tabs de filtro */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Filter className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-            {filtros.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setFiltro(f.id)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition",
-                  filtro === f.id
-                    ? "bg-blue-600 text-white"
-                    : "border border-white/10 bg-white/5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10"
-                )}
-              >
-                {f.label}
-                <span className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[9px] font-bold",
-                  filtro === f.id
-                    ? "bg-white/20 text-white"
-                    : "bg-white/10 " + (f.color || "text-[var(--text-muted)]")
-                )}>
-                  {f.count}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Lista de preguntas */}
-        <div className="p-4 space-y-2">
-          {preguntasFiltradas.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
-              <CheckCircle2 className="h-8 w-8 text-gray-700" />
-              <p className="text-sm text-gray-500">No hay preguntas en esta categoría</p>
+        {/* Barras de resumen */}
+        <div className="grid grid-cols-3 gap-3 text-center">
+          {[
+            { label: "Correctas",    val: resumen.totalCorrectas,   color: "text-green-400", bg: "bg-green-500" },
+            { label: "Incorrectas",  val: resumen.totalIncorrectas, color: "text-red-400",   bg: "bg-red-500"   },
+            { label: "Sin responder",val: resumen.sinResponder,     color: "text-gray-400",  bg: "bg-gray-500"  },
+          ].map(({ label, val, color, bg }) => (
+            <div key={label} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
+              <p className={cn("text-xl font-extrabold", color)}>{val}</p>
+              <p className="text-[10px] text-gray-600 mt-0.5">{label}</p>
+              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                <div className={cn("h-full rounded-full", bg)}
+                  style={{ width: `${resumen.total > 0 ? (val / resumen.total) * 100 : 0}%` }} />
+              </div>
             </div>
-          ) : (
-            preguntasFiltradas.map((p) => (
-              <PreguntaFila key={p.numero} p={p} />
-            ))
-          )}
+          ))}
         </div>
       </div>
 
-      {/* ── Acciones ── */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Link
-          href="/dashboard/simulacros"
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 py-3 text-sm font-semibold text-[var(--text-primary)] hover:bg-white/10 transition"
-        >
-          Ver simulacros
-        </Link>
-        <Link
-          href="/dashboard/estadisticas"
-          className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white hover:bg-blue-700 transition"
-        >
-          Ver estadísticas
-        </Link>
+      {/* ── Resumen por sesión ── */}
+      {examen.tieneSesiones && sesiones.length > 0 && (
+        <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-5 space-y-3">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <Layers className="h-4 w-4 text-violet-400" />Desglose por sesión
+          </h2>
+          <div className="space-y-2">
+            {sesiones.map((s) => {
+              const n = getNivel(s.pct);
+              return (
+                <div key={s.sesionId}
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-600/30 text-[10px] font-extrabold text-violet-300">
+                    {s.numero}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{s.nombre}</p>
+                    <div className="flex items-center gap-3 text-[10px] text-gray-500 mt-0.5">
+                      <span>{s.aciertos}/{s.total} correctas</span>
+                      <span>{fmtTiempo(s.tiempoUsado)}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                      <div className={cn("h-full rounded-full", n.bg)} style={{ width: `${s.pct}%` }} />
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className={cn("text-base font-extrabold", n.color)}>{s.pct}%</p>
+                    {s.puntajeTRI != null
+                      ? <p className="text-[9px] text-emerald-400">TRI: {s.puntajeTRI}</p>
+                      : <p className="text-[9px] text-gray-600">Prelim.: {s.puntajePreliminar}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Revisión pregunta por pregunta ── */}
+      <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-5 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-blue-400" />Revisión pregunta por pregunta
+          </h2>
+        </div>
+
+        {/* Filtros */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Filter className="h-3.5 w-3.5 text-gray-600 shrink-0" />
+          {filtros.map((f) => (
+            <button key={f.id} onClick={() => setFiltro(f.id as any)}
+              className={cn("rounded-xl px-3 py-1.5 text-[11px] font-semibold transition border",
+                filtro === f.id
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "border-white/10 text-gray-400 hover:text-white hover:border-white/20")}>
+              {f.label}
+            </button>
+          ))}
+          <span className="ml-auto text-[10px] text-gray-600">
+            {preguntasFiltradas.length} pregunta{preguntasFiltradas.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+
+        {/* Lista */}
+        {preguntasFiltradas.length === 0 ? (
+          <p className="text-sm text-gray-600 text-center py-8">No hay preguntas en esta categoría.</p>
+        ) : (
+          <div className="space-y-2">
+            {preguntasFiltradas.map((p) => <FilaPregunta key={p.numero} p={p} />)}
+          </div>
+        )}
       </div>
+
+      {/* ── Aviso TRI ── */}
+      {!esOficial && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3.5">
+          <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold text-amber-300">Puntaje preliminar</p>
+            <p className="text-xs text-amber-400 mt-0.5">
+              Este puntaje se recalculará automáticamente cuando el simulacro cierre, usando el
+              modelo TRI que considera la dificultad real de cada pregunta según el desempeño de
+              todo el grupo.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

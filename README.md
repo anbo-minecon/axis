@@ -69,6 +69,7 @@ axis-preicfes/
 ├── 📂 lib/                   # Utilidades y configuración
 │   ├── auth.ts               # Configuración Auth.js
 │   ├── db.ts                 # Cliente Prisma
+│   ├── logger.ts             # Sistema de logging en archivos
 │   ├── utils.ts              # Funciones auxiliares
 │   └── (otros archivos de configuración)
 │
@@ -93,6 +94,7 @@ axis-preicfes/
 │   ├── images/               # Imágenes y logos (3 archivos)
 │   └── scripts/              # Scripts cliente (1 archivo)
 │
+├── 📂 logs/                  # Archivos de logs del sistema
 ├── 📂 styles/                # Estilos adicionales (🔴 vacía)
 ├── 📂 store/                 # Estado global (🔴 vacía)
 ├── 📂 scripts/               # Scripts de desarrollo
@@ -131,9 +133,13 @@ axis-preicfes/
 | `/dashboard` | Dashboard del estudiante | ✅ Datos actualizados |
 | `/dashboard/simulacros` | Lista de simulacros con imágenes | ✅ Con tarjetas visuales |
 | `/dashboard/simulacro/[id]/resultado` | Detalle de resultados | ✅ Funcional |
+| `/dashboard/classroom` | Mis clases (cards clickeables) | ✅ Integración Google |
+| `/dashboard/classroom/clases/[id]` | Tablón de clase (anuncios+tareas) | ✅ Feed en vivo |
+| `/dashboard/classroom/calendario` | Calendario visual mensual | ✅ Grid 7×6 con eventos |
 | `/dashboard/planes` | Planes de suscripción | ✅ Funcional |
 | `/dashboard/estadisticas` | Estadísticas personales | 🔄 |
 | `/dashboard/perfil` | Configuración de perfil | 🔄 |
+| `/admin/classroom` | Gestión de Google Classroom | ✅ Calendario admin |
 | `/admin/planes` | Gestión de planes | 🔄 |
 | `/admin/preguntas` | Banco de preguntas | 🔄 |
 | `/admin/usuarios` | Gestión de usuarios | 🔄 |
@@ -184,6 +190,7 @@ axis-preicfes/
 | `auth.ts` | Configuración de NextAuth, proveedores |
 | `auth-guard.ts` | Middleware para rutas protegidas |
 | `db.ts` | Cliente de Prisma singleton |
+| `logger.ts` | Sistema de logging en archivos .log |
 | `notifications.ts` | Sistema de toast notifications |
 | `utils.ts` | Funciones auxiliares de uso general |
 | `trpc-client.ts` | Cliente tRPC configurado para el frontend |
@@ -234,12 +241,15 @@ Procedimientos con protecciones:
 #### `schema.prisma`
 Define los modelos:
 - `Usuario` - Estudiantes registrados (incluye rol DEVELOPER oculto)
+- `Grupo` - Grupos de estudio con docentes
 - `Suscripcion` - Planes de los usuarios
 - `Plan` - Tipos de planes disponibles
 - `Area` - Áreas del ICFES (Lectura, Matemáticas, etc.)
 - `Pregunta` - Banco de preguntas
 - `OpcionRespuesta` - Opciones A, B, C, D
 - `Simulacro` - Exámenes
+- `Intento` - Intentos de simulacros de estudiantes
+- `RespuestaIntento` - Respuestas detalladas de intentos
 - `RespuestaUsuario` - Respuestas del estudiante
 - `DeveloperCredential` - Credenciales del rol Developer (encriptadas)
 - `AuditLog` - Registro de acciones administrativas
@@ -368,6 +378,8 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | `AUTH_URL` | URL base de la app | `http://localhost:3000` |
 | `AUTH_GOOGLE_ID` | Google OAuth Client ID (opcional) | `tu-google-client-id` |
 | `AUTH_GOOGLE_SECRET` | Google OAuth Secret (opcional) | `tu-google-secret` |
+| `GOOGLE_ID` | Google Classroom API Client ID | `para-classroom-integration` |
+| `GOOGLE_SECRET` | Google Classroom API Secret | `para-classroom-integration` |
 | `NEXT_PUBLIC_APP_URL` | URL pública de la app | `http://localhost:3000` |
 | `NEXT_PUBLIC_APP_NAME` | Nombre de la aplicación | `Axis Pre-ICFES` |
 | `REDIS_URL` | Conexión a Redis (opcional caché) | `redis://localhost:6379` |
@@ -422,6 +434,7 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | **Dashboard Datos en Vivo** | ✅ Completado | Queries corregidas a BD correcta |
 | **Panel Administrativo** | 🔄 En desarrollo | Gestión de contenido |
 | **Estadísticas Avanzadas** | ✅ Completado | Gráficos, progresión, rendimiento por materia |
+| **Google Classroom Integración** | ✅ Completado | Feed en tiempo real, anuncios, tareas, tablón |
 | **Manejo de Errores** | ✅ Mejorado | Mejor debugging y feedback en componentes |
 | **Sistema de Pagos** | ⏳ Pendiente | Integración con pasarelas |
 | **Móvil (PWA)** | ⏳ Pendiente | Versión móvil optimizada |
@@ -508,6 +521,114 @@ GET    /api/developer/integrations       - Estado de integraciones
 
 ---
 
+## 🎓 Integración Google Classroom (Tercera Ronda)
+
+### Archivos Implementados
+
+#### ✅ `app/dashboard/classroom/page.tsx` (Actualizado)
+- **Tarjetas clickeables**: Cada clase navega a `/dashboard/classroom/clases/${id}`
+- **Tabs principales**: Mis Clases, Grabaciones, Tareas
+- **Stats**: Contador de grabaciones, tareas y eventos por clase
+- **Acciones rápidas**: Botones Ver Clases y Tareas
+- **Resumen superior**: Cards con totales
+
+#### ✅ `app/dashboard/classroom/clases/[id]/page.tsx` (Nuevo - Tablón)
+- **Tab "Tablón"**: Anuncios en tiempo real desde Google API
+- **Tab "Tareas"**: Tareas con fecha, puntos, adjuntos
+- **MaterialChip**: Miniaturas para YouTube, Drive, Forms, Links
+- **Botón Actualizar**: Fuerza refetch con `force=true`
+- **Alerta visual**: Roja si hay tareas vencidas o ≤ 3 días
+- **Solo lectura**: Estudiantes sin opción de crear
+- **Información de clase**: Materia, sección, docente
+
+#### ✅ `app/api/classroom/feed/route.ts` (Mejorado)
+- **Parámetros**: Acepta `?claseId=${id}` o `?courseId=${googleId}`
+- **Búsqueda automática**: Resuelve `googleCourseId` desde la clase
+- **Respuesta**: `{ clase, anuncios, tareas }`
+- **Token fallback**: Si estudiante sin token, usa del docente
+- **Formato de materiales**: `{ tipo, titulo, url, thumbnail }`
+- **Cache**: 60 segundos con `next: { revalidate: 60 }`
+- **Tipos soportados**: DRIVE_FILE, YOUTUBE, FORM, LINK
+
+#### ✅ `app/admin/classroom/calendario/page.tsx` (Existente)
+- **Calendario visual**: Grid 7×6 con días del mes
+- **Eventos marcados**: Puntos de colores por tipo
+- **Hover tooltip**: Lista de eventos del día
+- **Click modal**: Detalles completos + botón Meet
+- **Admin exclusive**: Click en día vacío para crear evento
+
+#### ✅ `app/dashboard/classroom/calendario/page.tsx` (Existente)
+- **Mismo diseño**: Igual al calendario admin
+- **Solo lectura**: Estudiantes sin crear eventos
+- **Información completa**: Detalles de cada evento
+
+### Estructura Completa
+
+```
+app/
+├── api/classroom/
+│   ├── feed/route.ts              ← Anuncios + Tareas en vivo
+│   ├── connect/route.ts           ← OAuth de Google
+│   ├── callback/route.ts          ← Callback OAuth
+│   ├── clases/route.ts            ← Listado de clases
+│   ├── calendario/route.ts        ← Eventos mensuales
+│   ├── tareas/route.ts            ← Tareas por clase
+│   ├── grabaciones/route.ts       ← Videos de clase
+│   └── miembros/route.ts          ← Estudiantes de clase
+│
+├── admin/classroom/
+│   ├── page.tsx                   ← Listado clases admin
+│   ├── calendario/page.tsx        ← Calendario visual admin
+│   ├── clases/[id]/page.tsx       ← Detalles clase admin
+│   ├── grabaciones/page.tsx       ← Gestión videos
+│   └── miembros/page.tsx          ← Gestión estudiantes
+│
+└── dashboard/classroom/
+    ├── page.tsx                   ← Mis clases (cards clickeables)
+    ├── calendario/page.tsx        ← Calendario visual estudiante
+    ├── grabaciones/page.tsx       ← Mis grabaciones
+    ├── tareas/page.tsx            ← Mis tareas
+    └── clases/[id]/page.tsx       ← Tablón (anuncios + tareas)
+```
+
+### Funcionalidades Principales
+
+| Feature | Estado | Descripción |
+|---------|--------|------------|
+| **Feed API** | ✅ | Extrae datos directamente de Google Classroom API |
+| **Anuncios en tiempo real** | ✅ | Texto + adjuntos (Drive, YouTube, Forms, Links) |
+| **Tareas en vivo** | ✅ | Título, descripción, fecha entrega, puntos |
+| **Miniaturas** | ✅ | Se sirven desde Google, no guardadas en BD |
+| **Tablón para estudiantes** | ✅ | Solo lectura con dos tabs (anuncios/tareas) |
+| **Calendario visual** | ✅ | Grid 7×6 con eventos marcados por color |
+| **Botón Actualizar** | ✅ | Fuerza refetch sin caché |
+| **Alerta de urgencia** | ✅ | Tareas vencidas o ≤ 3 días |
+| **Links Meet integrados** | ✅ | Si la clase tiene Meet, aparece en modal eventos |
+
+### Notas Importantes
+
+1. **Sin almacenamiento de imágenes**: Las miniaturas se sirven desde Google
+2. **Cache inteligente**: 60 segundos para no saturar API de Google
+3. **Token fallback**: Si estudiante no tiene token, busca el del docente
+4. **Datos frescos**: Cada refresh obtiene datos actualizados de Google
+5. **Responsivo**: Diseño adaptable a móvil y desktop
+
+### APIs Disponibles
+
+```
+GET    /api/classroom/feed?claseId={id}        ← Anuncios + Tareas
+GET    /api/classroom/feed?courseId={googleId} ← Por ID de Google
+POST   /api/classroom/connect                  ← Iniciar OAuth
+GET    /api/classroom/callback                 ← Callback OAuth
+GET    /api/classroom/clases                   ← Listado clases
+GET    /api/classroom/calendario               ← Eventos mensuales
+GET    /api/classroom/tareas                   ← Tareas por clase
+GET    /api/classroom/grabaciones              ← Videos registrados
+GET    /api/classroom/miembros                 ← Estudiantes inscritos
+```
+
+---
+
 ## 🐛 **Solución de Problemas Comunes**
 
 ### Error: `Cannot find module 'tailwindcss-animate'`
@@ -539,20 +660,88 @@ openssl rand -base64 32
 
 - **Documentación técnica**: Revisa los archivos `.md` en la raíz
 - **Issues**: Reporta problemas en el repositorio del proyecto
-## 📝 Cambios Recientes (Mayo 2, 2026)
 
-### ✨ Mejoras Implementadas
-- **EstadísticasClient Mejorado**: Mejor manejo de errores HTTP con feedback específico
-- **Debug API**: Nuevo endpoint `/api/debug/estadisticas` para verificar datos en BD
-- **Error Logging**: Consola ahora registra errores de carga con detalles completos
-- **Response Validation**: API valida respuesta JSON antes de renderizar
-- **Status Update**: Sección de STATUS del proyecto actualizada con componentes completos
+---
+
+## 📝 Sistema de Logging
+
+### **Funcionalidad**
+El sistema incluye logging automático en archivos `.log` para tracking de accesos y eventos importantes.
+
+### **Ubicación**
+- **Carpeta**: `logs/`
+- **Formato**: `access-YYYY-MM-DD.log`
+- **Contenido**: JSON estructurado con timestamp, nivel, mensaje y datos
+
+### **Uso**
+```typescript
+import { logIntento, logError, logWarning } from "@/lib/logger";
+
+// Log de intentos de acceso
+logIntento({
+  usuarioId: "user-id",
+  usuarioEmail: "user@email.com",
+  accion: "ACCESO_DASHBOARD",
+  estado: "EXITOSO",
+  detalles: { /* datos adicionales */ }
+});
+
+// Log de errores
+logError("Error en conexión", error);
+
+// Log de advertencias
+logWarning("Advertencia de seguridad", data);
+```
+
+### **Logs Generados**
+- Accesos al dashboard administrativo
+- Intentos de autenticación
+- Errores del sistema
+- Eventos de auditoría
+
+---
+
+## 📝 Cambios Recientes
+
+### ✨ Tercera Ronda - Classroom (Junio 14, 2026)
+
+#### Archivos Creados/Actualizados
+- ✅ `app/dashboard/classroom/page.tsx` - Cards clickeables al tablón
+- ✅ `app/dashboard/classroom/clases/[id]/page.tsx` - Nuevo tablón con tabs
+- ✅ `app/api/classroom/feed/route.ts` - Feed mejorado con soporte `?claseId`
+- ✅ `app/admin/classroom/calendario/page.tsx` - Calendario visual admin
+- ✅ `app/dashboard/classroom/calendario/page.tsx` - Calendario visual estudiante
+
+#### Funcionalidades Nuevas
+- **Tablón de clase**: Anuncios y tareas en tiempo real desde Google Classroom API
+- **Feed endpoint**: Datos frescos cada 60s, sin guardar imágenes en BD
+- **MaterialChip mejorado**: Miniaturas de YouTube, Drive, Forms, Links
+- **Alerta visual**: Identifica tareas vencidas o próximas a vencer
+- **Solo lectura estudiantes**: Panel de visualización sin opciones de edición
+- **Link fallback**: Si estudiante sin token, usa token del docente de la clase
+
+#### Cambios Técnicos
+- Feed API acepta `?claseId` y resuelve automáticamente `googleCourseId`
+- Respuesta unificada: `{ clase, anuncios, tareas }`
+- Materiales con tipos estandarizados: `DRIVE_FILE | YOUTUBE | FORM | LINK`
+- Cache inteligente con `next: { revalidate: 60 }`
+
+---
+
+### ✨ Segunda Ronda - Mayo 27, 2026
+- **Sistema de Logging**: Nuevo sistema de logging en archivos `.log` para tracking de accesos
+- **Modelo Intento**: Agregado modelo `Intento` y `RespuestaIntento` en Prisma para tracking de simulacros
+- **Dashboard Admin**: Actualizado para usar modelo `Intento` y registrar accesos en logs
+- **Logger Module**: Nuevo archivo `lib/logger.ts` con funciones de logging estructurado
+- **Logs Automáticos**: Accesos al dashboard administrativo ahora se registran automáticamente
 
 ### 🔧 Cambios Técnicos
-- Agregado verificación de status HTTP en fetch (no solo JSON parse)
-- Mejorado catch block en EstadisticasClient para detectar errores reales
-- Creado endpoint de debug para diagnóstico rápido
-- Error messages más descriptivos para usuarios
+- Agregado modelo `Intento` en schema.prisma con relaciones a Usuario y Simulacro
+- Agregado modelo `RespuestaIntento` para tracking detallado de respuestas
+- Actualizado modelo `Usuario` para incluir relación con `Intento`
+- Actualizado modelo `Simulacro` para incluir relación con `Intento` y campo `totalPreguntas`
+- Implementado sistema de logs en carpeta `logs/` con formato JSON por fecha
+- Dashboard admin ahora usa `logIntento()` para registrar accesos
 
 ### 📊 Funcionalidades de Estadísticas ✅ Completas
 - Métricas globales (simulacros, promedio, mejor/peor)
@@ -561,99 +750,15 @@ openssl rand -base64 32
 - Gráfica de progresión cronológica (SVG optimizado)
 - Historial detallado con timestamp
 
-### 🐛 Bugs Arreglados
-- Error silencioso en EstadisticasClient al fallar fetch
-- No había feedback visual cuando API retornaba error 401/500
-- JSON parse error no capturaba respuestas inválidas
-
 ---
 
-**Versión:** v0.3  
-**Última actualización:** Mayo 2, 2026
-
----
-
-## 🎯 **Cómo Probar las Estadísticas Recientemente Actualizadas**
-
-### 📊 Características de Estadísticas ✅
-Las estadísticas ahora muestran (cuando hay datos):
-- ✅ Total de simulacros completados
-- ✅ Promedio general de porcentaje
-- ✅ Mejor y peor resultado
-- ✅ Tiempo total invertido
-- ✅ Tendencia de mejora/caída
-- ✅ Rendimiento por materia con gráficas
-- ✅ Gráfica de progresión cronológica
-- ✅ Historial detallado
-
-### 🚀 Setup Inicial
-```bash
-# 1. Instalar dependencias
-npm install
-
-# 2. Configurar .env (copiar de .env.example)
-cp .env.example .env
-
-# 3. Sincronizar BD
-npm run db:push
-
-# 4. Ejecutar seed (crea usuarios y planes)
-npm run db:seed
-
-# 5. Iniciar servidor
-npm run dev
-```
-
-### 👤 Credenciales de Prueba (tras ejecutar seed)
-```
-Email:    estudiante@axis.local
-Password: Password123
-Suscripción: Plan Pro (activa por 90 días)
-```
-
-### 📍 Rutas Importantes
-- Landing: `http://localhost:3001/`
-- Login: `http://localhost:3001/auth/login`
-- Dashboard: `http://localhost:3001/dashboard`
-- **Estadísticas:** `http://localhost:3001/dashboard/estadisticas` ⭐ **NUEVA**
-- Debug API: `http://localhost:3001/api/debug/estadisticas` (requiere sesión activa)
-
-### 🔍 Mensaje "Sin datos aún"
-Si ves este mensaje en la página de estadísticas:
-```json
-{ "sinDatos": true }
-```
-
-**Esto es NORMAL porque:**
-- El seed crea usuario con suscripción activa ✅
-- Pero NO crea simulacros completados (aún no hay motor de simulacros)
-- Sin resultados de simulacros, no hay estadísticas que mostrar
-
-**Próximo paso:** Cuando se implemente el motor de simulacros completo, se guardarán automáticamente resultados en `ResultadoSimulacro` y las estadísticas se mostrarán inmediatamente.
-
----
-
-**Versión anterior (Abril 26, 2026):**
-
-### ✨ Mejoras Implementadas (Abril)
-- **Simulacros Visuales**: Agregadas imágenes por materia en todas las tarjetas de simulacros (Matemáticas, Lectura Crítica, Ciencias, etc.)
-- **Dashboard Corregido**: Datos ahora se obtienen de `ResultadoSimulacro` en lugar de `Intento` inexistente
-- **Layouts Unificados**: Removidos `DashboardLayout` duplicados en todas las páginas (`simulacros`, `resultado`, `planes`)
-- **ThemeProvider**: Corregido problema de contexto duplicado que causaba errores en reinicio
-- **Navegación Consistente**: Una sola barra de navegación en todo el módulo dashboard
-
-### 🐛 Bugs Arreglados (Abril)
-- Error de contexto "useTheme debe usarse dentro de ThemeProvider"
-- Conflicto de dos barras de navegación en simulacros
-- Queries de dashboard intentando usar modelos inexistentes
-- ThemeProvider renderizado dos veces causando conflictos
-
----
-
-**Última actualización:** Abril 26, 2026  
-**Versión:** v0.2
----
-
-**Última actualización:** Abril 15, 2026  
-**Versión:** v0.1.0  
+**Última actualización:** Junio 14, 2026  
+**Versión:** v0.5.0  
 **Estado:** Desarrollo activo 🚀
+
+---
+
+## 📞 **Soporte**
+
+- **Documentación técnica**: Revisa los archivos `.md` en la raíz
+- **Issues**: Reporta problemas en el repositorio del proyecto

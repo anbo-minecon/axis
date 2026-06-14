@@ -1,12 +1,11 @@
 // lib/auth.ts
-// Configuración de NextAuth v4
-import NextAuth, { type NextAuthOptions } from "next-auth";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { compare } from "bcryptjs";
 import { db } from "./db";
 import { z } from "zod";
+import { CustomPrismaAdapter } from "./auth-adapter";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -14,109 +13,122 @@ const credentialsSchema = z.object({
 });
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(db),
+  // ── Usar el adapter personalizado que mapea "Usuario" → "User" ───────────
+  adapter: CustomPrismaAdapter(db),
+
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID!,
+      clientSecret: process.env.GOOGLE_SECRET!,
+      allowDangerousEmailAccountLinking: true,
+      // profile() devuelve solo lo que NextAuth necesita.
+      // createUser() del adapter se encarga de guardar en la BD.
+      profile(profile) {
+        return {
+          id:    profile.sub,
+          name:  profile.name  ?? "Usuario Google",
+          email: profile.email,
+          image: profile.picture ?? null,
+        };
+      },
+    }),
+
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email:    { label: "Email",    type: "email"    },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         try {
           const parsed = credentialsSchema.parse(credentials);
+
           const usuario = await db.usuario.findUnique({
-            where: { email: parsed.email },
+            where:   { email: parsed.email },
             include: { suscripcion: true },
           });
 
-          if (!usuario || !usuario.passwordHash) {
-            console.log("❌ Usuario no encontrado o sin hash:", parsed.email);
-            return null;
-          }
+          if (!usuario || !usuario.passwordHash) return null;
 
-          const validPassword = await compare(
-            parsed.password,
-            usuario.passwordHash
-          );
+          const validPassword = await compare(parsed.password, usuario.passwordHash);
+          if (!validPassword) return null;
 
-          if (!validPassword) {
-            console.log("❌ Contraseña inválida para:", parsed.email);
-            return null;
-          }
-
-          console.log("✅ Usuario autenticado:", parsed.email, "Rol:", usuario.rol);
           return {
-            id: usuario.id,
+            id:    usuario.id,
             email: usuario.email,
-            name: usuario.nombre,
+            name:  usuario.nombre,
             image: usuario.imagen,
-            rol: usuario.rol,
+            rol:   usuario.rol,
           };
         } catch (error) {
-          console.error("❌ Error en authorize:", error);
+          console.error("[Auth] Error en authorize:", error);
           return null;
         }
       },
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_ID || "",
-      clientSecret: process.env.GOOGLE_SECRET || "",
-      allowDangerousEmailAccountLinking: true,
-    }),
   ],
+
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 días
-    updateAge: 24 * 60 * 60, // Actualizar cada 24 horas
+    maxAge:    30 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
   },
+
   pages: {
-    signIn: "/auth/login",
-    newUser: "/auth/registro",
-    error: "/auth/error",
+    signIn:  "/auth/login",
+    error:   "/auth/error",
   },
+
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // Primera vez que se loguea
       if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.rol = (user as any).rol || "ESTUDIANTE";
+        token.id       = user.id;
+        token.email    = user.email;
+        token.rol      = (user as any).rol ?? "ESTUDIANTE";
+        token.provider = account?.provider ?? "credentials";
       }
 
-      // Obtener suscripción en cada JWT refresh
+      // Refrescar datos de BD en cada renovación de token
       if (token.id) {
         try {
-          const usuario = await db.usuario.findUnique({
-            where: { id: token.id as string },
+          const u = await db.usuario.findUnique({
+            where:   { id: token.id as string },
             include: { suscripcion: true },
           });
-          token.tieneSubscripcion = usuario?.suscripcion?.activa ?? false;
-          token.rol = usuario?.rol || token.rol || "ESTUDIANTE";
-        } catch (error) {
-          console.error("Error al obtener usuario:", error);
+          if (u) {
+            token.tieneSubscripcion = u.suscripcion?.activa ?? false;
+            token.rol               = u.rol ?? "ESTUDIANTE";
+            token.nombre            = u.nombre;
+          }
+        } catch {
           token.tieneSubscripcion = false;
         }
       }
 
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
-        const rol = token.rol as any;
-        session.user.rol = (rol && ["ESTUDIANTE", "DOCENTE", "ADMIN", "DEVELOPER"].includes(rol)) 
-          ? rol 
-          : "ESTUDIANTE";
+        session.user.rol = (
+          ["ESTUDIANTE", "DOCENTE", "ADMIN", "DEVELOPER"].includes(token.rol as string)
+            ? token.rol
+            : "ESTUDIANTE"
+        ) as any;
         session.user.tieneSubscripcion = (token.tieneSubscripcion as boolean) ?? false;
+        if (token.nombre) session.user.name = token.nombre as string;
       }
       return session;
     },
+
     async redirect({ url, baseUrl }) {
-      // El middleware manejará la redirección según el rol
-      // Este callback solo permite redirecciones válidas
       if (url.startsWith("/")) return `${baseUrl}${url}`;
       if (new URL(url).origin === baseUrl) return url;
       return `${baseUrl}/dashboard`;
     },
   },
+
+  debug: process.env.NODE_ENV === "development",
 };

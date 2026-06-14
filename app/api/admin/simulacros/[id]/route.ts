@@ -4,620 +4,369 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { calcularTRIGrupo } from "@/lib/tri-engine";
 
-// ── Esquema para actualizar ────────────────────────────────────────────────
-const updateSimulacroSchema = z.object({
-  nombre: z.string().min(1, "El nombre es obligatorio").max(120).optional(),
-  materia: z.string().min(1, "La materia es obligatoria").optional(),
-  totalPreguntas: z.number().int().positive().optional(),
-  tiempoMin: z.number().int().positive().optional(),
-  sesiones: z.boolean().optional(),
-  fechaResultados: z.string().datetime().optional(),
-  claves: z
-    .array(
-      z.object({
-        id: z.string().optional(),
-        numeroPregunta: z.number().int().positive(),
-        respuesta: z.enum(["A", "B", "C", "D"]),
-        sesionNumero: z.union([z.literal(1), z.literal(2)]).optional(),
-      })
-    )
-    .optional(),
-  estado: z.enum(["BORRADOR", "PUBLICADO", "CERRADO", "ARCHIVADO"]).optional(),
+// ── Helpers ────────────────────────────────────────────────────────────────
+function parseFecha(valor: string | null | undefined): Date | null {
+  if (!valor) return null;
+  const t = valor.trim();
+  if (!t) return null;
+  const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(t) ? `${t}:00.000Z` : t;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+async function verificarAdmin(userId: string) {
+  const u = await db.usuario.findUnique({ where: { id: userId }, select: { rol: true } });
+  return u?.rol === "ADMIN";
+}
+
+// ── Schemas ────────────────────────────────────────────────────────────────
+const updateSchema = z.object({
+  nombre:          z.string().min(1).max(120).optional(),
+  materia:         z.string().min(1).optional(),
+  totalPreguntas:  z.number().int().positive().optional(),
+  tiempoMin:       z.number().int().positive().optional(),
+  // BUG FIX #1: CERRADO añadido al enum de validación Zod (igual que en schema.prisma)
+  estado:          z.enum(["BORRADOR", "PUBLICADO", "CERRADO", "ARCHIVADO"]).optional(),
+  fechaDisponible: z.string().optional().nullable(),
+  fechaCierre:     z.string().optional().nullable(),
+  claves: z.array(z.object({
+    numeroPregunta: z.number().int().positive(),
+    respuesta:      z.enum(["A", "B", "C", "D"]),
+    sesionNumero:   z.number().int().positive().optional(),
+  })).optional(),
 });
 
-function calcularPuntajePreliminar(aciertos: number, total: number) {
-  if (total <= 0) return 0;
-  return Number((Math.pow(aciertos / total, 1.8) * 100).toFixed(2));
-}
-
-function pearsonCorrelation(x: number[], y: number[]) {
-  const n = Math.min(x.length, y.length);
-  if (n === 0) return 0;
-
-  const meanX = x.reduce((sum, value) => sum + value, 0) / n;
-  const meanY = y.reduce((sum, value) => sum + value, 0) / n;
-
-  let numerator = 0;
-  let sumX = 0;
-  let sumY = 0;
-
-  for (let i = 0; i < n; i++) {
-    const dx = x[i] - meanX;
-    const dy = y[i] - meanY;
-    numerator += dx * dy;
-    sumX += dx * dx;
-    sumY += dy * dy;
-  }
-
-  const denominator = Math.sqrt(sumX * sumY);
-  if (denominator === 0) return 0;
-  return numerator / denominator;
-}
-
-async function cerrarSimulacro(examenId: string) {
-  const examen = await (db as any).examenTemplate.findUnique({
-    where: { id: examenId },
-    include: {
-      sesionesExamen: { include: { claves: true } },
-      claves: true,
-    },
-  });
-
-  if (!examen) {
-    throw new Error("Simulacro no encontrado");
-  }
-
-  const sesiones = examen.sesionesExamen.length
-    ? examen.sesionesExamen
-    : [
-        await (db as any).sesionExamen.create({
-          data: {
-            examenId,
-            numero: 1,
-            nombre: "Sesión única",
-            tiempoMin: examen.tiempoMin,
-          },
-        }),
-      ];
-
-  const resultadosSesion = await (db as any).resultadoSesion.findMany({
-    where: { examenId },
-    include: { sesion: true },
-  });
-
-  if (resultadosSesion.length === 0) {
-    throw new Error("No hay resultados para cerrar el simulacro");
-  }
-
-  await (db as any).pesosPregunta.deleteMany({ where: { examenId } });
-
-  const clavesPorSesion = new Map<string, any[]>();
-  examen.claves.forEach((clave: any) => {
-    const sessionId = clave.sesionId ?? sesiones[0].id;
-    const current = clavesPorSesion.get(sessionId) ?? [];
-    current.push(clave);
-    clavesPorSesion.set(sessionId, current);
-  });
-
-  const pesosPorSesion = new Map<string, Record<number, { pesoNormalizado: number }>>();
-
-  for (const sesion of sesiones) {
-    const claves = clavesPorSesion.get(sesion.id) ?? [];
-    const resultsInSession = resultadosSesion.filter(
-      (r: any) => r.sesionId === sesion.id
-    );
-
-    const studentData = resultsInSession.map((result: any) => {
-      const respuestas = result.respuestas || {};
-      const itemCorrect = new Map<number, number>();
-      let aciertos = 0;
-
-      claves.forEach((clave: any) => {
-        const dado = respuestas[String(clave.numeroPregunta)] ?? null;
-        const correcto = dado === clave.respuesta ? 1 : 0;
-        itemCorrect.set(clave.numeroPregunta, correcto);
-        aciertos += correcto;
-      });
-
-      return {
-        id: result.id,
-        estudianteId: result.estudianteId,
-        respuestas,
-        aciertos,
-        itemCorrect,
-      };
-    });
-
-    const itemStats = claves.map((clave: any) => {
-      const valores: number[] = [];
-      const pistas: number[] = [];
-
-      studentData.forEach((student) => {
-        const valor = student.itemCorrect.get(clave.numeroPregunta) ?? 0;
-        valores.push(valor);
-        pistas.push(student.aciertos - valor);
-      });
-
-      const correctRatio = valores.length
-        ? valores.reduce((sum, value) => sum + value, 0) / valores.length
-        : 0;
-      const dificultad = 1 - correctRatio;
-      const discriminacion = pearsonCorrelation(valores, pistas);
-      const peso = dificultad * (1 + discriminacion);
-
-      return {
-        numeroPregunta: clave.numeroPregunta,
-        dificultad,
-        discriminacion,
-        peso,
-      };
-    });
-
-    const totalPeso = itemStats.reduce((sum, item) => sum + item.peso, 0);
-    const pesosNormalizados = itemStats.map((item) => ({
-      ...item,
-      pesoNormalizado:
-        totalPeso > 0
-          ? Number(((item.peso / totalPeso) * Math.max(claves.length, 1)).toFixed(6))
-          : Number((1 / Math.max(claves.length, 1)).toFixed(6)),
-    }));
-
-    if (pesosNormalizados.length > 0) {
-      await (db as any).pesosPregunta.createMany({
-        data: pesosNormalizados.map((item) => ({
-          examenId,
-          sesionId: sesion.id,
-          numeroPregunta: item.numeroPregunta,
-          dificultad: Number(item.dificultad.toFixed(4)),
-          discriminacion: Number(item.discriminacion.toFixed(4)),
-          pesoNormalizado: item.pesoNormalizado,
-        })),
-      });
-    }
-
-    const pesosMap: Record<number, { pesoNormalizado: number }> = {};
-    pesosNormalizados.forEach((item) => {
-      pesosMap[item.numeroPregunta] = { pesoNormalizado: item.pesoNormalizado };
-    });
-    pesosPorSesion.set(sesion.id, pesosMap);
-
-    for (const result of resultsInSession) {
-      const respuestas = result.respuestas || {};
-      let aciertos = 0;
-      let weightedCorrect = 0;
-
-      claves.forEach((clave: any) => {
-        const dado = respuestas[String(clave.numeroPregunta)] ?? null;
-        const correcto = dado === clave.respuesta ? 1 : 0;
-        aciertos += correcto;
-        if (correcto) {
-          weightedCorrect += pesosMap[clave.numeroPregunta]?.pesoNormalizado ?? 0;
-        }
-      });
-
-      const puntajePreliminar = calcularPuntajePreliminar(aciertos, result.total ?? claves.length);
-      const puntajeTRI = Number(
-        Math.pow(
-          Math.max(Math.min(weightedCorrect / Math.max(result.total ?? claves.length, 1), 1), 0),
-          1.8
-        ) * 100
-      ).toFixed(2);
-
-      await (db as any).resultadoSesion.update({
-        where: { id: result.id },
-        data: {
-          aciertos,
-          puntajePreliminar,
-          puntajeTRI: Number(puntajeTRI),
-        },
-      });
-    }
-  }
-
-  const resultadosSesionActualizados = await (db as any).resultadoSesion.findMany({
-    where: { examenId },
-  });
-
-  const resultadosPorEstudiante = new Map<string, any[]>();
-  resultadosSesionActualizados.forEach((result: any) => {
-    const current = resultadosPorEstudiante.get(result.estudianteId) ?? [];
-    current.push(result);
-    resultadosPorEstudiante.set(result.estudianteId, current);
-  });
-
-  for (const [estudianteId, resultados] of resultadosPorEstudiante.entries()) {
-    const totalAcertados = resultados.reduce(
-      (sum: number, result: any) => sum + (result.aciertos ?? 0),
-      0
-    );
-    const totalPreguntas = resultados.reduce(
-      (sum: number, result: any) => sum + (result.total ?? 0),
-      0
-    );
-    const sumaPreliminar = resultados.reduce(
-      (sum: number, result: any) => sum + ((result.puntajePreliminar ?? 0) * (result.total ?? 0)),
-      0
-    );
-    const sumaTRI = resultados.reduce(
-      (sum: number, result: any) => sum + ((result.puntajeTRI ?? 0) * (result.total ?? 0)),
-      0
-    );
-
-    const globalPreliminar = totalPreguntas
-      ? Number((sumaPreliminar / totalPreguntas).toFixed(2))
-      : 0;
-    const globalTRI = totalPreguntas
-      ? Number((sumaTRI / totalPreguntas).toFixed(2))
-      : 0;
-
-    const respuestasCombinadas = resultados.reduce(
-      (acc: any, result: any) => ({ ...acc, ...(result.respuestas ?? {}) }),
-      {}
-    );
-
-    await (db as any).resultadoSimulacro.update({
-      where: {
-        estudianteId_examenId: {
-          estudianteId,
-          examenId,
-        },
-      },
-      data: {
-        respuestas: respuestasCombinadas,
-        puntaje: totalAcertados,
-        total: totalPreguntas,
-        puntajePreliminar: globalPreliminar,
-        puntajeTRI: globalTRI,
-        estadoCalif: "OFICIAL",
-      },
-    });
-  }
-}
-
-// ── GET: Obtener un simulacro específico ────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// GET
+// ─────────────────────────────────────────────────────────────────────────
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  _req: Request,
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!(await verificarAdmin(session.user.id))) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
-    const usuario = await db.usuario.findUnique({
-      where: { id: session.user.id },
-      select: { rol: true },
+    const examen = await (db as any).examenTemplate.findUnique({
+      where: { id: params.id },
+      include: {
+        claves:   { orderBy: { numeroPregunta: "asc" } },
+        sesiones: { orderBy: { numero: "asc" } },
+        resultados: true,
+        pesos:    true,
+      },
     });
+    if (!examen) return NextResponse.json({ error: "Simulacro no encontrado" }, { status: 404 });
+    return NextResponse.json({ examen });
+  } catch (e) {
+    console.error("[GET /api/admin/simulacros/[id]]", e);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
+}
 
-    if (!usuario || usuario.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+// ─────────────────────────────────────────────────────────────────────────
+// PATCH — cambiar estado (incluye CERRADO → dispara TRI)
+// ─────────────────────────────────────────────────────────────────────────
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!(await verificarAdmin(session.user.id))) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
+
+    const body = await req.json();
+    const { estado } = body;
+
+    // BUG FIX #1: CERRADO incluido en la lista de estados válidos
+    if (!estado || !["BORRADOR", "PUBLICADO", "CERRADO", "ARCHIVADO"].includes(estado)) {
+      return NextResponse.json({ error: `Estado inválido: "${estado}"` }, { status: 400 });
     }
 
     const examen = await (db as any).examenTemplate.findUnique({
       where: { id: params.id },
       include: {
-        claves: true,
-        sesionesExamen: true,
-        resultados: true,
-        pesosPregunta: true,
+        sesiones: {
+          include: { claves: { orderBy: { numeroPregunta: "asc" } } },
+          orderBy: { numero: "asc" },
+        },
+        claves: { orderBy: { numeroPregunta: "asc" } },
+      },
+    });
+    if (!examen) return NextResponse.json({ error: "Simulacro no encontrado" }, { status: 404 });
+
+    // BUG FIX #3: al cerrar, ejecutar TRI antes de cambiar estado
+    // Antes el TRI solo lo ejecutaba el cron; ahora también se dispara manualmente.
+    let triEjecutado = false;
+    let triError: string | null = null;
+
+    if (estado === "CERRADO" && !examen.triCalculado) {
+      try {
+        await ejecutarTRI(examen);
+        triEjecutado = true;
+      } catch (e: any) {
+        // No bloquear el cierre si el TRI falla (ej. sin participantes aún)
+        triError = e?.message ?? "Error en cálculo TRI";
+        console.warn("[PATCH cerrar] TRI no ejecutado:", triError);
+      }
+    }
+
+    // Actualizar estado (y marcar triCalculado si el TRI corrió)
+    const updated = await (db as any).examenTemplate.update({
+      where: { id: params.id },
+      data: {
+        estado,
+        ...(triEjecutado ? { triCalculado: true } : {}),
       },
     });
 
-    if (!examen) {
-      return NextResponse.json(
-        { error: "Simulacro no encontrado" },
-        { status: 404 }
-      );
-    }
+    await _auditLog(session.user.id, params.id, examen.nombre,
+      `Estado → ${estado}${triEjecutado ? " (TRI calculado)" : ""}${triError ? ` (TRI pendiente: ${triError})` : ""}`);
 
-    return NextResponse.json({ examen });
-  } catch (error) {
-    console.error("[GET /api/admin/simulacros/[id]]", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      ok: true,
+      examen: updated,
+      triEjecutado,
+      triError,
+    });
+  } catch (e: any) {
+    console.error("[PATCH /api/admin/simulacros/[id]]", e);
+    return NextResponse.json({ error: "Error interno", detalle: e?.message }, { status: 500 });
   }
 }
 
-// ── PATCH: Actualizar solo el estado (Publicar, Cerrar, Archivar) ───────────
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
-
-    const usuario = await db.usuario.findUnique({
-      where: { id: session.user.id },
-      select: { rol: true },
-    });
-
-    if (!usuario || usuario.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-    }
-
-    const body = await req.json();
-    const { estado } = body;
-
-    if (!estado || !["BORRADOR", "PUBLICADO", "CERRADO", "ARCHIVADO"].includes(estado)) {
-      return NextResponse.json(
-        { error: "Estado inválido" },
-        { status: 400 }
-      );
-    }
-
-    // Verificar que el simulacro existe
-    const examen = await (db as any).examenTemplate.findUnique({
-      where: { id: params.id },
-    });
-
-    if (!examen) {
-      return NextResponse.json(
-        { error: "Simulacro no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    if (estado === "CERRADO") {
-      await cerrarSimulacro(params.id);
-    }
-
-    // Actualizar estado
-    const updated = await (db as any).examenTemplate.update({
-      where: { id: params.id },
-      data: { estado },
-    });
-
-    // Audit log
-    try {
-      await db.auditLog.create({
-        data: {
-          usuarioId: session.user.id,
-          accion: "ACTUALIZAR_SIMULACRO",
-          recurso: "examen_template",
-          recursoId: params.id,
-          resultado: "EXITOSO",
-          mensaje: `Simulacro "${examen.nombre}" cambiado a estado ${estado}`,
-        },
-      });
-    } catch {
-      // No bloquear
-    }
-
-    return NextResponse.json({ ok: true, examen: updated });
-  } catch (error) {
-    console.error("[PATCH /api/admin/simulacros/[id]]", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    );
-  }
-}
-
-// ── PUT: Editar simulacro completo ─────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// PUT — editar datos generales
+// ─────────────────────────────────────────────────────────────────────────
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!(await verificarAdmin(session.user.id))) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
-    const usuario = await db.usuario.findUnique({
-      where: { id: session.user.id },
-      select: { rol: true },
-    });
-
-    if (!usuario || usuario.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-    }
-
-    const body = await req.json();
-    const parsed = updateSimulacroSchema.safeParse(body);
-
+    const body   = await req.json();
+    const parsed = updateSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors[0]?.message ?? "Datos inválidos" },
-        { status: 400 }
-      );
+      const msgs = parsed.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`);
+      return NextResponse.json({ error: msgs[0], detalles: msgs }, { status: 400 });
     }
 
-    const { nombre, materia, totalPreguntas, tiempoMin, claves, estado, sesiones, fechaResultados } =
-      parsed.data;
+    const examen = await (db as any).examenTemplate.findUnique({ where: { id: params.id } });
+    if (!examen) return NextResponse.json({ error: "Simulacro no encontrado" }, { status: 404 });
 
-    // Verificar que el simulacro existe
-    const examen = await (db as any).examenTemplate.findUnique({
-      where: { id: params.id },
-    });
+    const { nombre, materia, totalPreguntas, tiempoMin, estado, claves,
+            fechaDisponible: fdRaw, fechaCierre: fcRaw } = parsed.data;
 
-    if (!examen) {
-      return NextResponse.json(
-        { error: "Simulacro no encontrado" },
-        { status: 404 }
-      );
-    }
+    const updateData: Record<string, any> = {};
+    if (nombre         !== undefined) updateData.nombre         = nombre;
+    if (materia        !== undefined) updateData.materia        = materia;
+    if (totalPreguntas !== undefined) updateData.totalPreguntas = totalPreguntas;
+    if (tiempoMin      !== undefined) updateData.tiempoMin      = tiempoMin;
+    if (estado         !== undefined) updateData.estado         = estado;
+    if (fdRaw          !== undefined) updateData.fechaDisponible = parseFecha(fdRaw);
+    if (fcRaw          !== undefined) updateData.fechaCierre     = parseFecha(fcRaw);
 
-    // Revisar sesiones existentes
-    const sesionesExistentes = await (db as any).sesionExamen.findMany({
-      where: { examenId: params.id },
-    });
-
-    let sesion1 = sesionesExistentes.find((s: any) => s.numero === 1);
-    let sesion2 = sesionesExistentes.find((s: any) => s.numero === 2);
-
-    if (!sesion1) {
-      sesion1 = await (db as any).sesionExamen.create({
-        data: {
-          examenId: params.id,
-          numero: 1,
-          nombre: "Sesión 1 - Primer bloque",
-          tiempoMin: tiempoMin ?? examen.tiempoMin,
-        },
-      });
-    }
-
-    if (sesiones && !sesion2) {
-      sesion2 = await (db as any).sesionExamen.create({
-        data: {
-          examenId: params.id,
-          numero: 2,
-          nombre: "Sesión 2 - Segundo bloque",
-          tiempoMin: tiempoMin ?? examen.tiempoMin,
-        },
-      });
-    }
-
-    // Preparar data para actualizar
-    const updateData: any = {};
-    if (nombre) updateData.nombre = nombre;
-    if (materia) updateData.materia = materia;
-    if (totalPreguntas) updateData.totalPreguntas = totalPreguntas;
-    if (tiempoMin) updateData.tiempoMin = tiempoMin;
-    if (estado) updateData.estado = estado;
-    if (sesiones !== undefined) updateData.sesiones = sesiones;
-    if (fechaResultados) updateData.fechaResultados = new Date(fechaResultados);
-
-    // Si hay claves nuevas, actualizar
     if (claves && claves.length > 0) {
-      const clavesValidas = claves.filter((c) => c.respuesta);
-
-      if (clavesValidas.length === 0) {
-        return NextResponse.json(
-          { error: "Define al menos una respuesta correcta" },
-          { status: 400 }
-        );
-      }
-
-      // Eliminar claves antiguas
-      await (db as any).claveExamen.deleteMany({
-        where: { examenId: params.id },
+      const sesionesExistentes = await (db as any).sesionExamen.findMany({
+        where: { examenId: params.id }, orderBy: { numero: "asc" },
       });
+      const sesionMap = new Map<number, string>(
+        sesionesExistentes.map((s: any) => [s.numero, s.id])
+      );
+      const sesionDefault = sesionesExistentes[0]?.id ?? null;
 
-      const mitad = Math.ceil((totalPreguntas ?? examen.totalPreguntas) / 2);
-      updateData.claves = {
-        create: clavesValidas.map((c) => ({
+      await (db as any).claveExamen.deleteMany({ where: { examenId: params.id } });
+      await (db as any).claveExamen.createMany({
+        data: claves.map((c) => ({
+          examenId:       params.id,
           numeroPregunta: c.numeroPregunta,
-          respuesta: c.respuesta,
-          sesionId:
-            sesiones && c.sesionNumero === 2
-              ? sesion2?.id
-              : sesiones && c.sesionNumero === 1
-              ? sesion1.id
-              : sesiones && c.numeroPregunta > mitad
-              ? sesion2?.id ?? sesion1.id
-              : sesion1.id,
+          respuesta:      c.respuesta,
+          sesionId:       c.sesionNumero
+            ? (sesionMap.get(c.sesionNumero) ?? sesionDefault)
+            : sesionDefault,
         })),
-      };
+      });
     }
 
-    // Actualizar simulacro
     const updated = await (db as any).examenTemplate.update({
       where: { id: params.id },
-      data: updateData,
-      include: { claves: true },
+      data:  updateData,
+      include: {
+        sesiones: { orderBy: { numero: "asc" } },
+        _count:   { select: { claves: true } },
+      },
     });
 
-    // Audit log
-    try {
-      await db.auditLog.create({
-        data: {
-          usuarioId: session.user.id,
-          accion: "EDITAR_SIMULACRO",
-          recurso: "examen_template",
-          recursoId: params.id,
-          resultado: "EXITOSO",
-          mensaje: `Simulacro "${examen.nombre}" actualizado`,
-        },
-      });
-    } catch {
-      // No bloquear
-    }
-
+    await _auditLog(session.user.id, params.id, examen.nombre, "Datos editados");
     return NextResponse.json({ ok: true, examen: updated });
-  } catch (error) {
-    console.error("[PUT /api/admin/simulacros/[id]]", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    );
+  } catch (e: any) {
+    console.error("[PUT /api/admin/simulacros/[id]]", e);
+    return NextResponse.json({ error: "Error interno", detalle: e?.message }, { status: 500 });
   }
 }
 
-// ── DELETE: Eliminar simulacro ─────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────
+// DELETE — eliminar (solo BORRADOR)
+// ─────────────────────────────────────────────────────────────────────────
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  _req: Request,
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
-    }
+    if (!session?.user?.id) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!(await verificarAdmin(session.user.id))) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
-    const usuario = await db.usuario.findUnique({
-      where: { id: session.user.id },
-      select: { rol: true },
-    });
+    const examen = await (db as any).examenTemplate.findUnique({ where: { id: params.id } });
+    if (!examen) return NextResponse.json({ error: "Simulacro no encontrado" }, { status: 404 });
 
-    if (!usuario || usuario.rol !== "ADMIN") {
-      return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
-    }
-
-    // Verificar que el simulacro existe
-    const examen = await (db as any).examenTemplate.findUnique({
-      where: { id: params.id },
-    });
-
-    if (!examen) {
-      return NextResponse.json(
-        { error: "Simulacro no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    // Solo permitir eliminar borradores
     if (examen.estado !== "BORRADOR") {
       return NextResponse.json(
-        { error: "Solo se pueden eliminar simulacros en borrador" },
-        { status: 400 }
+        { error: "Solo se pueden eliminar simulacros en estado Borrador" },
+        { status: 400 },
       );
     }
 
-    // Eliminar simulacro (cascade eliminará las claves)
-    await (db as any).examenTemplate.delete({
-      where: { id: params.id },
-    });
+    await (db as any).examenTemplate.delete({ where: { id: params.id } });
+    await _auditLog(session.user.id, params.id, examen.nombre, "Simulacro eliminado");
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("[DELETE /api/admin/simulacros/[id]]", e);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
+}
 
-    // Audit log
-    try {
-      await db.auditLog.create({
-        data: {
-          usuarioId: session.user.id,
-          accion: "ELIMINAR_SIMULACRO",
-          recurso: "examen_template",
-          recursoId: params.id,
-          resultado: "EXITOSO",
-          mensaje: `Simulacro "${examen.nombre}" eliminado`,
-        },
+// ─────────────────────────────────────────────────────────────────────────
+// Cálculo TRI interno (misma lógica que el cron pero integrado aquí)
+// BUG FIX #4: usa campo "aciertos" (no "correctas") al leer ResultadoSesion
+// BUG FIX #5: usa "pesosPregunta" (nombre correcto del modelo Prisma, no "pesoPregunta")
+// ─────────────────────────────────────────────────────────────────────────
+async function ejecutarTRI(examen: any) {
+  const tieneSesiones = examen.tieneSesiones && examen.sesiones?.length > 0;
+
+  if (tieneSesiones) {
+    for (const sesion of examen.sesiones) {
+      // BUG FIX #4: select incluye "aciertos" no "correctas"
+      const resultadosSesion = await (db as any).resultadoSesion.findMany({
+        where:  { sesionId: sesion.id },
+        select: { estudianteId: true, respuestas: true, aciertos: true, total: true },
       });
-    } catch {
-      // No bloquear
+      if (!resultadosSesion.length) continue;
+
+      const claves: Record<string, string> = {};
+      for (const c of sesion.claves) claves[String(c.numeroPregunta)] = c.respuesta;
+
+      const { pesos, resultados } = calcularTRIGrupo(
+        resultadosSesion.map((r: any) => ({ estudianteId: r.estudianteId, respuestas: r.respuestas })),
+        claves,
+      );
+
+      if (pesos.length > 0) {
+        // BUG FIX #5: modelo correcto es "pesosPregunta" (plural con mayúscula)
+        await (db as any).pesosPregunta.createMany({
+          data: pesos.map((p) => ({
+            examenId:        examen.id,
+            sesionId:        sesion.id,
+            numeroPregunta:  p.numeroPregunta,
+            dificultad:      p.dificultad,
+            discriminacion:  p.discriminacion,
+            pesoNormalizado: p.pesoNormalizado,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      for (const r of resultados) {
+        await (db as any).resultadoSesion.updateMany({
+          where: { estudianteId: r.estudianteId, sesionId: sesion.id },
+          data:  { puntajeTRI: r.puntajeTRI },
+        });
+      }
     }
 
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("[DELETE /api/admin/simulacros/[id]]", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
+    // Consolidar TRI global por estudiante
+    const todosRS = await (db as any).resultadoSesion.findMany({
+      where: { examenId: examen.id, puntajeTRI: { not: null } },
+      select: { estudianteId: true, puntajeTRI: true, total: true },
+    });
+
+    const porEstudiante = new Map<string, { sum: number; totalPts: number }>();
+    for (const r of todosRS) {
+      const prev = porEstudiante.get(r.estudianteId) ?? { sum: 0, totalPts: 0 };
+      porEstudiante.set(r.estudianteId, {
+        sum:      prev.sum + (r.puntajeTRI * r.total),
+        totalPts: prev.totalPts + r.total,
+      });
+    }
+
+    for (const [estudianteId, { sum, totalPts }] of porEstudiante) {
+      const triGlobal = totalPts > 0 ? Number((sum / totalPts).toFixed(2)) : 0;
+      await (db as any).resultadoSimulacro.updateMany({
+        where: { estudianteId, examenId: examen.id },
+        data:  { puntajeTRI: triGlobal, estadoCalif: "OFICIAL" },
+      });
+    }
+
+  } else {
+    // Sin sesiones
+    const resultados = await (db as any).resultadoSimulacro.findMany({
+      where:  { examenId: examen.id },
+      select: { estudianteId: true, respuestas: true },
+    });
+    if (!resultados.length) return;
+
+    const claves: Record<string, string> = {};
+    for (const c of examen.claves) claves[String(c.numeroPregunta)] = c.respuesta;
+
+    const { pesos, resultados: tri } = calcularTRIGrupo(
+      resultados.map((r: any) => ({ estudianteId: r.estudianteId, respuestas: r.respuestas })),
+      claves,
     );
+
+    if (pesos.length > 0) {
+      // BUG FIX #5: modelo correcto es "pesosPregunta"
+      await (db as any).pesosPregunta.createMany({
+        data: pesos.map((p) => ({
+          examenId:        examen.id,
+          numeroPregunta:  p.numeroPregunta,
+          dificultad:      p.dificultad,
+          discriminacion:  p.discriminacion,
+          pesoNormalizado: p.pesoNormalizado,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    for (const r of tri) {
+      await (db as any).resultadoSimulacro.updateMany({
+        where: { estudianteId: r.estudianteId, examenId: examen.id },
+        data:  { puntajeTRI: r.puntajeTRI, estadoCalif: "OFICIAL" },
+      });
+    }
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Audit log helper
+// ─────────────────────────────────────────────────────────────────────────
+async function _auditLog(userId: string, examenId: string, nombre: string, mensaje: string) {
+  try {
+    await db.auditLog.create({
+      data: {
+        usuarioId: userId,
+        accion:    "GESTIONAR_SIMULACRO",
+        recurso:   "examen_template",
+        recursoId: examenId,
+        resultado: "EXITOSO",
+        mensaje:   `"${nombre}": ${mensaje}`,
+      },
+    });
+  } catch { /* no bloquear */ }
 }

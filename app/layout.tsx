@@ -23,7 +23,8 @@ export const metadata: Metadata = {
     "La plataforma más completa para prepararte para las Pruebas de Estado ICFES en Colombia. Simulacros, estadísticas y recursos de estudio personalizados.",
   keywords: "ICFES, pre-icfes, simulacro, pruebas de estado, Colombia, preparación",
   icons: {
-    icon: "/images/logo.ico",
+    icon: "/images/logo.png",
+    shortcut: "/images/logo.png",
   },
 };
 

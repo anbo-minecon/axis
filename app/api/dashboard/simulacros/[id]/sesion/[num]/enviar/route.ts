@@ -13,32 +13,41 @@ const bodySchema = z.object({
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string; num: string } }
+  { params }: { params: { id: string; num: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    if (!session?.user?.id)
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
     const numSesion = parseInt(params.num, 10);
-    if (isNaN(numSesion) || numSesion < 1 || numSesion > 2) {
+    if (isNaN(numSesion) || numSesion < 1)
       return NextResponse.json({ error: "Número de sesión inválido" }, { status: 400 });
-    }
 
     const body   = await req.json();
     const parsed = bodySchema.safeParse(body);
-    if (!parsed.success) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+    if (!parsed.success)
+      return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
 
     const { respuestas, tiempoUsado } = parsed.data;
 
-    // Obtener la sesión del examen
+    // Obtener sesión con sus claves
     const sesion = await (db as any).sesionExamen.findFirst({
       where:   { examenId: params.id, numero: numSesion },
       include: { claves: { orderBy: { numeroPregunta: "asc" } } },
     });
+    if (!sesion)
+      return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
 
-    if (!sesion) return NextResponse.json({ error: "Sesión no encontrada" }, { status: 404 });
+    // Verificar estado del examen
+    const examen = await (db as any).examenTemplate.findUnique({
+      where:  { id: params.id },
+      select: { estado: true },
+    });
+    if (!examen || !["PUBLICADO", "CERRADO"].includes(examen.estado))
+      return NextResponse.json({ error: "El simulacro no está disponible" }, { status: 403 });
 
-    // Verificar que ya no la respondió
+    // Verificar que no respondió esta sesión antes
     const existente = await (db as any).resultadoSesion.findUnique({
       where: {
         estudianteId_sesionId: {
@@ -47,10 +56,11 @@ export async function POST(
         },
       },
     });
-    if (existente) return NextResponse.json({ error: "Ya respondiste esta sesión" }, { status: 409 });
+    if (existente)
+      return NextResponse.json({ error: "Ya respondiste esta sesión" }, { status: 409 });
 
-    // Contar correctas
-    let correctas = 0;
+    // Calcular aciertos
+    let aciertos = 0;
     const detalles: Record<string, { dada: string | null; correcta: string; correcto: boolean }> = {};
 
     for (const clave of sesion.claves) {
@@ -58,48 +68,57 @@ export async function POST(
       const correcta = clave.respuesta;
       const dada     = respuestas[num] ?? null;
       const correcto = dada === correcta;
-      if (correcto) correctas++;
+      if (correcto) aciertos++;
       detalles[num] = { dada, correcta, correcto };
     }
 
-    const total              = sesion.claves.length;
-    const puntajePreliminar  = calcularPuntajePreliminar(correctas, total);
+    // BUG FIX: total = claves reales de esta sesión, NO 100 hardcodeado
+    const total             = sesion.claves.length;
+    const puntajePreliminar = calcularPuntajePreliminar(aciertos, total);
 
     // Guardar resultado de sesión
-    const resultadoSesion = await (db as any).resultadoSesion.create({
+    await (db as any).resultadoSesion.create({
       data: {
         estudianteId:     session.user.id,
         examenId:         params.id,
         sesionId:         sesion.id,
         respuestas,
-        correctas,
-        total,
+        aciertos,
+        total,            // ← total real de esta sesión
         puntajePreliminar,
         tiempoUsado,
       },
     });
 
-    // Verificar si completó TODAS las sesiones del simulacro
+    // ¿Completó TODAS las sesiones?
     const todasSesiones = await (db as any).sesionExamen.findMany({
-      where: { examenId: params.id },
+      where:  { examenId: params.id },
       select: { id: true },
     });
 
     const resultadosExistentes = await (db as any).resultadoSesion.findMany({
-      where: {
-        estudianteId: session.user.id,
-        examenId:     params.id,
-      },
+      where:  { estudianteId: session.user.id, examenId: params.id },
+      select: { aciertos: true, total: true, puntajePreliminar: true },
     });
 
     const completoTodo = resultadosExistentes.length === todasSesiones.length;
 
     if (completoTodo) {
-      // Calcular puntaje global preliminar (promedio ponderado de sesiones)
-      const sumaPuntajes  = resultadosExistentes.reduce((a: number, r: any) => a + r.puntajePreliminar, 0);
-      const promedioGlobal = Math.round(sumaPuntajes / resultadosExistentes.length);
+      // BUG FIX: totalPreguntas = suma real de todas las sesiones, NO 100
+      const totalAciertos  = resultadosExistentes.reduce(
+        (a: number, r: any) => a + (r.aciertos ?? 0), 0
+      );
+      const totalPreguntas = resultadosExistentes.reduce(
+        (a: number, r: any) => a + (r.total ?? 0), 0
+      );
+      // Promedio ponderado por preguntas de cada sesión
+      const sumaPonderada  = resultadosExistentes.reduce(
+        (a: number, r: any) => a + (r.puntajePreliminar ?? 0) * (r.total ?? 0), 0
+      );
+      const promedioGlobal = totalPreguntas > 0
+        ? Number((sumaPonderada / totalPreguntas).toFixed(2))
+        : 0;
 
-      // Crear o actualizar ResultadoSimulacro global
       await (db as any).resultadoSimulacro.upsert({
         where: {
           estudianteId_examenId: {
@@ -108,33 +127,37 @@ export async function POST(
           },
         },
         create: {
-          estudianteId:       session.user.id,
-          examenId:           params.id,
-          respuestas:         {},               // vacío, las reales están en ResultadoSesion
-          puntaje:            promedioGlobal,
-          puntajePreliminar:  promedioGlobal,
-          total:              100,              // base 100 pts
+          estudianteId:      session.user.id,
+          examenId:          params.id,
+          respuestas:        {},
+          puntaje:           totalAciertos,
+          puntajePreliminar: promedioGlobal,
+          total:             totalPreguntas,  // ← total real
           tiempoUsado,
-          estadoCalif:        "PRELIMINAR",
+          estadoCalif:       "PRELIMINAR",
         },
         update: {
-          puntaje:           promedioGlobal,
+          puntaje:           totalAciertos,
           puntajePreliminar: promedioGlobal,
+          total:             totalPreguntas,  // ← total real
+          tiempoUsado,
           estadoCalif:       "PRELIMINAR",
         },
       });
     }
 
     return NextResponse.json({
-      ok: true,
+      ok:                true,
       puntajePreliminar,
-      correctas,
+      correctas:         aciertos,
       total,
       detalles,
       completoSimulacro: completoTodo,
     }, { status: 201 });
+
   } catch (e: any) {
-    if (e?.code === "P2002") return NextResponse.json({ error: "Ya respondiste esta sesión" }, { status: 409 });
+    if (e?.code === "P2002")
+      return NextResponse.json({ error: "Ya respondiste esta sesión" }, { status: 409 });
     console.error("[POST sesion/enviar]", e);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }

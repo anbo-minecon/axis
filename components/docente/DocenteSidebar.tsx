@@ -10,7 +10,7 @@ import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard, Users, ClipboardList,
   BookOpen, Megaphone, MessageSquare, BarChart2,
-  Moon, Sun, LogOut, ChevronRight, X, AlertTriangle,
+  Moon, Sun, LogOut, ChevronRight, X, AlertTriangle, UserCircle,
 } from "lucide-react";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
@@ -37,6 +37,7 @@ const NAV_ITEMS = [
   { href: "/docente/anuncios",     label: "Anuncios",            icon: Megaphone       },
   { href: "/docente/mensajes",     label: "Mensajes",            icon: MessageSquare   },
   { href: "/docente/estadisticas", label: "Estadísticas",        icon: BarChart2       },
+  { href: "/docente/perfil",       label: "Mi Perfil",           icon: UserCircle      },
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────

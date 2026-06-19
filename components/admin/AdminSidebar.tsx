@@ -10,7 +10,7 @@ import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard, Users, UsersRound, BadgeCheck, BarChart3,
   FileText, Megaphone, Moon, Sun, LogOut, ChevronRight,
-  AlertTriangle, ClipboardList, MessageSquare, GraduationCap
+  AlertTriangle, ClipboardList, MessageSquare, GraduationCap, UserCircle
 } from "lucide-react";
 
 export interface AdminUser {
@@ -135,6 +135,16 @@ export function AdminSidebar({ user, estudiantesSinGrupo = 0 }: AdminSidebarProp
 
       {/* Inferior */}
       <div className="border-t border-white/10 px-3 py-3 space-y-0.5">
+        <Link
+          href="/admin/perfil"
+          className={cn(
+            "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+            isActive("/admin/perfil") ? "bg-white/20 text-white" : "text-purple-100 hover:bg-white/10 hover:text-white"
+          )}
+        >
+          <UserCircle className="h-[18px] w-[18px] shrink-0" />
+          <span className="flex-1">Mi Perfil</span>
+        </Link>
         <ThemeButton />
         <button
           onClick={handleSignOut}

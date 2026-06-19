@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { DeveloperPerfilTab } from "./DeveloperPerfilTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ApiEndpoint {
@@ -69,7 +70,7 @@ interface DashboardData {
   integraciones: any[];
 }
 
-type Tab = "overview" | "apis" | "logs" | "audit" | "backups";
+type Tab = "overview" | "apis" | "logs" | "audit" | "backups" | "perfil";
 type LogLevel = "ALL" | "ERROR" | "WARN" | "INFO" | "OK";
 
 // ─── Spark Chart ──────────────────────────────────────────────────────────────
@@ -186,12 +187,12 @@ function NavItem({ tab, active, onClick, children, badge }: { tab: Tab; active: 
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export function DeveloperDashboard() {
+export function DeveloperDashboard({ initialTab = "overview" }: { initialTab?: Tab } = {}) {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [logFilter, setLogFilter] = useState<LogLevel>("ALL");
   const [logSearch, setLogSearch] = useState("");
   const [clock, setClock] = useState("");
@@ -392,6 +393,11 @@ export function DeveloperDashboard() {
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             Respaldos
           </NavItem>
+          <div style={{ ...css.sectionTitle, padding: "12px 8px 4px" }}>Cuenta</div>
+          <NavItem tab="perfil" active={activeTab === "perfil"} onClick={() => setActiveTab("perfil")}>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            Mi Perfil
+          </NavItem>
         </nav>
         <div style={{ padding: 12, borderTop: "1px solid #2a3347" }}>
           <div style={{ background: "#1e2535", border: "1px solid #2a3347", borderRadius: 6, padding: 8 }}>
@@ -408,7 +414,7 @@ export function DeveloperDashboard() {
       <main style={css.main}>
         <div style={css.topbar}>
           <div style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>
-            {{ overview: "Resumen del Sistema", apis: "APIs & Servicios", logs: "Logs del Sistema", audit: "Registro de Auditoría", backups: "Gestión de Respaldos" }[activeTab]}
+            {{ overview: "Resumen del Sistema", apis: "APIs & Servicios", logs: "Logs del Sistema", audit: "Registro de Auditoría", backups: "Gestión de Respaldos", perfil: "Mi Perfil" }[activeTab]}
           </div>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "#22c55e" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", animation: "pulse 1.5s infinite" }} />
@@ -685,6 +691,8 @@ export function DeveloperDashboard() {
               </div>
             </div>
           )}
+          {/* ══ MI PERFIL ════════════════════════════════════════════════════ */}
+          {activeTab === "perfil" && <DeveloperPerfilTab />}
         </div>
       </main>
     </div>

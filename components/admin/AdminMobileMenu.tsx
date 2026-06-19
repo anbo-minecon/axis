@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   ClipboardList,
   MessageSquare,
-  GraduationCap
+  GraduationCap,
+  UserCircle
 } from "lucide-react";
 
 export interface AdminUser {
@@ -48,6 +49,7 @@ const NAV_ITEMS = [
   { href: "/admin/contenido",     label: "Contenido",            icon: FileText },
   { href: "/admin/anuncios",      label: "Anuncios",             icon: Megaphone },
   { href: "/admin/classroom",     label: "Classroom",            icon: GraduationCap },
+  { href: "/admin/perfil",        label: "Mi Perfil",            icon: UserCircle },
 ];
 
 function getInitials(name: string) {

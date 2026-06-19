@@ -434,8 +434,10 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | **Dashboard Datos en Vivo** | ✅ Completado | Queries corregidas a BD correcta |
 | **Panel Administrativo** | 🔄 En desarrollo | Gestión de contenido |
 | **Estadísticas Avanzadas** | ✅ Completado | Gráficos, progresión, rendimiento por materia |
-| **Google Classroom Integración** | ✅ Completado | Feed en tiempo real, anuncios, tareas, tablón |
+| **Google Classroom Integración** | ✅ Completado | Feed en tiempo real, anuncios, tareas, tablón, sincronización |
 | **Manejo de Errores** | ✅ Mejorado | Mejor debugging y feedback en componentes |
+| **Dark Mode Landing** | ✅ Completado | Tema oscuro/claro con persistencia |
+| **Sincronización Google Classroom** | ✅ Completado | Miembros, eventos, datos bidireccionales |
 | **Sistema de Pagos** | ⏳ Pendiente | Integración con pasarelas |
 | **Móvil (PWA)** | ⏳ Pendiente | Versión móvil optimizada |
 x] Mostrar imágenes en simulacros de estudiantes
@@ -703,12 +705,35 @@ logWarning("Advertencia de seguridad", data);
 
 ## 📝 Cambios Recientes
 
-### ✨ Tercera Ronda - Classroom (Junio 14, 2026)
+### ✨ Dark Mode Landing (Junio 15, 2026) ✅ COMPLETADO
+
+#### Características Implementadas
+- **ThemeProvider**: Contexto global para gestionar tema claro/oscuro
+- **useTheme Hook**: Acceso fácil al tema desde cualquier componente
+- **ThemeToggle**: Botón Sun/Moon en el header de la landing page
+- **Persistencia**: Tema se guarda en localStorage y se recupera entre sesiones
+- **Detección automática**: Si no hay preferencia guardada, detecta preferencia del sistema
+- **Landing 100%**: Todos los componentes landing adaptados a ambos modos
+
+#### Componentes Actualizados (16 archivos)
+- Navigation, HeroSection, Caracteristicas, PricingPlans, FAQ, Footer
+- WhyAXIS, ImpactStats, Testimonials, HowItWorks, FinalCTA, EducationalResources, AreasICFES
+- SessionProvider, layout.tsx, landing/page.tsx, globals.css
+
+#### Características Técnicas
+- Variables CSS dinámicas para modo claro y oscuro
+- Transiciones suaves de 300ms entre modos
+- Script SSR que previene FOUC (Flash of Unstyled Content)
+- Tailwind CSS con prefijo `dark:` para estilos específicos del modo oscuro
+
+---
+
+### ✨ Tercera Ronda - Classroom (Junio 14, 2026) ✅ COMPLETADO
 
 #### Archivos Creados/Actualizados
 - ✅ `app/dashboard/classroom/page.tsx` - Cards clickeables al tablón
-- ✅ `app/dashboard/classroom/clases/[id]/page.tsx` - Nuevo tablón con tabs
-- ✅ `app/api/classroom/feed/route.ts` - Feed mejorado con soporte `?claseId`
+- ✅ `app/dashboard/classroom/clases/[id]/page.tsx` - Nuevo tablón con tabs (anuncios + tareas)
+- ✅ `app/api/classroom/feed/route.ts` - Feed mejorado con soporte `?claseId` y `?courseId`
 - ✅ `app/admin/classroom/calendario/page.tsx` - Calendario visual admin
 - ✅ `app/dashboard/classroom/calendario/page.tsx` - Calendario visual estudiante
 
@@ -716,19 +741,50 @@ logWarning("Advertencia de seguridad", data);
 - **Tablón de clase**: Anuncios y tareas en tiempo real desde Google Classroom API
 - **Feed endpoint**: Datos frescos cada 60s, sin guardar imágenes en BD
 - **MaterialChip mejorado**: Miniaturas de YouTube, Drive, Forms, Links
-- **Alerta visual**: Identifica tareas vencidas o próximas a vencer
+- **Alerta visual**: Identifica tareas vencidas o próximas a vencer (≤ 3 días)
 - **Solo lectura estudiantes**: Panel de visualización sin opciones de edición
 - **Link fallback**: Si estudiante sin token, usa token del docente de la clase
+- **Botón Actualizar**: Fuerza refetch del feed con `force=true`
 
 #### Cambios Técnicos
-- Feed API acepta `?claseId` y resuelve automáticamente `googleCourseId`
+- Feed API acepta `?claseId` y `?courseId`, resuelve automáticamente `googleCourseId`
 - Respuesta unificada: `{ clase, anuncios, tareas }`
 - Materiales con tipos estandarizados: `DRIVE_FILE | YOUTUBE | FORM | LINK`
 - Cache inteligente con `next: { revalidate: 60 }`
+- Tabs dinámicos: "Tablón" (anuncios) y "Tareas" (entregas)
 
 ---
 
-### ✨ Segunda Ronda - Mayo 27, 2026
+### ✨ Google Classroom Sync (Junio 13, 2026) ✅ COMPLETADO
+
+#### Sincronización Bidireccional de Miembros
+
+**Objetivos Logrados**
+- ✅ Los miembros en la BD son idénticos a los de Google Classroom
+- ✅ Sincronización automática al consultar miembros
+- ✅ Sincronización manual por botón en UI admin
+- ✅ Creación automática de usuarios faltantes
+- ✅ Asignación automática de grupo
+
+#### Archivos Creados/Modificados
+- ✅ `app/api/classroom/sync-miembros/route.ts` - Endpoint de sincronización (POST)
+- ✅ `app/api/classroom/miembros/route.ts` - Mejorado con sincronización automática (GET)
+- ✅ `components/admin/ClaseDetalleClient.tsx` - Nuevo botón "Sincronizar con Google"
+- ✅ `app/admin/classroom/calendario/page.tsx` - Calendario mejorado (FIX vacío)
+- ✅ `app/api/classroom/calendario/route.ts` - Validación mejorada
+
+#### Funcionalidades Implementadas
+- **Sincronización automática**: Cuando consultas miembros, se sincronizan con Google
+- **Sincronización manual**: Botón en tab de miembros dispara sincronización completa
+- **Creación automática**: Estudiantes de Google se crean automáticamente en BD
+- **Asignación de grupo**: Los nuevos usuarios se asignan automáticamente al grupo
+- **Fallback a BD**: Si Google falla, usa datos locales
+- **Reporte detallado**: Toast con contador de creados, actualizados, vinculados, errores
+- **Audit logging**: Todas las operaciones se registran en logs
+
+---
+
+### ✨ Segunda Ronda - Mayo 27, 2026 ✅ COMPLETADO
 - **Sistema de Logging**: Nuevo sistema de logging en archivos `.log` para tracking de accesos
 - **Modelo Intento**: Agregado modelo `Intento` y `RespuestaIntento` en Prisma para tracking de simulacros
 - **Dashboard Admin**: Actualizado para usar modelo `Intento` y registrar accesos en logs
@@ -752,8 +808,45 @@ logWarning("Advertencia de seguridad", data);
 
 ---
 
-**Última actualización:** Junio 14, 2026  
-**Versión:** v0.5.0  
+## 🎨 Dark Mode - Guía de Uso
+
+### Para Usuarios
+1. Haz clic en el icono **Moon/Sun** en la esquina superior del header
+2. Tu preferencia se **guarda automáticamente** en localStorage
+3. Se mantiene entre sesiones y dispositivos
+
+### Para Desarrolladores
+```tsx
+// Usar el hook en componentes cliente
+import { useTheme } from "@/hooks/useTheme";
+
+const { theme, toggleTheme } = useTheme();
+
+// Estilos Tailwind para ambos modos
+<div className="bg-white text-black dark:bg-gray-900 dark:text-white">
+  Contenido que cambia de color automáticamente
+</div>
+
+// Variables CSS personalizadas (globals.css)
+html {
+  --color-primary: #ff6b6b; /* claro */
+}
+html.dark {
+  --color-primary: #a85555; /* oscuro */
+}
+```
+
+### Archivos Clave
+- `hooks/useTheme.ts` - Hook para acceder al tema
+- `components/shared/ThemeProvider.tsx` - Proveedor de contexto
+- `components/shared/ThemeToggle.tsx` - Botón toggle
+- `app/globals.css` - Variables CSS por modo
+- `public/scripts/theme-init.js` - Script SSR para evitar FOUC
+
+---
+
+**Última actualización:** Junio 17, 2026  
+**Versión:** v0.6.0  
 **Estado:** Desarrollo activo 🚀
 
 ---

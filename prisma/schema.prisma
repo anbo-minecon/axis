@@ -290,12 +290,19 @@ model Suscripcion {
 // ─── DEVELOPER ACCESS ────────────────────────────────────────────────────────
 
 model DeveloperCredential {
-  id           String   @id @default(cuid())
-  usuarioId    String   @unique
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String    @id @default(cuid())
+  usuarioId     String    @unique
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  passwordHash  String
+  tokenSecret   String?
+
+  // BUG FIX: campos que developer-auth.ts ya necesitaba y no existían
+  activo        Boolean   @default(true)
+  ultimoAcceso  DateTime?
+  direccionIP   String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@map("developer_credentials")
 }

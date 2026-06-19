@@ -24,6 +24,7 @@ import {
   ChevronRight,
   AlertCircle,
   GraduationCap,
+  UserCircle,
 } from "lucide-react";
 
 /* ── Tipos ── */
@@ -64,6 +65,7 @@ const NAV_MAIN: NavItem[] = [
 
 const NAV_BOTTOM: NavItem[] = [
   { href: "/dashboard/notificaciones", label: "Notificaciones", icon: Bell },
+  { href: "/dashboard/perfil",         label: "Mi Perfil",      icon: UserCircle },
 ];
 
 function getInitials(name: string): string {

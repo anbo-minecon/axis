@@ -75,32 +75,32 @@ async function seedDeveloperData() {
     {
       accion: "UPDATE",
       recurso: "pregunta #PQ-2341 - área Matemáticas",
-      ipAddress: "192.168.1.100",
+      ip: "192.168.1.100",
     },
     {
       accion: "CREATE",
       recurso: "nuevo simulacro #SIM-3942",
-      ipAddress: "192.168.1.100",
+      ip: "192.168.1.100",
     },
     {
       accion: "UPDATE",
       recurso: "plan suscripción usuario id:1204",
-      ipAddress: "192.168.1.100",
+      ip: "192.168.1.100",
     },
     {
       accion: "LOGIN",
       recurso: "acceso desde Bogotá",
-      ipAddress: "192.168.1.101",
+      ip: "192.168.1.101",
     },
     {
       accion: "DELETE",
       recurso: "usuario id:3892 (cuenta inactiva)",
-      ipAddress: "192.168.1.100",
+      ip: "192.168.1.100",
     },
     {
       accion: "EXPORT",
       recurso: "reporte usuarios Q1-2025 (.csv)",
-      ipAddress: "127.0.0.1",
+      ip: "127.0.0.1",
     },
   ];
 
@@ -160,38 +160,38 @@ async function seedDeveloperData() {
     {
       nombre: "/api/auth",
       estado: "UP",
-      latenciaMs: 38,
-      mensajeError: null,
+      responseTime: 38,
+      ultimoError: null,
     },
     {
       nombre: "/api/simulacros",
       estado: "UP",
-      latenciaMs: 142,
-      mensajeError: null,
+      responseTime: 142,
+      ultimoError: null,
     },
     {
       nombre: "/api/database",
       estado: "UP",
-      latenciaMs: 89,
-      mensajeError: null,
+      responseTime: 89,
+      ultimoError: null,
     },
     {
       nombre: "/api/payments",
       estado: "UP",
-      latenciaMs: 62,
-      mensajeError: null,
+      responseTime: 62,
+      ultimoError: null,
     },
     {
       nombre: "/api/media",
       estado: "WARN",
-      latenciaMs: 2400,
-      mensajeError: "S3 latencia elevada",
+      responseTime: 2400,
+      ultimoError: "S3 latencia elevada",
     },
     {
       nombre: "/api/notifications",
       estado: "UP",
-      latenciaMs: 89,
-      mensajeError: null,
+      responseTime: 89,
+      ultimoError: null,
     },
   ];
 

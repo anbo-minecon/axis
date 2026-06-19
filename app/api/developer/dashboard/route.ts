@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
       user: a.usuario?.email || "sistema",
       resource: a.recurso,
       time: a.createdAt.toLocaleTimeString("es-CO"),
-      ip: a.ipAddress || undefined,
+      ip: a.ip || undefined,
     }));
 
     // ── Respaldos ───────────────────────────────────────────────────────────

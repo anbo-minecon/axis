@@ -166,7 +166,7 @@ export async function PATCH(req: NextRequest) {
           accion: "SUSCRIPCION_RECHAZAR",
           recurso: "suscripcion",
           recursoId: id,
-          cambios: JSON.stringify({ accion: "rechazar" }),
+          mensaje: JSON.stringify({ accion: "rechazar" }),
           resultado: "EXITOSO",
         },
       });
@@ -192,7 +192,7 @@ export async function PATCH(req: NextRequest) {
         accion: `SUSCRIPCION_${accion.toUpperCase()}`,
         recurso: "suscripcion",
         recursoId: id,
-        cambios: JSON.stringify({ accion, diasExtra }),
+        mensaje: JSON.stringify({ accion, diasExtra }),
         resultado: "EXITOSO",
       },
     });
@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
         accion: "SUSCRIPCION_CREAR",
         recurso: "suscripcion",
         recursoId: suscripcion.id,
-        cambios: JSON.stringify({ usuarioId, planId, diasDuracion }),
+        mensaje: JSON.stringify({ usuarioId, planId, diasDuracion }),
         resultado: "EXITOSO",
       },
     });

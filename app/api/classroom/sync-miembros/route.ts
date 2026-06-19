@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
         claseId,
         clase: {
           nombre:      clase.nombre,
-          docente:     clase.docente.nombre,
+          docente:     clase.docente?.nombre ?? null,
           grupo:       clase.grupo?.nombre,
         },
         sincronizacion: {

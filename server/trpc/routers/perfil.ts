@@ -15,7 +15,7 @@ import { z } from "zod";
 import { compare, hash } from "bcryptjs";
 import { TRPCError } from "@trpc/server";
 import { db } from "@/lib/db";
-import { router, protectedProcedure } from "../trpc";
+import { router, protectedProcedure } from "../router";
 
 const actualizarPerfilSchema = z.object({
   nombre: z.string().min(2).max(100).optional(),

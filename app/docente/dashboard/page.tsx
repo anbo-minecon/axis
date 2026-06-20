@@ -340,7 +340,7 @@ export default async function DocenteDashboard() {
                 Evolución del grupo
               </h2>
               <div className="space-y-2">
-                {evolucion.map((e, i) => {
+                {evolucion.map((e: { nombre: string; promedio: number; participantes: number }, i: number) => {
                   const n = getNivel(e.promedio);
                   return (
                     <div key={i} className="flex items-center gap-3">

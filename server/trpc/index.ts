@@ -4,6 +4,7 @@ import { authRouter } from "./routers/auth";
 import { simulacroRouter } from "./routers/simulacro";
 import { suscripcionRouter } from "./routers/suscripcion";
 import { adminRouter } from "./routers/admin";
+import { perfilRouter } from "./routers/perfil";
 
 /**
  * Este es el router principal de tRPC
@@ -14,6 +15,7 @@ export const appRouter = router({
   simulacro: simulacroRouter,
   suscripcion: suscripcionRouter,
   admin: adminRouter,
+  perfil: perfilRouter,
 });
 
 // Exportar tipo del router para el cliente

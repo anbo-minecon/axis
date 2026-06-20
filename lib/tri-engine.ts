@@ -75,7 +75,7 @@ export function calcularPesos(
       e.respuestas[String(num)]?.toUpperCase() === clave ? 1 : 0
     );
 
-    const totalAciertos = aciertosBin.reduce((a, b) => a + b, 0);
+    const totalAciertos = aciertosBin.reduce((a, b) => a + b, 0 as number);
     const pctAcierto    = totalAciertos / numEstudiantes;
 
     // Excluir preguntas con muy pocos aciertos (evita outliers estadísticos)

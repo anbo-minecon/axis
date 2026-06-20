@@ -23,7 +23,7 @@ export type RolPerfil = "ESTUDIANTE" | "DOCENTE" | "ADMIN";
 
 interface PerfilData {
   id: string;
-  nombre: string;
+  nombre: string | null;
   email: string;
   imagen: string | null;
   documento: string | null;
@@ -204,7 +204,7 @@ export function PerfilForm({ rol }: PerfilFormProps) {
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-xl font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
             {form.imagen ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={form.imagen} alt={data.nombre} className="h-full w-full object-cover" />
+              <img src={form.imagen} alt={data.nombre || "Perfil"} className="h-full w-full object-cover" />
             ) : (
               getInitials(data.nombre || "?")
             )}

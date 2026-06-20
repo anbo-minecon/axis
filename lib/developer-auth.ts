@@ -145,7 +145,7 @@ export async function logAuditAction(
   accion: string,
   recurso: string,
   recursoId?: string,
-  cambios?: string,
+  mensaje?: string,
   ipAddress?: string
 ) {
   try {
@@ -155,8 +155,8 @@ export async function logAuditAction(
         accion,
         recurso,
         recursoId,
-        cambios,
-        ipAddress,
+        mensaje,
+        ip: ipAddress,
         resultado: "EXITOSO",
       },
     });

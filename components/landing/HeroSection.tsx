@@ -61,7 +61,7 @@ export function HeroSection() {
           <div className="absolute inset-0 bg-gradient-to-br from-blue-400 dark:from-blue-600 to-blue-600 dark:to-blue-900 rounded-3xl opacity-20"></div>
           <div className="relative h-full bg-gradient-to-br from-blue-400 dark:from-blue-600 to-blue-600 dark:to-blue-900 rounded-3xl overflow-hidden">
             <Image
-              src="/images/hero-students.jpeg"
+              src="/images/hero-axis-pro.png"
               alt="Estudiantes preparándose"
               fill
               className="object-cover"

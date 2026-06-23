@@ -2,8 +2,13 @@
 //
 // Requiere: npm install xlsx
 // Esta ruta acepta un archivo .xlsx/.xls con columnas:
-//   simulacro | materia | pregunta | respuesta_correcta
-// y crea los ExamenTemplate + ClaveExamen correspondientes.
+//   simulacro | materia | pregunta | respuesta_correcta | sesion (opcional) | dificultad (opcional)
+// 
+// Si no especifica 'sesion', asume sesion 1 por defecto.
+// Si especifica múltiples sesiones (1 y 2), crea un simulacro de 2 sesiones.
+// Dificultad por defecto es 'media' si no se especifica.
+//
+// y crea los ExamenTemplate + SesionExamen + ClaveExamen correspondientes.
 //
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -16,11 +21,22 @@ interface FilaExcel {
   materia: string;
   pregunta: string | number;
   respuesta_correcta: string;
+  sesion?: string | number;
+  dificultad?: string;
+}
+
+interface ClavePorSesion {
+  numeroPregunta: number;
+  respuesta: string;
+  sesionNumero: number;
+  dificultad?: string;
 }
 
 interface GrupoSimulacro {
   materia: string;
-  claves: { numeroPregunta: number; respuesta: string }[];
+  tieneSesiones: boolean;
+  sesiones: Set<number>;
+  claves: ClavePorSesion[];
   errores: string[];
 }
 
@@ -99,6 +115,8 @@ export async function POST(req: Request) {
       const materia = String(row.materia ?? "").trim();
       const numPregRaw = Number(row.pregunta);
       const respuesta = String(row.respuesta_correcta ?? "").trim().toUpperCase();
+      const sesionRaw = row.sesion ? Number(row.sesion) : 1; // Default sesion = 1
+      const dificultad = String(row.dificultad ?? "facil").trim().toLowerCase();
 
       // Validaciones
       if (!numSim) {
@@ -123,23 +141,38 @@ export async function POST(req: Request) {
         filasRechazadas++;
         return;
       }
+      if (!Number.isInteger(sesionRaw) || sesionRaw < 1 || sesionRaw > 2) {
+        mensajesError.push(
+          `Fila ${fila}: sesión "${row.sesion}" no válida (debe ser 1 o 2) — rechazada.`
+        );
+        filasRechazadas++;
+        return;
+      }
+      if (!["facil", "media", "dificil"].includes(dificultad)) {
+        mensajesError.push(
+          `Fila ${fila}: dificultad "${row.dificultad}" no válida (debe ser facil, media o dificil) — se asume "media".`
+        );
+        // No rechazamos, solo usamos default
+      }
 
       // Agregar al grupo
       if (!grupos.has(numSim)) {
-        grupos.set(numSim, { materia, claves: [], errores: [] });
+        grupos.set(numSim, { materia, tieneSesiones: false, sesiones: new Set(), claves: [], errores: [] });
       }
       const grupo = grupos.get(numSim)!;
+      grupo.sesiones.add(sesionRaw);
+      grupo.tieneSesiones = grupo.sesiones.size > 1;
 
-      // Detectar duplicados de pregunta dentro del mismo simulacro
-      if (grupo.claves.some((c) => c.numeroPregunta === numPregRaw)) {
+      // Detectar duplicados de pregunta dentro de la misma sesión del simulacro
+      if (grupo.claves.some((c) => c.numeroPregunta === numPregRaw && c.sesionNumero === sesionRaw)) {
         mensajesError.push(
-          `Fila ${fila}: pregunta ${numPregRaw} duplicada en simulacro ${numSim} — se omite.`
+          `Fila ${fila}: pregunta ${numPregRaw} duplicada en sesión ${sesionRaw} del simulacro ${numSim} — se omite.`
         );
         filasRechazadas++;
         return;
       }
 
-      grupo.claves.push({ numeroPregunta: numPregRaw, respuesta });
+      grupo.claves.push({ numeroPregunta: numPregRaw, respuesta, sesionNumero: sesionRaw, dificultad });
     });
 
     if (grupos.size === 0) {
@@ -155,19 +188,91 @@ export async function POST(req: Request) {
     for (const [numSim, grupo] of grupos.entries()) {
       if (grupo.claves.length === 0) continue;
 
-      await (db as any).examenTemplate.create({
-        data: {
-          nombre: `Simulacro ${numSim}`,
-          materia: grupo.materia,
-          totalPreguntas: grupo.claves.length,
-          tiempoMin: 120,
-          estado: "PUBLICADO",
-          creadoPorId: session.user.id,
-          claves: {
-            create: grupo.claves,
+      const tieneSesiones = grupo.tieneSesiones;
+      const sesionNums = Array.from(grupo.sesiones).sort((a, b) => a - b);
+
+      if (tieneSesiones && sesionNums.length > 1) {
+        // ── MULTI-SESIÓN ───────────────────────────────────────────────────
+        // Crear ExamenTemplate con sesiones y agrupar claves por sesión
+        const examen = await (db as any).examenTemplate.create({
+          data: {
+            nombre: `Simulacro ${numSim}`,
+            materia: grupo.materia,
+            totalPreguntas: grupo.claves.length,
+            tiempoMin: 120,
+            estado: "PUBLICADO",
+            tieneSesiones: true,
+            triCalculado: false,
+            creadoPorId: session.user.id,
+            sesiones: {
+              create: sesionNums.map((num) => ({
+                numero: num,
+                nombre: `Sesión ${num}`,
+                tiempoMin: 60,
+              })),
+            },
           },
-        },
-      });
+          include: { sesiones: true },
+        });
+
+        // Agrupar claves por sesión y crear con sesionId
+        for (const sesionDb of examen.sesiones) {
+          const clavesDelSesion = grupo.claves
+            .filter((c) => c.sesionNumero === sesionDb.numero)
+            .map((c) => ({
+              numeroPregunta: c.numeroPregunta,
+              respuesta: c.respuesta,
+              sesionId: sesionDb.id,
+              dificultad: c.dificultad,
+            }));
+
+          if (clavesDelSesion.length > 0) {
+            await (db as any).claveExamen.createMany({
+              data: clavesDelSesion,
+              skipDuplicates: true,
+            });
+          }
+        }
+      } else {
+        // ── SESIÓN ÚNICA ────────────────────────────────────────────────────
+        // Compatibilidad: simulacros sin sesiones o con solo sesión 1
+        const examen = await (db as any).examenTemplate.create({
+          data: {
+            nombre: `Simulacro ${numSim}`,
+            materia: grupo.materia,
+            totalPreguntas: grupo.claves.length,
+            tiempoMin: 120,
+            estado: "PUBLICADO",
+            tieneSesiones: false,
+            triCalculado: false,
+            creadoPorId: session.user.id,
+            sesiones: {
+              create: [{
+                numero: 1,
+                nombre: "Sesión única",
+                tiempoMin: 120,
+              }],
+            },
+          },
+          include: { sesiones: true },
+        });
+
+        const sesion1 = examen.sesiones[0];
+        const clavesConSesion = grupo.claves
+          .map((c) => ({
+            numeroPregunta: c.numeroPregunta,
+            respuesta: c.respuesta,
+            sesionId: sesion1.id,
+            dificultad: c.dificultad,
+          }));
+
+        if (clavesConSesion.length > 0) {
+          await (db as any).claveExamen.createMany({
+            data: clavesConSesion,
+            skipDuplicates: true,
+          });
+        }
+      }
       importados++;
     }
 

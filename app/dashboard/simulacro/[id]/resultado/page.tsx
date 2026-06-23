@@ -32,6 +32,29 @@ function fmtTiempo(segs: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// ── Recalcular puntaje preliminar para datos históricos ────────────────────
+function recalcularPreliminar(aciertos: number, total: number): number {
+  if (total <= 0 || aciertos <= 0) return 0;
+  return Math.round(Math.pow(aciertos / total, 1.5) * 100);
+}
+
+// ── Obtener puntaje efectivo (TRI si oficial, prelim si no) ────────────────
+function puntajeEfectivo(r: {
+  estadoCalif: string;
+  puntajeTRI: number | null;
+  puntajePreliminar: number;
+  puntaje: number;
+  total: number;
+}): number {
+  if (r.estadoCalif === "OFICIAL" && r.puntajeTRI != null)
+    return Math.round(Number(r.puntajeTRI));
+  if (r.puntajePreliminar > 0)
+    return Math.round(r.puntajePreliminar);
+  if (r.puntaje > 0 && r.total > 0)
+    return recalcularPreliminar(r.puntaje, r.total);
+  return 0;
+}
+
 export default async function ResultadoPage({
   params,
 }: {
@@ -61,9 +84,17 @@ export default async function ResultadoPage({
 
   if (!resultado) redirect("/dashboard/simulacros");
 
-  const pct   = Math.round((resultado.puntaje / resultado.total) * 100);
+  // Usar puntajeEfectivo: TRI si oficial, puntajePreliminar si no
+  const pct   = puntajeEfectivo({
+    estadoCalif:       resultado.estadoCalif ?? "PRELIMINAR",
+    puntajeTRI:        resultado.puntajeTRI ?? null,
+    puntajePreliminar: resultado.puntajePreliminar ?? 0,
+    puntaje:           resultado.puntaje ?? 0,
+    total:             resultado.total ?? 0,
+  });
   const nivel = getNivel(pct);
   const NivelIcon = nivel.icon;
+  const esOficial = resultado.estadoCalif === "OFICIAL";
 
   return (
     <div className="px-4 md:px-6 py-6 max-w-4xl mx-auto space-y-5">
@@ -101,12 +132,14 @@ export default async function ResultadoPage({
 
           {/* Puntaje */}
           <div className="rounded-xl bg-white/5 border border-white/10 px-5 py-4">
-            <p className="text-xs text-[var(--text-muted)] mb-2">Tu puntaje</p>
+            <p className="text-xs text-[var(--text-muted)] mb-2">
+              {esOficial ? "Puntaje TRI oficial" : "Puntaje preliminar"}
+            </p>
             <div className="flex items-baseline gap-1.5">
               <span className="text-4xl font-extrabold text-[var(--text-primary)]">
-                {resultado.puntaje}
+                {pct}
               </span>
-              <span className="text-lg text-gray-500 font-semibold">/ {resultado.total}</span>
+              <span className="text-lg text-gray-500 font-semibold">/ 100</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
               <div
@@ -115,6 +148,11 @@ export default async function ResultadoPage({
                 style={{ width: `${pct}%` }}
               />
             </div>
+            {esOficial && (
+              <p className="text-[10px] text-emerald-400 mt-2 font-semibold">
+                ✓ Calculado con modelo TRI
+              </p>
+            )}
           </div>
 
           {/* Porcentaje */}

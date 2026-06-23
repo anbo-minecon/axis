@@ -116,7 +116,7 @@ export function calcularPuntajeTRI(
   respuestasEstudiante: Record<string, string>,
   claves: Record<string, string>,
   pesos: PesoPreguntaResult[],
-  factorCurva = 1.8,
+  factorCurva = 1.5,
   puntajeMax  = 100
 ): number {
   let puntajeProporcional = 0;
@@ -131,9 +131,9 @@ export function calcularPuntajeTRI(
     }
   }
 
-  // Curva no lineal — simula la caída drástica del ICFES
-  // Con todo correcto: 1^1.8 * 100 = 100
-  // Con un error en pregunta media: ~82
+  // Curva no lineal — simula la caída drástica del ICFES (1.5 como en modelo Python)
+  // Con todo correcto: 1^1.5 * 100 = 100
+  // Con un error en pregunta media: ~88
   const puntajeCurvado = Math.pow(puntajeProporcional, factorCurva);
   return Math.round(puntajeCurvado * puntajeMax);
 }
@@ -143,7 +143,7 @@ export function calcularPuntajeTRI(
 export function calcularPuntajePreliminar(
   correctas: number,
   total: number,
-  factorCurva = 1.8,
+  factorCurva = 1.5,
   puntajeMax  = 100
 ): number {
   if (total === 0) return 0;
@@ -155,7 +155,7 @@ export function calcularPuntajePreliminar(
 export function calcularTRIGrupo(
   respuestasGrupo: RespuestaEstudiante[],
   claves: Record<string, string>,
-  factorCurva = 1.8
+  factorCurva = 1.5
 ): {
   pesos:      PesoPreguntaResult[];
   resultados: Array<{ estudianteId: string; puntajeTRI: number }>;

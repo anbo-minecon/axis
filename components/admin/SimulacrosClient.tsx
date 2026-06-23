@@ -950,10 +950,13 @@ function ImportarExcelForm() {
 
   const descargarPlantilla = () => {
     const csv = [
-      "simulacro,materia,pregunta,respuesta_correcta,dificultad",
-      "1,matemáticas,1,B,media",
-      "1,matemáticas,2,D,facil",
-      "1,matemáticas,3,A,dificil",
+      "simulacro,materia,pregunta,respuesta_correcta,sesion,dificultad",
+      "1,matemáticas,1,B,1,media",
+      "1,matemáticas,2,D,1,facil",
+      "1,matemáticas,3,A,2,dificil",
+      "2,lectura critica,1,C,1,media",
+      "2,lectura critica,2,A,1,facil",
+      "2,lectura critica,3,D,2,dificil",
     ].join("\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     const a   = document.createElement("a"); a.href = url; a.download = "plantilla_simulacros.csv"; a.click();
@@ -979,28 +982,30 @@ function ImportarExcelForm() {
       <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-6 space-y-4">
         <div>
           <h2 className="text-base font-bold text-white">Formato requerido del archivo</h2>
-          <p className="text-xs text-gray-500 mt-1">El archivo Excel debe contener exactamente estas columnas:</p>
+          <p className="text-xs text-gray-500 mt-1">El archivo Excel debe contener estas columnas (sesion y dificultad son opcionales, por defecto 1 y media respectivamente):</p>
         </div>
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 bg-white/5">
-                {["simulacro", "materia", "pregunta", "respuesta_correcta", "dificultad"].map((h) => (
+                {["simulacro", "materia", "pregunta", "respuesta_correcta", "sesion", "dificultad"].map((h) => (
                   <th key={h} className="px-3 py-2.5 text-left text-xs font-semibold text-violet-400">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {[
-                ["1", "matemáticas", "1", "B", "media"],
-                ["1", "matemáticas", "2", "D", "facil"],
-                ["1", "matemáticas", "3", "A", "dificil"],
+                ["1", "matemáticas", "1", "B", "1", "media"],
+                ["1", "matemáticas", "2", "D", "1", "facil"],
+                ["1", "matemáticas", "3", "A", "2", "dificil"],
+                ["2", "lectura", "1", "C", "1", "media"],
               ].map((row, i) => (
                 <tr key={i}>
                   {row.map((c, j) => (
                     <td key={j} className={cn("px-3 py-2 text-xs",
                       j === 3 ? "font-bold text-violet-400"
-                      : j === 4 ? cn("font-bold", c === "facil" ? "text-emerald-400" : c === "media" ? "text-amber-400" : "text-red-400")
+                      : j === 4 ? cn("font-bold", c === "1" ? "text-blue-400" : "text-cyan-400")
+                      : j === 5 ? cn("font-bold", c === "facil" ? "text-emerald-400" : c === "media" ? "text-amber-400" : "text-red-400")
                       : "text-gray-300"
                     )}>
                       {c}
@@ -1019,15 +1024,32 @@ function ImportarExcelForm() {
         </button>
       </div>
 
+      {/* Información de sesiones */}
+      <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Info className="h-4 w-4 text-blue-400" />
+          <h2 className="text-base font-bold text-white">Sesiones (opcional)</h2>
+        </div>
+        <p className="text-xs text-blue-300">
+          El campo <code className="rounded bg-white/10 px-1 text-blue-300">sesion</code> es <strong>opcional</strong>.
+          Si no se especifica, todas las preguntas se asignan a sesión 1.
+        </p>
+        <div className="space-y-2 text-xs text-blue-200">
+          <p><strong>Sesión única (por defecto):</strong> No incluyas la columna "sesion" o usa siempre "1".</p>
+          <p><strong>Simulacro de 2 sesiones:</strong> Incluye preguntas con sesion=1 y sesion=2. El sistema detectará automáticamente que es un simulacro de 2 sesiones.</p>
+          <p className="text-blue-100 italic">Ejemplo: preguntas 1–10 en sesion 1, preguntas 11–20 en sesion 2.</p>
+        </div>
+      </div>
+
       {/* Ponderación */}
       <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-6 space-y-4">
         <div className="flex items-center gap-2">
           <Info className="h-4 w-4 text-blue-400" />
-          <h2 className="text-base font-bold text-white">Ponderación por dificultad</h2>
+          <h2 className="text-base font-bold text-white">Dificultad (opcional)</h2>
         </div>
         <p className="text-xs text-gray-500">
-          El campo <code className="rounded bg-white/10 px-1 text-violet-300">dificultad</code> determina
-          el peso de cada pregunta en el puntaje final (escala 0–500). Los valores válidos son:
+          El campo <code className="rounded bg-white/10 px-1 text-violet-300">dificultad</code> es <strong>opcional</strong> (por defecto "media").
+          Determina el peso de cada pregunta. Los valores válidos son:
         </p>
         <div className="flex items-center gap-3 flex-wrap">
           {(["facil", "media", "dificil"] as Dificultad[]).map((d) => (

@@ -27,7 +27,7 @@ function puntajeEfectivo(r: {
   if (r.puntajePreliminar > 0)
     return Math.round(r.puntajePreliminar);
   if (r.puntaje > 0 && r.total > 0)
-    return Math.round(Math.pow(r.puntaje / r.total, 1.8) * 100);
+    return Math.round(Math.pow(r.puntaje / r.total, 1.5) * 100);
   return 0;
 }
 

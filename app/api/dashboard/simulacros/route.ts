@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 // ── Helper recálculo puntaje histórico ────────────────────────────────────
 // Cuando puntajePreliminar=0 pero hay aciertos, significa que el registro
 // fue guardado cuando el campo era Int y se truncó (ej: 13.7 → 0).
-// En ese caso recalculamos con la fórmula original ^1.8.
+// En ese caso recalculamos con la fórmula original ^1.5.
 function recalcularPreliminar(aciertos: number, total: number): number {
   if (total <= 0 || aciertos <= 0) return 0;
-  return Math.round(Math.pow(aciertos / total, 1.8) * 100);
+  return Math.round(Math.pow(aciertos / total, 1.5) * 100);
 }
 
 function puntajeEfectivo(r: {

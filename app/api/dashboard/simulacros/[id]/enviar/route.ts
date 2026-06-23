@@ -12,7 +12,7 @@ const bodySchema = z.object({
 
 function calcularPuntajePreliminar(aciertos: number, total: number) {
   if (total <= 0) return 0;
-  return Number((Math.pow(aciertos / total, 1.8) * 100).toFixed(2));
+  return Number((Math.pow(aciertos / total, 1.5) * 100).toFixed(2));
 }
 
 export async function POST(

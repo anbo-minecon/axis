@@ -12,7 +12,7 @@ import { db } from "@/lib/db";
 
 function calcularPreliminar(aciertos: number, total: number): number {
   if (total <= 0 || aciertos <= 0) return 0;
-  return parseFloat((Math.pow(aciertos / total, 1.8) * 100).toFixed(2));
+  return parseFloat((Math.pow(aciertos / total, 1.5) * 100).toFixed(2));
 }
 
 export async function POST(req: Request) {

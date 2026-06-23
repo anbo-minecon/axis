@@ -6,12 +6,12 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// ── Helper: recalcula puntaje preliminar con curva ^1.8 ──────────────────
+// ── Helper: recalcula puntaje preliminar con curva ^1.5 ──────────────────
 // Necesario para datos históricos guardados cuando puntajePreliminar era Int
 // y se truncaba a 0 (ej: 13.7 → 0)
 function recalcularPreliminar(aciertos: number, total: number): number {
   if (total <= 0) return 0;
-  return Math.round(Math.pow(aciertos / total, 1.8) * 100);
+  return Math.round(Math.pow(aciertos / total, 1.5) * 100);
 }
 
 // ── Helper: puntaje efectivo considerando si el prelim está en 0 pero hay aciertos ──
@@ -164,7 +164,7 @@ export async function GET(
 
     // ── 5. Puntaje efectivo con recálculo si es necesario ─────────────────
     // BUG FIX: si puntajePreliminar=0 (datos históricos con Int truncado)
-    // pero hay aciertos, recalcular con la fórmula original ^1.8
+    // pero hay aciertos, recalcular con la fórmula original ^1.5
     const puntajePreliminarReal = tieneSesiones
       // Para multi-sesión: usar el promedio ponderado de las sesiones
       ? (() => {

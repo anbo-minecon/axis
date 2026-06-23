@@ -6,11 +6,11 @@ import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// ── Helper: recalcula puntaje con curva ^1.8 ──────────────────────────────
+// ── Helper: recalcula puntaje con curva ^1.5 ──────────────────────────────
 // Para datos históricos donde puntajePreliminar quedó en 0 (era Int, se truncaba)
 function recalcularPreliminar(aciertos: number, total: number): number {
   if (total <= 0 || aciertos <= 0) return 0;
-  return Math.round(Math.pow(aciertos / total, 1.8) * 100);
+  return Math.round(Math.pow(aciertos / total, 1.5) * 100);
 }
 
 function puntajeEfectivoFn(r: {
@@ -29,7 +29,7 @@ function puntajeEfectivoFn(r: {
     return Math.round(r.puntajePreliminar);
 
   // 3. BUG FIX: puntajePreliminar=0 con datos históricos (Int truncó decimales)
-  // pero hay aciertos → recalcular con fórmula ^1.8
+  // pero hay aciertos, recalcular con la fórmula original ^1.5
   if (r.puntaje > 0 && r.total > 0)
     return recalcularPreliminar(r.puntaje, r.total);
 

@@ -34,10 +34,9 @@
 | Documento | Propósito | Audiencia | Duración |
 |-----------|-----------|-----------|----------|
 | [DEVELOPER_QUICKSTART.md](./DEVELOPER_QUICKSTART.md) | Empezar rápido | Todos | 3 min |
-| [DEVELOPER_ROLE.md](./DEVELOPER_ROLE.md) | Guía completa | Usuarios | 15 min |
+| [DEVELOPER_ROLE.md](./DEVELOPER_ROLE.md) | Guía completa del rol Developer | Usuarios | 15 min |
 | [DEVELOPER_IMPLEMENTATION.md](./DEVELOPER_IMPLEMENTATION.md) | Detalles técnicos | Desarrolladores | 20 min |
-| [README_DEVELOPER_ROLE.md](./README_DEVELOPER_ROLE.md) | Resumen ejecutivo | Stakeholders | 10 min |
-| [VERIFICATION_CHECKLIST.md](./VERIFICATION_CHECKLIST.md) | Validación | QA/Admin | 5 min |
+| [SIMULACRO_SESSIONS_TRI_IMPLEMENTATION.md](./SIMULACRO_SESSIONS_TRI_IMPLEMENTATION.md) | Sistema de simulacros, sesiones y TRI | Desarrolladores | 30 min |
 | [INDEX_DOCUMENTATION.md](./INDEX_DOCUMENTATION.md) | Este archivo | Todos | 2 min |
 
 ---

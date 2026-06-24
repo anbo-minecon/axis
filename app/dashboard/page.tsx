@@ -129,7 +129,7 @@ async function fetchDashboardData(userId: string) {
         acc[materia].count += 1;
         return acc;
       }, {})
-    ).map(([materia, data]) => ({
+    ).map(([materia, data]: [string, any]) => ({
       materia,
       porcentaje: Math.round(data.sum / data.count),
     }))

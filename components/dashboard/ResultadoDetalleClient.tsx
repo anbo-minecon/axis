@@ -313,6 +313,11 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
               {resumen.percentil != null ? `${resumen.percentil}%` : "—"}
             </p>
             <p className="text-[10px] text-gray-600 mt-1">Mejor que el grupo</p>
+          </div>
+        </div>
+
+        {/* Puntaje por área */}
+        {resumen.puntajePorArea && Object.keys(resumen.puntajePorArea).length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Object.entries(resumen.puntajePorArea).map(([area, puntaje]) => (
               <div key={area} className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -329,8 +334,8 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── Resumen por sesión ── */}
       {examen.tieneSesiones && sesiones.length > 0 && (

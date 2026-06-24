@@ -5,6 +5,7 @@ Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia
 ## 🚀 Stack Tecnológico
 
 ### Frontend
+
 - **Framework**: Next.js 14 (App Router)
 - **Lenguaje**: TypeScript (strict mode)
 - **Estilos**: Tailwind CSS + tailwindcss-animate
@@ -14,6 +15,7 @@ Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia
 - **Fuentes**: Syne + DM Sans (Google Fonts)
 
 ### Backend
+
 - **API**: tRPC (full-stack type-safe)
 - **Base de datos**: PostgreSQL
 - **ORM**: Prisma v5
@@ -23,6 +25,7 @@ Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia
 - **Serialización**: SuperJSON
 
 ### DevOps & Herramientas
+
 - **Node.js**: v18+
 - **Package Manager**: npm
 - **Linter**: ESLint (Next.js config)
@@ -34,6 +37,7 @@ Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia
 ## 📁 Estructura del Proyecto
 
 ### **🗂️ Estructura General**
+
 ```
 axis-preicfes/
 ├── � Archivos de configuración
@@ -104,18 +108,20 @@ axis-preicfes/
 ```
 
 ### **🚫 Carpetas Vacías (Preparadas para Futuro)**
-| Carpeta | Estado | Uso Planeado |
-|---------|--------|--------------|
-| `styles/` | **🔴 Vacía** | Estilos CSS adicionales personalizados |
-| `store/` | **🔴 Vacía** | Estado global (Redux/Zustand) si se requiere |
+
+| Carpeta            | Estado              | Uso Planeado                                          |
+| ------------------ | ------------------- | ----------------------------------------------------- |
+| `styles/`        | **🔴 Vacía** | Estilos CSS adicionales personalizados                |
+| `store/`         | **🔴 Vacía** | Estado global (Redux/Zustand) si se requiere          |
 | `components/ui/` | **🔴 Vacía** | Componentes base shadcn/ui (botones, inputs, dialogs) |
 
 ### **📊 Distribución de Archivos**
-| Categoría | Carpetas | Con Contenido | Vacías |
-|-----------|----------|---------------|--------|
-| **Principales** | 12 | 9 | 3 |
-| **Components** | 6 | 5 | 1 |
-| **Total general** | 18+ | 14+ | 4+ |
+
+| Categoría              | Carpetas | Con Contenido | Vacías |
+| ----------------------- | -------- | ------------- | ------- |
+| **Principales**   | 12       | 9             | 3       |
+| **Components**    | 6        | 5             | 1       |
+| **Total general** | 18+      | 14+           | 4+      |
 
 **Porcentaje de desarrollo:** ~75% completado
 
@@ -125,32 +131,33 @@ axis-preicfes/
 
 ### 📄 **app/** - Páginas (Next.js App Router)
 
-| Ruta | Descripción | Estado |
-|------|-------------|--------|
-| `/` | Landing page pública | ✅ |
-| `/auth/login` | Página de login | ✅ |
-| `/auth/registro` | Página de registro | ✅ |
-| `/dashboard` | Dashboard del estudiante | ✅ Datos actualizados |
-| `/dashboard/simulacros` | Lista de simulacros con imágenes | ✅ Con tarjetas visuales |
-| `/dashboard/simulacro/[id]/resultado` | Detalle de resultados | ✅ Funcional |
-| `/dashboard/classroom` | Mis clases (cards clickeables) | ✅ Integración Google |
-| `/dashboard/classroom/clases/[id]` | Tablón de clase (anuncios+tareas) | ✅ Feed en vivo |
-| `/dashboard/classroom/calendario` | Calendario visual mensual | ✅ Grid 7×6 con eventos |
-| `/dashboard/planes` | Planes de suscripción | ✅ Funcional |
-| `/dashboard/estadisticas` | Estadísticas personales | 🔄 |
-| `/dashboard/perfil` | Configuración de perfil | 🔄 |
-| `/admin/classroom` | Gestión de Google Classroom | ✅ Calendario admin |
-| `/admin/planes` | Gestión de planes | 🔄 |
-| `/admin/preguntas` | Banco de preguntas | 🔄 |
-| `/admin/usuarios` | Gestión de usuarios | 🔄 |
-| `/developer/login` | Login del Developer | ✅ |
-| `/developer/dashboard` | Dashboard técnico (rol oculto) | ✅ |
+| Ruta                                    | Descripción                       | Estado                   |
+| --------------------------------------- | ---------------------------------- | ------------------------ |
+| `/`                                   | Landing page pública              | ✅                       |
+| `/auth/login`                         | Página de login                   | ✅                       |
+| `/auth/registro`                      | Página de registro                | ✅                       |
+| `/dashboard`                          | Dashboard del estudiante           | ✅ Datos actualizados    |
+| `/dashboard/simulacros`               | Lista de simulacros con imágenes  | ✅ Con tarjetas visuales |
+| `/dashboard/simulacro/[id]/resultado` | Detalle de resultados              | ✅ Funcional             |
+| `/dashboard/classroom`                | Mis clases (cards clickeables)     | ✅ Integración Google   |
+| `/dashboard/classroom/clases/[id]`    | Tablón de clase (anuncios+tareas) | ✅ Feed en vivo          |
+| `/dashboard/classroom/calendario`     | Calendario visual mensual          | ✅ Grid 7×6 con eventos |
+| `/dashboard/planes`                   | Planes de suscripción             | ✅ Funcional             |
+| `/dashboard/estadisticas`             | Estadísticas personales           | 🔄                       |
+| `/dashboard/perfil`                   | Configuración de perfil           | 🔄                       |
+| `/admin/classroom`                    | Gestión de Google Classroom       | ✅ Calendario admin      |
+| `/admin/planes`                       | Gestión de planes                 | 🔄                       |
+| `/admin/preguntas`                    | Banco de preguntas                 | 🔄                       |
+| `/admin/usuarios`                     | Gestión de usuarios               | 🔄                       |
+| `/developer/login`                    | Login del Developer                | ✅                       |
+| `/developer/dashboard`                | Dashboard técnico (rol oculto)    | ✅                       |
 
 ---
 
 ### 🧩 **components/** - Componentes React
 
 #### Landing (`components/landing/`)
+
 - `HeroSection.tsx` - Sección principal con CTA
 - `Navigation.tsx` - Menú de navegación
 - `AreasICFES.tsx` - Áreas temáticas del ICFES
@@ -166,67 +173,79 @@ axis-preicfes/
 - `Footer.tsx` - Pie de página
 
 #### Compartidos (`components/shared/`)
+
 - `ToastContainer.tsx` - Sistema de notificaciones tipo toast
 - Componentes reutilizables en toda la app
 
 #### Iconos (`components/icons/`)
+
 - `AreaIcon.tsx` - Iconos de áreas temáticas
 - `FeatureIcons.tsx` - Iconos de características
 - Íconos personalizados
 
 #### Developer (`components/developer/`) 🔐
+
 - `DeveloperLogin.tsx` - Formulario de autenticación
 - `DeveloperDashboard.tsx` - Dashboard técnico
 
 #### UI (`components/ui/`)
+
 - Componentes base de shadcn/ui (botones, inputs, dialogs, etc.)
 
 ---
 
 ### 🔐 **lib/** - Utilities y Configuración
 
-| Archivo | Propósito |
-|---------|-----------|
-| `auth.ts` | Configuración de NextAuth, proveedores |
-| `auth-guard.ts` | Middleware para rutas protegidas |
-| `db.ts` | Cliente de Prisma singleton |
-| `logger.ts` | Sistema de logging en archivos .log |
-| `notifications.ts` | Sistema de toast notifications |
-| `utils.ts` | Funciones auxiliares de uso general |
-| `trpc-client.ts` | Cliente tRPC configurado para el frontend |
-| `developer-auth.ts` | Autenticación del rol Developer (encriptado) |
-| `developer-guard.ts` | Middleware de protección para Developer |
-| `developer-protection.ts` | Funciones de ocultamiento del rol Developer |
+| Archivo                     | Propósito                                    |
+| --------------------------- | --------------------------------------------- |
+| `auth.ts`                 | Configuración de NextAuth, proveedores       |
+| `auth-guard.ts`           | Middleware para rutas protegidas              |
+| `db.ts`                   | Cliente de Prisma singleton                   |
+| `logger.ts`               | Sistema de logging en archivos .log           |
+| `notifications.ts`        | Sistema de toast notifications                |
+| `utils.ts`                | Funciones auxiliares de uso general           |
+| `trpc-client.ts`          | Cliente tRPC configurado para el frontend     |
+| `developer-auth.ts`       | Autenticación del rol Developer (encriptado) |
+| `developer-guard.ts`      | Middleware de protección para Developer      |
+| `developer-protection.ts` | Funciones de ocultamiento del rol Developer   |
 
 ---
 
 ### ⚙️ **server/trpc/** - Backend API
 
 #### `context.ts`
+
 - Crea el contexto de cada request
 - Incluye sesión del usuario y cliente Prisma
 - Disponible en todos los routers
 
 #### `router.ts`
+
 - Router principal que combina sub-routers
 - Define el punto de entrada de la API
 
 #### `routers/auth.ts`
+
 Procedimientos disponibles:
+
 - `registro` - Crear nueva cuenta
 - `login` - Autencer usuario (deprecado, usa NextAuth)
 - `obtenerPerfil` - Obtener datos del usuario
 - `actualizarPerfil` - Editar perfil del usuario
 
 #### `routers/simulacro.ts`
+
 Procedimientos disponibles:
+
 - `listar` - Obtener simulacros disponibles
 - `obtenerDetalles` - Datos de un simulacro
 - `guardarRespuesta` - Almacenar respuesta del usuario
 - `obtenerResultados` - Ver resultados del examen
 
 #### `routers/admin.ts` (Actualizado)
+
 Procedimientos con protecciones:
+
 - `listarUsuarios` - Lista usuarios (sin incluir DEVELOPER)
 - `obtenerUsuario` - Detalles de usuario (protegido)
 - `crearUsuario` - Crear usuario con validación de rol
@@ -239,7 +258,9 @@ Procedimientos con protecciones:
 ### 💾 **prisma/** - Base de Datos
 
 #### `schema.prisma`
+
 Define los modelos:
+
 - `Usuario` - Estudiantes registrados (incluye rol DEVELOPER oculto)
 - `Grupo` - Grupos de estudio con docentes
 - `Suscripcion` - Planes de los usuarios
@@ -258,6 +279,7 @@ Define los modelos:
 - `IntegrationLog` - Estado de integraciones externas
 
 #### Migraciones (`migrations/`)
+
 - Histórico de cambios en el esquema de BD
 
 ---
@@ -265,6 +287,7 @@ Define los modelos:
 ### 🎣 **hooks/** - React Hooks
 
 #### `useUser.ts`
+
 - `useUser()` - Obtiene datos del usuario autenticado
 - `useSuscripcion()` - Obtiene plan de suscripción
 - `useAcceso()` - Verifica si tiene acceso a un contenido
@@ -273,10 +296,10 @@ Define los modelos:
 
 ### 📌 **types/** - Tipos TypeScript
 
-| Archivo | Propósito |
-|---------|-----------|
-| `index.ts` | Tipos globales del proyecto |
-| `auth.ts` | Tipos relacionados a autenticación |
+| Archivo      | Propósito                          |
+| ------------ | ----------------------------------- |
+| `index.ts` | Tipos globales del proyecto         |
+| `auth.ts`  | Tipos relacionados a autenticación |
 
 ---
 
@@ -311,16 +334,19 @@ npm run lint             # Ejecuta ESLint
 ## 🔧 Configuración Inicial
 
 ### 1️⃣ **Prerrequisitos**
-- Node.js v18+ 
+
+- Node.js v18+
 - PostgreSQL instalado y corriendo
 - Git
 
 ### 2️⃣ **Instalar dependencias**
+
 ```bash
 npm install
 ```
 
 ### 3️⃣ **Configurar variables de entorno**
+
 ```bash
 # Copiar template
 cp .env.example .env
@@ -332,6 +358,7 @@ cp .env.example .env
 ```
 
 **Ejemplo .env:**
+
 ```env
 # Base de datos PostgreSQL
 DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/axis_preicfes"
@@ -350,6 +377,7 @@ NEXT_PUBLIC_APP_NAME="Axis Pre-ICFES"
 ```
 
 ### 4️⃣ **Preparar Base de Datos**
+
 ```bash
 # Generar cliente Prisma
 npm run db:generate
@@ -359,6 +387,7 @@ npm run db:push
 ```
 
 ### 5️⃣ **Iniciar servidor**
+
 ```bash
 npm run dev
 ```
@@ -371,18 +400,18 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 
 ## 🔐 Variables de Entorno
 
-| Variable | Descripción | Ejemplo |
-|----------|-------------|---------|
-| `DATABASE_URL` | Conexión a PostgreSQL | `postgresql://user:pass@localhost:5432/dbname` |
-| `AUTH_SECRET` | Secret para Auth.js (NextAuth v5) | `openssl rand -base64 32` |
-| `AUTH_URL` | URL base de la app | `http://localhost:3000` |
-| `AUTH_GOOGLE_ID` | Google OAuth Client ID (opcional) | `tu-google-client-id` |
-| `AUTH_GOOGLE_SECRET` | Google OAuth Secret (opcional) | `tu-google-secret` |
-| `GOOGLE_ID` | Google Classroom API Client ID | `para-classroom-integration` |
-| `GOOGLE_SECRET` | Google Classroom API Secret | `para-classroom-integration` |
-| `NEXT_PUBLIC_APP_URL` | URL pública de la app | `http://localhost:3000` |
-| `NEXT_PUBLIC_APP_NAME` | Nombre de la aplicación | `Axis Pre-ICFES` |
-| `REDIS_URL` | Conexión a Redis (opcional caché) | `redis://localhost:6379` |
+| Variable                 | Descripción                        | Ejemplo                                          |
+| ------------------------ | ----------------------------------- | ------------------------------------------------ |
+| `DATABASE_URL`         | Conexión a PostgreSQL              | `postgresql://user:pass@localhost:5432/dbname` |
+| `AUTH_SECRET`          | Secret para Auth.js (NextAuth v5)   | `openssl rand -base64 32`                      |
+| `AUTH_URL`             | URL base de la app                  | `http://localhost:3000`                        |
+| `AUTH_GOOGLE_ID`       | Google OAuth Client ID (opcional)   | `tu-google-client-id`                          |
+| `AUTH_GOOGLE_SECRET`   | Google OAuth Secret (opcional)      | `tu-google-secret`                             |
+| `GOOGLE_ID`            | Google Classroom API Client ID      | `para-classroom-integration`                   |
+| `GOOGLE_SECRET`        | Google Classroom API Secret         | `para-classroom-integration`                   |
+| `NEXT_PUBLIC_APP_URL`  | URL pública de la app              | `http://localhost:3000`                        |
+| `NEXT_PUBLIC_APP_NAME` | Nombre de la aplicación            | `Axis Pre-ICFES`                               |
+| `REDIS_URL`            | Conexión a Redis (opcional caché) | `redis://localhost:6379`                       |
 
 ---
 
@@ -417,33 +446,34 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 
 ## ✅ Status del Proyecto
 
-| Feature | Estado | Detalles |
-|---------|--------|----------|
-| **Configuración Base** | ✅ Completado | Dependencias, entorno, base de datos |
-| **Landing Page** | ✅ Completada | Diseño responsive, secciones completas |
-| **Autenticación** | ✅ Funcional | Login, registro, Auth.js v5 |
-| **Dashboard Estudiantil** | ✅ Funcional | Interfaz principal, navegación |
-| **Base de Datos** | ✅ Conectada | PostgreSQL + Prisma ORM |
-| **Sistema de Notificaciones** | ✅ Implementado | Toast notifications |
-| **Componentes UI** | ✅ Completados | shadcn/ui + componentes personalizados |
-| **Tipado TypeScript** | ✅ Completo | Strict mode, tipos globales |
-| **API tRPC** | ✅ Funcional | Routers de auth y simulacros |
-| **Banco de Preguntas** | 🔄 En desarrollo | Modelo de datos listo |
-| **Simulacros con Imágenes** | ✅ Completado | Tarjetas visuales por materia |
-| **Resultados de Simulacros** | ✅ Completado | Análisis detallado con gráficos |
-| **Dashboard Datos en Vivo** | ✅ Completado | Queries corregidas a BD correcta |
-| **Panel Administrativo** | 🔄 En desarrollo | Gestión de contenido |
-| **Estadísticas Avanzadas** | ✅ Completado | Gráficos, progresión, rendimiento por materia |
-| **Google Classroom Integración** | ✅ Completado | Feed en tiempo real, anuncios, tareas, tablón, sincronización |
-| **Manejo de Errores** | ✅ Mejorado | Mejor debugging y feedback en componentes |
-| **Dark Mode Landing** | ✅ Completado | Tema oscuro/claro con persistencia |
-| **Sincronización Google Classroom** | ✅ Completado | Miembros, eventos, datos bidireccionales |
-| **Sistema de Pagos** | ⏳ Pendiente | Integración con pasarelas |
-| **Móvil (PWA)** | ⏳ Pendiente | Versión móvil optimizada |
-x] Mostrar imágenes en simulacros de estudiantes
-- [x] Corregir layouts duplicados en dashboard
-- [x] Arreglar queries de datos del dashboard
-- [x] Resolver conflictos de ThemeProvider
+| Feature                                           | Estado           | Detalles                                                        |
+| ------------------------------------------------- | ---------------- | --------------------------------------------------------------- |
+| **Configuración Base**                     | ✅ Completado    | Dependencias, entorno, base de datos                            |
+| **Landing Page**                            | ✅ Completada    | Diseño responsive, secciones completas                         |
+| **Autenticación**                          | ✅ Funcional     | Login, registro, Auth.js v5                                     |
+| **Dashboard Estudiantil**                   | ✅ Funcional     | Interfaz principal, navegación                                 |
+| **Base de Datos**                           | ✅ Conectada     | PostgreSQL + Prisma ORM                                         |
+| **Sistema de Notificaciones**               | ✅ Implementado  | Toast notifications                                             |
+| **Componentes UI**                          | ✅ Completados   | shadcn/ui + componentes personalizados                          |
+| **Tipado TypeScript**                       | ✅ Completo      | Strict mode, tipos globales                                     |
+| **API tRPC**                                | ✅ Funcional     | Routers de auth y simulacros                                    |
+| **Banco de Preguntas**                      | 🔄 En desarrollo | Modelo de datos listo                                           |
+| **Simulacros con Imágenes**                | ✅ Completado    | Tarjetas visuales por materia                                   |
+| **Resultados de Simulacros**                | ✅ Completado    | Análisis detallado con gráficos                               |
+| **Dashboard Datos en Vivo**                 | ✅ Completado    | Queries corregidas a BD correcta                                |
+| **Panel Administrativo**                    | 🔄 En desarrollo | Gestión de contenido                                           |
+| **Estadísticas Avanzadas**                 | ✅ Completado    | Gráficos, progresión, rendimiento por materia                 |
+| **Google Classroom Integración**           | ✅ Completado    | Feed en tiempo real, anuncios, tareas, tablón, sincronización |
+| **Manejo de Errores**                       | ✅ Mejorado      | Mejor debugging y feedback en componentes                       |
+| **Dark Mode Landing**                       | ✅ Completado    | Tema oscuro/claro con persistencia                              |
+| **Sincronización Google Classroom**        | ✅ Completado    | Miembros, eventos, datos bidireccionales                        |
+| **Sistema de Pagos**                        | ⏳ Pendiente     | Integración con pasarelas                                      |
+| **Móvil (PWA)**                            | ⏳ Pendiente     | Versión móvil optimizada                                      |
+| x] Mostrar imágenes en simulacros de estudiantes |                  |                                                                 |
+
+- [X] Corregir layouts duplicados en dashboard
+- [X] Arreglar queries de datos del dashboard
+- [X] Resolver conflictos de ThemeProvider
 - [ ] Implementar motor de simulacros con temporizador
 - [ ] Cargar banco de preguntas inicial
 - [ ] Desarrollar panel de administración completo
@@ -505,6 +535,7 @@ http://localhost:3000/developer/login
 ### Documentación
 
 Para información completa sobre el rol Developer, consulta:
+
 - [DEVELOPER_QUICKSTART.md](DEVELOPER_QUICKSTART.md) - Inicio rápido (3 min)
 - [DEVELOPER_ROLE.md](DEVELOPER_ROLE.md) - Guía completa (15 min)
 - [INDEX_DOCUMENTATION.md](INDEX_DOCUMENTATION.md) - Navegación de documentos
@@ -528,6 +559,7 @@ GET    /api/developer/integrations       - Estado de integraciones
 ### Archivos Implementados
 
 #### ✅ `app/dashboard/classroom/page.tsx` (Actualizado)
+
 - **Tarjetas clickeables**: Cada clase navega a `/dashboard/classroom/clases/${id}`
 - **Tabs principales**: Mis Clases, Grabaciones, Tareas
 - **Stats**: Contador de grabaciones, tareas y eventos por clase
@@ -535,6 +567,7 @@ GET    /api/developer/integrations       - Estado de integraciones
 - **Resumen superior**: Cards con totales
 
 #### ✅ `app/dashboard/classroom/clases/[id]/page.tsx` (Nuevo - Tablón)
+
 - **Tab "Tablón"**: Anuncios en tiempo real desde Google API
 - **Tab "Tareas"**: Tareas con fecha, puntos, adjuntos
 - **MaterialChip**: Miniaturas para YouTube, Drive, Forms, Links
@@ -544,6 +577,7 @@ GET    /api/developer/integrations       - Estado de integraciones
 - **Información de clase**: Materia, sección, docente
 
 #### ✅ `app/api/classroom/feed/route.ts` (Mejorado)
+
 - **Parámetros**: Acepta `?claseId=${id}` o `?courseId=${googleId}`
 - **Búsqueda automática**: Resuelve `googleCourseId` desde la clase
 - **Respuesta**: `{ clase, anuncios, tareas }`
@@ -553,6 +587,7 @@ GET    /api/developer/integrations       - Estado de integraciones
 - **Tipos soportados**: DRIVE_FILE, YOUTUBE, FORM, LINK
 
 #### ✅ `app/admin/classroom/calendario/page.tsx` (Existente)
+
 - **Calendario visual**: Grid 7×6 con días del mes
 - **Eventos marcados**: Puntos de colores por tipo
 - **Hover tooltip**: Lista de eventos del día
@@ -560,6 +595,7 @@ GET    /api/developer/integrations       - Estado de integraciones
 - **Admin exclusive**: Click en día vacío para crear evento
 
 #### ✅ `app/dashboard/classroom/calendario/page.tsx` (Existente)
+
 - **Mismo diseño**: Igual al calendario admin
 - **Solo lectura**: Estudiantes sin crear eventos
 - **Información completa**: Detalles de cada evento
@@ -595,17 +631,17 @@ app/
 
 ### Funcionalidades Principales
 
-| Feature | Estado | Descripción |
-|---------|--------|------------|
-| **Feed API** | ✅ | Extrae datos directamente de Google Classroom API |
-| **Anuncios en tiempo real** | ✅ | Texto + adjuntos (Drive, YouTube, Forms, Links) |
-| **Tareas en vivo** | ✅ | Título, descripción, fecha entrega, puntos |
-| **Miniaturas** | ✅ | Se sirven desde Google, no guardadas en BD |
-| **Tablón para estudiantes** | ✅ | Solo lectura con dos tabs (anuncios/tareas) |
-| **Calendario visual** | ✅ | Grid 7×6 con eventos marcados por color |
-| **Botón Actualizar** | ✅ | Fuerza refetch sin caché |
-| **Alerta de urgencia** | ✅ | Tareas vencidas o ≤ 3 días |
-| **Links Meet integrados** | ✅ | Si la clase tiene Meet, aparece en modal eventos |
+| Feature                            | Estado | Descripción                                      |
+| ---------------------------------- | ------ | ------------------------------------------------- |
+| **Feed API**                 | ✅     | Extrae datos directamente de Google Classroom API |
+| **Anuncios en tiempo real**  | ✅     | Texto + adjuntos (Drive, YouTube, Forms, Links)   |
+| **Tareas en vivo**           | ✅     | Título, descripción, fecha entrega, puntos      |
+| **Miniaturas**               | ✅     | Se sirven desde Google, no guardadas en BD        |
+| **Tablón para estudiantes** | ✅     | Solo lectura con dos tabs (anuncios/tareas)       |
+| **Calendario visual**        | ✅     | Grid 7×6 con eventos marcados por color          |
+| **Botón Actualizar**        | ✅     | Fuerza refetch sin caché                         |
+| **Alerta de urgencia**       | ✅     | Tareas vencidas o ≤ 3 días                      |
+| **Links Meet integrados**    | ✅     | Si la clase tiene Meet, aparece en modal eventos  |
 
 ### Notas Importantes
 
@@ -634,6 +670,7 @@ GET    /api/classroom/miembros                 ← Estudiantes inscritos
 ## 🐛 **Solución de Problemas Comunes**
 
 ### Error: `Cannot find module 'tailwindcss-animate'`
+
 ```bash
 # Solución:
 npm install tailwindcss-animate
@@ -641,9 +678,11 @@ npm run dev
 ```
 
 ### Error: Puerto 3000 ocupado
+
 Next.js automáticamente usará el puerto 3001. Accede a `http://localhost:3001`
 
 ### Error: Base de datos no conectada
+
 ```bash
 # Verificar conexión:
 npm run db:generate
@@ -652,6 +691,7 @@ npm run db:push
 ```
 
 ### Error: `AUTH_SECRET` faltante
+
 ```bash
 # Generar secret seguro:
 openssl rand -base64 32
@@ -668,14 +708,17 @@ openssl rand -base64 32
 ## 📝 Sistema de Logging
 
 ### **Funcionalidad**
+
 El sistema incluye logging automático en archivos `.log` para tracking de accesos y eventos importantes.
 
 ### **Ubicación**
+
 - **Carpeta**: `logs/`
 - **Formato**: `access-YYYY-MM-DD.log`
 - **Contenido**: JSON estructurado con timestamp, nivel, mensaje y datos
 
 ### **Uso**
+
 ```typescript
 import { logIntento, logError, logWarning } from "@/lib/logger";
 
@@ -696,6 +739,7 @@ logWarning("Advertencia de seguridad", data);
 ```
 
 ### **Logs Generados**
+
 - Accesos al dashboard administrativo
 - Intentos de autenticación
 - Errores del sistema
@@ -708,6 +752,7 @@ logWarning("Advertencia de seguridad", data);
 ### ✨ Dark Mode Landing (Junio 15, 2026) ✅ COMPLETADO
 
 #### Características Implementadas
+
 - **ThemeProvider**: Contexto global para gestionar tema claro/oscuro
 - **useTheme Hook**: Acceso fácil al tema desde cualquier componente
 - **ThemeToggle**: Botón Sun/Moon en el header de la landing page
@@ -716,11 +761,13 @@ logWarning("Advertencia de seguridad", data);
 - **Landing 100%**: Todos los componentes landing adaptados a ambos modos
 
 #### Componentes Actualizados (16 archivos)
+
 - Navigation, HeroSection, Caracteristicas, PricingPlans, FAQ, Footer
 - WhyAXIS, ImpactStats, Testimonials, HowItWorks, FinalCTA, EducationalResources, AreasICFES
 - SessionProvider, layout.tsx, landing/page.tsx, globals.css
 
 #### Características Técnicas
+
 - Variables CSS dinámicas para modo claro y oscuro
 - Transiciones suaves de 300ms entre modos
 - Script SSR que previene FOUC (Flash of Unstyled Content)
@@ -731,6 +778,7 @@ logWarning("Advertencia de seguridad", data);
 ### ✨ Tercera Ronda - Classroom (Junio 14, 2026) ✅ COMPLETADO
 
 #### Archivos Creados/Actualizados
+
 - ✅ `app/dashboard/classroom/page.tsx` - Cards clickeables al tablón
 - ✅ `app/dashboard/classroom/clases/[id]/page.tsx` - Nuevo tablón con tabs (anuncios + tareas)
 - ✅ `app/api/classroom/feed/route.ts` - Feed mejorado con soporte `?claseId` y `?courseId`
@@ -738,6 +786,7 @@ logWarning("Advertencia de seguridad", data);
 - ✅ `app/dashboard/classroom/calendario/page.tsx` - Calendario visual estudiante
 
 #### Funcionalidades Nuevas
+
 - **Tablón de clase**: Anuncios y tareas en tiempo real desde Google Classroom API
 - **Feed endpoint**: Datos frescos cada 60s, sin guardar imágenes en BD
 - **MaterialChip mejorado**: Miniaturas de YouTube, Drive, Forms, Links
@@ -747,6 +796,7 @@ logWarning("Advertencia de seguridad", data);
 - **Botón Actualizar**: Fuerza refetch del feed con `force=true`
 
 #### Cambios Técnicos
+
 - Feed API acepta `?claseId` y `?courseId`, resuelve automáticamente `googleCourseId`
 - Respuesta unificada: `{ clase, anuncios, tareas }`
 - Materiales con tipos estandarizados: `DRIVE_FILE | YOUTUBE | FORM | LINK`
@@ -760,6 +810,7 @@ logWarning("Advertencia de seguridad", data);
 #### Sincronización Bidireccional de Miembros
 
 **Objetivos Logrados**
+
 - ✅ Los miembros en la BD son idénticos a los de Google Classroom
 - ✅ Sincronización automática al consultar miembros
 - ✅ Sincronización manual por botón en UI admin
@@ -767,6 +818,7 @@ logWarning("Advertencia de seguridad", data);
 - ✅ Asignación automática de grupo
 
 #### Archivos Creados/Modificados
+
 - ✅ `app/api/classroom/sync-miembros/route.ts` - Endpoint de sincronización (POST)
 - ✅ `app/api/classroom/miembros/route.ts` - Mejorado con sincronización automática (GET)
 - ✅ `components/admin/ClaseDetalleClient.tsx` - Nuevo botón "Sincronizar con Google"
@@ -774,6 +826,7 @@ logWarning("Advertencia de seguridad", data);
 - ✅ `app/api/classroom/calendario/route.ts` - Validación mejorada
 
 #### Funcionalidades Implementadas
+
 - **Sincronización automática**: Cuando consultas miembros, se sincronizan con Google
 - **Sincronización manual**: Botón en tab de miembros dispara sincronización completa
 - **Creación automática**: Estudiantes de Google se crean automáticamente en BD
@@ -785,6 +838,7 @@ logWarning("Advertencia de seguridad", data);
 ---
 
 ### ✨ Segunda Ronda - Mayo 27, 2026 ✅ COMPLETADO
+
 - **Sistema de Logging**: Nuevo sistema de logging en archivos `.log` para tracking de accesos
 - **Modelo Intento**: Agregado modelo `Intento` y `RespuestaIntento` en Prisma para tracking de simulacros
 - **Dashboard Admin**: Actualizado para usar modelo `Intento` y registrar accesos en logs
@@ -792,6 +846,7 @@ logWarning("Advertencia de seguridad", data);
 - **Logs Automáticos**: Accesos al dashboard administrativo ahora se registran automáticamente
 
 ### 🔧 Cambios Técnicos
+
 - Agregado modelo `Intento` en schema.prisma con relaciones a Usuario y Simulacro
 - Agregado modelo `RespuestaIntento` para tracking detallado de respuestas
 - Actualizado modelo `Usuario` para incluir relación con `Intento`
@@ -800,6 +855,7 @@ logWarning("Advertencia de seguridad", data);
 - Dashboard admin ahora usa `logIntento()` para registrar accesos
 
 ### 📊 Funcionalidades de Estadísticas ✅ Completas
+
 - Métricas globales (simulacros, promedio, mejor/peor)
 - Tendencia de mejora/caída entre períodos
 - Rendimiento por materia con colores
@@ -811,11 +867,13 @@ logWarning("Advertencia de seguridad", data);
 ## 🎨 Dark Mode - Guía de Uso
 
 ### Para Usuarios
+
 1. Haz clic en el icono **Moon/Sun** en la esquina superior del header
 2. Tu preferencia se **guarda automáticamente** en localStorage
 3. Se mantiene entre sesiones y dispositivos
 
 ### Para Desarrolladores
+
 ```tsx
 // Usar el hook en componentes cliente
 import { useTheme } from "@/hooks/useTheme";
@@ -837,6 +895,7 @@ html.dark {
 ```
 
 ### Archivos Clave
+
 - `hooks/useTheme.ts` - Hook para acceder al tema
 - `components/shared/ThemeProvider.tsx` - Proveedor de contexto
 - `components/shared/ThemeToggle.tsx` - Botón toggle
@@ -845,8 +904,8 @@ html.dark {
 
 ---
 
-**Última actualización:** Junio 17, 2026  
-**Versión:** v0.6.0  
+**Última actualización:** Junio 17, 2026
+**Versión:** v0.6.0
 **Estado:** Desarrollo activo 🚀
 
 ---

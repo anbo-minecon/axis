@@ -11,6 +11,7 @@ import {
   Trophy,
   BarChart2,
   Clock,
+  Globe,
   CheckCircle2,
   ChevronRight,
 } from "lucide-react";
@@ -18,11 +19,18 @@ import {
 export const dynamic = "force-dynamic";
 
 /* ── Tipos ───────────────────────────────────────── */
+interface RendimientoMateria {
+  materia: string;
+  porcentaje: number;
+}
+
 interface DashboardStats {
   simulacrosCompletados: number;
   puntajeMasAlto: number;
   posicionRanking: number;
+  percentilActual: number;
   promedioGeneral: number;
+  rendimientoMateria: RendimientoMateria[];
 }
 
 interface SimulacroReciente {
@@ -77,11 +85,29 @@ async function fetchDashboardData(userId: string) {
       orderBy: { completadoEn: "desc" },
     });
 
-    // Calcular puntaje escalado (0-500) basado en el porcentaje
+    const recalcularPreliminar = (aciertos: number, total: number) => {
+      if (total <= 0) return 0;
+      return Math.round(Math.pow(aciertos / total, 1.5) * 100);
+    };
+
+    const calcularPuntajeEfectivo = (r: any) => {
+      if (r.estadoCalif === "OFICIAL" && r.puntajeTRI != null)
+        return Math.round(Number(r.puntajeTRI));
+      if ((r.puntajePreliminar ?? 0) > 0)
+        return Math.round(r.puntajePreliminar ?? 0);
+      if ((r.aciertos ?? 0) > 0 && (r.total ?? 0) > 0)
+        return recalcularPreliminar(r.aciertos, r.total);
+      const proporcion = r.total > 0 ? (r.puntaje ?? 0) / r.total : 0;
+      return Math.round(proporcion * 100);
+    };
+
     const resultadosConPuntaje = resultados.map((r: any) => {
-      const porcentaje = (r.puntaje / r.total) * 100;
-      const puntaje = Math.round((porcentaje / 100) * 500); // escala 0-500
-      return { ...r, puntajeEscalado: puntaje };
+      const porcentaje = calcularPuntajeEfectivo(r);
+      return {
+        ...r,
+        porcentaje,
+        puntajeEscalado: Math.round((porcentaje / 100) * 500),
+      };
     });
 
     const puntajeMasAlto = resultadosConPuntaje.length
@@ -94,6 +120,20 @@ async function fetchDashboardData(userId: string) {
             resultadosConPuntaje.length
         )
       : 0;
+
+    const rendimientoMateria = Object.entries(
+      resultadosConPuntaje.reduce((acc: Record<string, { sum: number; count: number }>, r: any) => {
+        const materia = r.examen?.materia ?? "Multi-materia";
+        if (!acc[materia]) acc[materia] = { sum: 0, count: 0 };
+        acc[materia].sum += r.porcentaje;
+        acc[materia].count += 1;
+        return acc;
+      }, {})
+    ).map(([materia, data]) => ({
+      materia,
+      porcentaje: Math.round(data.sum / data.count),
+    }))
+    .sort((a, b) => b.porcentaje - a.porcentaje);
 
     // Últimos 3 resultados para "actividad reciente"
     const recientes: SimulacroReciente[] = resultadosConPuntaje
@@ -159,12 +199,75 @@ async function fetchDashboardData(userId: string) {
         }
       : null;
 
+    const estudiantesRanking = await (db as any).usuario.findMany({
+      where: { rol: "ESTUDIANTE" },
+      select: {
+        id: true,
+        resultados: {
+          where: { examen: { estado: { in: ["CERRADO", "PUBLICADO"] } } },
+          select: {
+            puntaje: true,
+            total: true,
+            puntajePreliminar: true,
+            puntajeTRI: true,
+            estadoCalif: true,
+            aciertos: true,
+          },
+        },
+      },
+    });
+
+    const rankingConPosicion = estudiantesRanking
+      .map((e: any) => {
+        const completados = e.resultados.length;
+        if (completados === 0) return null;
+
+        const puntajesEfectivos = e.resultados.map((r: any) => {
+          if (r.estadoCalif === "OFICIAL" && r.puntajeTRI != null)
+            return Number(r.puntajeTRI);
+          if ((r.puntajePreliminar ?? 0) > 0)
+            return Number(r.puntajePreliminar ?? 0);
+          if ((r.aciertos ?? 0) > 0 && (r.total ?? 0) > 0)
+            return recalcularPreliminar(r.aciertos, r.total);
+          return r.total > 0 ? ((r.puntaje ?? 0) / r.total) * 100 : 0;
+        });
+
+        const promedioPorc = puntajesEfectivos.reduce((a: number, b: number) => a + b, 0) / puntajesEfectivos.length;
+        return {
+          id: e.id,
+          puntajeEscalado: Math.round((promedioPorc / 100) * 500),
+          simulacrosCompletados: completados,
+        };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => {
+        if (b.puntajeEscalado !== a.puntajeEscalado)
+          return b.puntajeEscalado - a.puntajeEscalado;
+        return b.simulacrosCompletados - a.simulacrosCompletados;
+      });
+
+    let posicion = 1;
+    const rankingFinal = rankingConPosicion.map((e: any, i: number) => {
+      if (i > 0 && e.puntajeEscalado < rankingConPosicion[i - 1].puntajeEscalado)
+        posicion = i + 1;
+      return { ...e, posicion };
+    });
+
+    const posicionRanking = rankingFinal.find((r: any) => r.id === userId)?.posicion ?? 0;
+    const percentilActual = posicionRanking > 0 && rankingFinal.length > 1
+      ? Math.round((1 - (posicionRanking - 1) / (rankingFinal.length - 1)) * 100)
+      : posicionRanking > 0
+        ? 100
+        : 0;
+
     return {
       stats: {
         simulacrosCompletados: resultados.length,
         puntajeMasAlto,
-        posicionRanking: 0, // TODO: calcular ranking real
+        posicionRanking,
+        percentilActual,
         promedioGeneral,
+        rendimientoMateria,
       } as DashboardStats,
       recientes,
       proximos,
@@ -177,7 +280,9 @@ async function fetchDashboardData(userId: string) {
         simulacrosCompletados: 0,
         puntajeMasAlto: 0,
         posicionRanking: 0,
+        percentilActual: 0,
         promedioGeneral: 0,
+        rendimientoMateria: [],
       },
       recientes: [],
       proximos: [],
@@ -277,15 +382,7 @@ export default async function DashboardPage() {
   const { stats, recientes, proximos, grupo } =
     await fetchDashboardData(session.user.id);
 
-  // Rendimiento por materia (placeholder hasta integrar estadísticas reales)
-  // TODO: calcular desde respuestasUser agrupando por materia
-  const rendimientoMateria = [
-    { materia: "Matemáticas",        porcentaje: 84 },
-    { materia: "Lectura Crítica",    porcentaje: 76 },
-    { materia: "Ciencias Naturales", porcentaje: 62 },
-    { materia: "Sociales",           porcentaje: 71 },
-    { materia: "Inglés",             porcentaje: 55 },
-  ];
+  const rendimientoMateria = stats.rendimientoMateria;
 
   return (
     <div className="min-h-full p-4 md:p-6">
@@ -321,7 +418,7 @@ export default async function DashboardPage() {
       )}
 
       {/* ── Stats row ── */}
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {[
           {
             label: "Simulacros completados",
@@ -346,6 +443,12 @@ export default async function DashboardPage() {
             value: stats.promedioGeneral,
             icon: BarChart2,
             color: "text-purple-600 bg-purple-50",
+          },
+          {
+            label: "Percentil actual",
+            value: stats.posicionRanking > 0 ? `${stats.percentilActual}º` : "—",
+            icon: Globe,
+            color: "text-cyan-600 bg-cyan-50",
           },
         ].map(({ label, value, icon: Icon, color }) => (
           <div

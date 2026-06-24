@@ -23,6 +23,7 @@ interface EntradaRanking {
   mejorPuntaje: number;
   rachaActual: number;
   posicion: number;
+  percentil: number;
   esMiPerfil: boolean;
 }
 
@@ -126,6 +127,7 @@ function FilaRanking({ entrada, esYo }: { entrada: EntradaRanking; esYo: boolean
         <p className={cn("flex items-center justify-end gap-0.5 text-[10px] font-semibold", nivel.color)}>
           <NivelIcon className="h-2.5 w-2.5" />{entrada.promedioPorc}%
         </p>
+        <p className="text-[10px] text-gray-400">Percentil {entrada.percentil}</p>
       </div>
     </div>
   );
@@ -145,6 +147,7 @@ function MiPosicionCard({ entrada }: { entrada: EntradaRanking }) {
         <p className="text-sm font-bold text-indigo-200 truncate">{entrada.nombre}</p>
         <div className="flex items-center gap-2 text-[10px] text-indigo-400 mt-0.5 flex-wrap">
           <span>{entrada.simulacrosCompletados} simulacros</span>
+          <span>Percentil {entrada.percentil}</span>
           {entrada.oficiales > 0 && <span>{entrada.oficiales} TRI oficiales</span>}
           {entrada.rachaActual >= 3 && (
             <span className="flex items-center gap-0.5">
@@ -155,7 +158,7 @@ function MiPosicionCard({ entrada }: { entrada: EntradaRanking }) {
       </div>
       <div className="shrink-0 text-right">
         <p className={cn("text-2xl font-extrabold", nivel.color)}>{entrada.puntajeEscalado}</p>
-        <p className="text-[10px] text-indigo-400">{entrada.promedioPorc}% · /500</p>
+        <p className="text-[10px] text-indigo-400">{entrada.promedioPorc}% · {entrada.percentil}º percentil</p>
       </div>
     </div>
   );
@@ -280,7 +283,7 @@ export function RankingClient({ userId, tieneGrupo }: {
                 <div className="w-full rounded-t-xl bg-gray-400/20 border border-gray-400/30 pt-2 pb-3 text-center">
                   <p className="text-lg">🥈</p>
                   <p className="text-sm font-extrabold text-gray-300">{top3[1].puntajeEscalado}</p>
-                  <p className="text-[10px] text-gray-500">{top3[1].promedioPorc}%</p>
+                  <p className="text-[10px] text-gray-500">{top3[1].promedioPorc}% · P{top3[1].percentil}</p>
                 </div>
               </div>
 
@@ -296,7 +299,7 @@ export function RankingClient({ userId, tieneGrupo }: {
                 <div className="w-full rounded-t-xl bg-amber-500/20 border border-amber-400/30 pt-3 pb-3 text-center">
                   <p className="text-xl">🥇</p>
                   <p className="text-base font-extrabold text-amber-400">{top3[0].puntajeEscalado}</p>
-                  <p className="text-[10px] text-amber-600">{top3[0].promedioPorc}%</p>
+                  <p className="text-[10px] text-amber-600">{top3[0].promedioPorc}% · P{top3[0].percentil}</p>
                 </div>
               </div>
 
@@ -310,7 +313,7 @@ export function RankingClient({ userId, tieneGrupo }: {
                   <div className="w-full rounded-t-xl bg-orange-500/20 border border-orange-500/30 pt-2 pb-3 text-center">
                     <p className="text-lg">🥉</p>
                     <p className="text-sm font-extrabold text-orange-400">{top3[2].puntajeEscalado}</p>
-                    <p className="text-[10px] text-orange-600">{top3[2].promedioPorc}%</p>
+                    <p className="text-[10px] text-orange-600">{top3[2].promedioPorc}% · P{top3[2].percentil}</p>
                   </div>
                 </div>
               )}

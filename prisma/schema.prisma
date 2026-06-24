@@ -426,6 +426,7 @@ model ClaveExamen {
   sesion         SesionExamen?  @relation(fields: [sesionId], references: [id], onDelete: SetNull)
   numeroPregunta Int
   respuesta      String
+  area           String?        // ICFES area: LECTURA CRITICA, MATEMATICAS, CIENCIAS NATURALES, SOCIALES Y CIUDADANAS, INGLES
 
   @@unique([examenId, numeroPregunta, sesionId])
   @@map("claves_examen")
@@ -475,6 +476,9 @@ model ResultadoSimulacro {
   total             Int                @default(0)
   puntajePreliminar Float              @default(0)
   puntajeTRI        Float?
+  puntajePorArea    Json?              // {LECTURA_CRITICA: 120, MATEMATICAS: 115, ...}
+  ranking           Int?               // Posición del estudiante en el grupo
+  percentil         Float?             // Percentil del estudiante (0-100)
   estadoCalif       EstadoCalificacion @default(PRELIMINAR)
   tiempoUsado       Int                @default(0)
   completadoEn      DateTime           @default(now())

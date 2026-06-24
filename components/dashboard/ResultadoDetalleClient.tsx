@@ -52,6 +52,9 @@ interface DatosDetalle {
     totalCorrectas: number;
     totalIncorrectas: number;
     sinResponder: number;
+    puntajePorArea?: Record<string, number> | null;
+    ranking?: number | null;
+    percentil?: number | null;
   };
   preguntas: PreguntaDetalle[];
   sesiones: ResumenSesion[];
@@ -89,6 +92,18 @@ function fmtFecha(iso: string) {
     day: "2-digit", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
+}
+
+const AREA_LABELS: Record<string, string> = {
+  "LECTURA CRITICA": "Lectura Crítica",
+  "MATEMATICAS": "Matemáticas",
+  "CIENCIAS NATURALES": "Ciencias Naturales",
+  "SOCIALES Y CIUDADANAS": "Sociales y Ciudadanas",
+  "INGLES": "Inglés",
+};
+
+function getAreaLabel(area: string) {
+  return AREA_LABELS[area] ?? area;
 }
 
 // ── Mini gauge ─────────────────────────────────────────────────────────────
@@ -282,44 +297,40 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
             </p>
           </div>
 
-          {/* Tiempo */}
+          {/* Ranking */}
           <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-            <p className="text-[10px] text-gray-500 mb-1 flex items-center gap-1">
-              <Clock className="h-2.5 w-2.5" />Tiempo
+            <p className="text-[10px] text-gray-500 mb-1">Ranking</p>
+            <p className="text-2xl font-extrabold text-white">
+              {resumen.ranking != null ? `#${resumen.ranking}` : "—"}
             </p>
-            <p className="text-2xl font-extrabold text-white">{fmtTiempo(resumen.tiempoUsado)}</p>
-            <p className="text-[10px] text-gray-600 mt-1">de {examen.tiempoMin} min</p>
+            <p className="text-[10px] text-gray-600 mt-1">Posición en el grupo</p>
           </div>
 
-          {/* Sin responder */}
+          {/* Percentil */}
           <div className="rounded-xl bg-white/5 border border-white/10 px-4 py-3">
-            <p className="text-[10px] text-gray-500 mb-1">Sin responder</p>
-            <p className={cn("text-2xl font-extrabold",
-              resumen.sinResponder > 0 ? "text-amber-400" : "text-green-400")}>
-              {resumen.sinResponder}
+            <p className="text-[10px] text-gray-500 mb-1">Percentil</p>
+            <p className="text-2xl font-extrabold text-white">
+              {resumen.percentil != null ? `${resumen.percentil}%` : "—"}
             </p>
-            <p className="text-[10px] text-gray-600 mt-1">de {resumen.total} preguntas</p>
-          </div>
-        </div>
-
-        {/* Barras de resumen */}
-        <div className="grid grid-cols-3 gap-3 text-center">
-          {[
-            { label: "Correctas",    val: resumen.totalCorrectas,   color: "text-green-400", bg: "bg-green-500" },
-            { label: "Incorrectas",  val: resumen.totalIncorrectas, color: "text-red-400",   bg: "bg-red-500"   },
-            { label: "Sin responder",val: resumen.sinResponder,     color: "text-gray-400",  bg: "bg-gray-500"  },
-          ].map(({ label, val, color, bg }) => (
-            <div key={label} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3">
-              <p className={cn("text-xl font-extrabold", color)}>{val}</p>
-              <p className="text-[10px] text-gray-600 mt-0.5">{label}</p>
-              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
-                <div className={cn("h-full rounded-full", bg)}
-                  style={{ width: `${resumen.total > 0 ? (val / resumen.total) * 100 : 0}%` }} />
+            <p className="text-[10px] text-gray-600 mt-1">Mejor que el grupo</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Object.entries(resumen.puntajePorArea).map(([area, puntaje]) => (
+              <div key={area} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs text-gray-400 uppercase tracking-[0.2em] mb-2">
+                  {getAreaLabel(area)}
+                </p>
+                <div className="flex items-end justify-between gap-3">
+                  <p className="text-3xl font-extrabold text-white">{Math.round(puntaje)}</p>
+                  <span className="text-xs text-gray-400">/100</span>
+                </div>
+                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(100, Math.max(0, puntaje))}%` }} />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Resumen por sesión ── */}
       {examen.tieneSesiones && sesiones.length > 0 && (

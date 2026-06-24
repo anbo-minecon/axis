@@ -116,7 +116,7 @@ export function calcularPuntajeTRI(
   respuestasEstudiante: Record<string, string>,
   claves: Record<string, string>,
   pesos: PesoPreguntaResult[],
-  factorCurva = 1.5,
+  factorCurva = 1.7,
   puntajeMax  = 100
 ): number {
   let puntajeProporcional = 0;
@@ -143,7 +143,7 @@ export function calcularPuntajeTRI(
 export function calcularPuntajePreliminar(
   correctas: number,
   total: number,
-  factorCurva = 1.5,
+  factorCurva = 1.7,
   puntajeMax  = 100
 ): number {
   if (total === 0) return 0;
@@ -155,7 +155,7 @@ export function calcularPuntajePreliminar(
 export function calcularTRIGrupo(
   respuestasGrupo: RespuestaEstudiante[],
   claves: Record<string, string>,
-  factorCurva = 1.5
+  factorCurva = 1.7
 ): {
   pesos:      PesoPreguntaResult[];
   resultados: Array<{ estudianteId: string; puntajeTRI: number }>;
@@ -186,4 +186,139 @@ export function calcularTRIGrupo(
   }));
 
   return { pesos, resultados };
+}
+
+// ── ICFES: Calcular puntajes por área ─────────────────────────────────────
+export interface ClaveConArea {
+  numero: number;
+  respuesta: string;
+  area?: string; // LECTURA CRITICA, MATEMATICAS, etc.
+}
+
+export interface PesosPorArea {
+  [area: string]: PesoPreguntaResult[];
+}
+
+/**
+ * Calcula pesos dinámicos separados por área ICFES.
+ * Cada área tiene su propio conjunto de pesos calculados independientemente.
+ */
+export function calcularPesosPorArea(
+  respuestasGrupo: RespuestaEstudiante[],
+  claves: ClaveConArea[],
+  umbralExclusion = 0.05
+): PesosPorArea {
+  const pesosPorArea: PesosPorArea = {};
+  const areas = new Set(claves.map((c) => c.area).filter(Boolean));
+
+  for (const area of areas) {
+    const clavesArea: Record<string, string> = {};
+    claves.forEach((c) => {
+      if (c.area === area) {
+        clavesArea[String(c.numero)] = c.respuesta;
+      }
+    });
+
+    if (Object.keys(clavesArea).length > 0) {
+      pesosPorArea[area!] = calcularPesos(respuestasGrupo, clavesArea, umbralExclusion);
+    }
+  }
+
+  return pesosPorArea;
+}
+
+/**
+ * Calcula puntaje TRI para una área específica.
+ * Retorna escala 0-500 según especificación ICFES.
+ */
+export function calcularPuntajeTRIArea(
+  respuestasEstudiante: Record<string, string>,
+  pesosArea: PesoPreguntaResult[],
+  claves: ClaveConArea[],
+  factorCurva = 1.7
+): number {
+  if (pesosArea.length === 0) {
+    // Calcular correctas en el área
+    const clavesArea: Record<string, string> = {};
+    claves.forEach((c) => {
+      clavesArea[String(c.numero)] = c.respuesta;
+    });
+    const correctas = Object.keys(clavesArea).filter(
+      (n) =>
+        respuestasEstudiante[n]?.toUpperCase() ===
+        clavesArea[n]?.toUpperCase()
+    ).length;
+    return calcularPuntajePreliminar(
+      correctas,
+      Object.keys(clavesArea).length,
+      factorCurva,
+      100
+    );
+  }
+
+  let puntajeProporcional = 0;
+  for (const peso of pesosArea) {
+    const num = String(peso.numeroPregunta);
+    const clavePregunta = claves.find((c) => c.numero === peso.numeroPregunta);
+    if (!clavePregunta) continue;
+
+    const clave = clavePregunta.respuesta?.toUpperCase();
+    const dada = respuestasEstudiante[num]?.toUpperCase();
+
+    if (dada === clave) {
+      puntajeProporcional += peso.pesoNormalizado;
+    }
+  }
+
+  const puntajeCurvado = Math.pow(puntajeProporcional, factorCurva);
+  return Math.round(puntajeCurvado * 100); // Mantener escala 0-100 por area
+}
+
+/**
+ * Calcula todos los puntajes TRI por área para un grupo de estudiantes.
+ * Retorna puntajes en escala 0-100 por área (se escalan a 0-500 después).
+ */
+export function calcularTRIGrupoPorArea(
+  respuestasGrupo: RespuestaEstudiante[],
+  claves: ClaveConArea[],
+  factorCurva = 1.7
+): {
+  pesosPorArea: PesosPorArea;
+  resultados: Array<{
+    estudianteId: string;
+    puntajePorArea: { [area: string]: number };
+  }>;
+} {
+  const pesosPorArea = calcularPesosPorArea(respuestasGrupo, claves, 0.05);
+  const areas = Object.keys(pesosPorArea);
+
+  if (areas.length === 0) {
+    // Si no hay áreas, retornar vacío
+    return {
+      pesosPorArea,
+      resultados: respuestasGrupo.map((e) => ({
+        estudianteId: e.estudianteId,
+        puntajePorArea: {},
+      })),
+    };
+  }
+
+  const resultados = respuestasGrupo.map((e) => {
+    const puntajePorArea: { [area: string]: number } = {};
+    for (const area of areas) {
+      const clavesArea = claves.filter((c) => c.area === area);
+      puntajePorArea[area] = calcularPuntajeTRIArea(
+        e.respuestas,
+        pesosPorArea[area] || [],
+        clavesArea,
+        factorCurva
+      );
+    }
+    return {
+      estudianteId: e.estudianteId,
+      puntajePorArea,
+    };
+  });
+
+  return { pesosPorArea, resultados };
 }

@@ -23,6 +23,7 @@ interface FilaExcel {
   respuesta_correcta: string;
   sesion?: string | number;
   dificultad?: string;
+  area?: string;
 }
 
 interface ClavePorSesion {
@@ -30,6 +31,7 @@ interface ClavePorSesion {
   respuesta: string;
   sesionNumero: number;
   dificultad?: string;
+  area?: string;
 }
 
 interface GrupoSimulacro {
@@ -41,6 +43,23 @@ interface GrupoSimulacro {
 }
 
 const RESPUESTAS_VALIDAS = new Set(["A", "B", "C", "D"]);
+const AREAS_CANONICAS: Record<string, string> = {
+  "LECTURA CRITICA": "LECTURA CRITICA",
+  "LECTURA CRÍTICA": "LECTURA CRITICA",
+  "LENGUAJE": "LECTURA CRITICA",
+  "MATEMATICAS": "MATEMATICAS",
+  "MATEMÁTICAS": "MATEMATICAS",
+  "CIENCIAS NATURALES": "CIENCIAS NATURALES",
+  "SOCIALES Y CIUDADANAS": "SOCIALES Y CIUDADANAS",
+  "SOCIALES": "SOCIALES Y CIUDADANAS",
+  "INGLES": "INGLES",
+};
+
+function normalizarArea(area: string): string | undefined {
+  const raw = area.trim().toUpperCase();
+  if (!raw) return undefined;
+  return AREAS_CANONICAS[raw] ?? undefined;
+}
 
 // ── POST /api/admin/simulacros/importar ───────────────────────────────────
 export async function POST(req: Request) {
@@ -117,6 +136,8 @@ export async function POST(req: Request) {
       const respuesta = String(row.respuesta_correcta ?? "").trim().toUpperCase();
       const sesionRaw = row.sesion ? Number(row.sesion) : 1; // Default sesion = 1
       const dificultad = String(row.dificultad ?? "facil").trim().toLowerCase();
+      const areaRaw = String(row.area ?? "").trim();
+      const area = areaRaw ? normalizarArea(areaRaw) : undefined;
 
       // Validaciones
       if (!numSim) {
@@ -154,6 +175,13 @@ export async function POST(req: Request) {
         );
         // No rechazamos, solo usamos default
       }
+      if (areaRaw && !area) {
+        mensajesError.push(
+          `Fila ${fila}: área "${row.area}" no válida. Debe ser una de: ${Object.keys(AREAS_CANONICAS).join(", ")}.`,
+        );
+        filasRechazadas++;
+        return;
+      }
 
       // Agregar al grupo
       if (!grupos.has(numSim)) {
@@ -172,7 +200,7 @@ export async function POST(req: Request) {
         return;
       }
 
-      grupo.claves.push({ numeroPregunta: numPregRaw, respuesta, sesionNumero: sesionRaw, dificultad });
+      grupo.claves.push({ numeroPregunta: numPregRaw, respuesta, sesionNumero: sesionRaw, dificultad, area });
     });
 
     if (grupos.size === 0) {
@@ -223,6 +251,7 @@ export async function POST(req: Request) {
               numeroPregunta: c.numeroPregunta,
               respuesta: c.respuesta,
               sesionId: sesionDb.id,
+              area: c.area || undefined,
               dificultad: c.dificultad,
             }));
 
@@ -263,6 +292,7 @@ export async function POST(req: Request) {
             numeroPregunta: c.numeroPregunta,
             respuesta: c.respuesta,
             sesionId: sesion1.id,
+            area: c.area || undefined,
             dificultad: c.dificultad,
           }));
 

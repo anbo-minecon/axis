@@ -31,6 +31,15 @@ interface PuntoProgresion {
   completadoEn: string;
 }
 
+interface AreaStat {
+  area: string;
+  cantidad: number;
+  promedio: number;
+  mejor: number;
+  peor: number;
+  oficiales: number;
+}
+
 interface DatosEstadisticas {
   sinDatos: boolean;
   global?: {
@@ -44,6 +53,7 @@ interface DatosEstadisticas {
     tendencia: number;
   };
   materias?: MateriaStat[];
+  areas?: AreaStat[];
   progresion?: PuntoProgresion[];
   mejorSimulacro?: { nombre: string; materia: string; pct: number; estadoCalif: string };
   peorSimulacro?:  { nombre: string; materia: string; pct: number; estadoCalif: string };
@@ -407,6 +417,45 @@ export function EstadisticasClient() {
                   <div className="shrink-0 text-right">
                     <p className={cn("text-xl font-extrabold", nivel.color)}>{m.promedioPorc}%</p>
                     <p className="text-[10px] text-gray-600">{m.puntajeEscalado}/500</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Por área ICFES ── */}
+      {datos.areas && datos.areas.length > 0 && (
+        <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-5 space-y-4">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-cyan-400" />Por área ICFES
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {datos.areas.map((a) => {
+              const nivel = getNivel(a.promedio);
+              return (
+                <div key={a.area} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-sm font-semibold text-white">{a.area}</p>
+                    {a.oficiales > 0 && (
+                      <span className="text-[9px] rounded-full bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-emerald-400 font-bold">
+                        {a.oficiales} oficiales
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className={cn("text-3xl font-extrabold", nivel.color)}>{a.promedio}%</span>
+                    <span className="text-xs text-gray-400">/100</span>
+                  </div>
+                  <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
+                    <div className={cn("h-full rounded-full", nivel.bg)}
+                      style={{ width: `${Math.min(100, Math.max(0, a.promedio))}%` }} />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[10px] text-gray-400">
+                    <span>Mejor {a.mejor}%</span>
+                    <span>Peor {a.peor}%</span>
                   </div>
                 </div>
               );

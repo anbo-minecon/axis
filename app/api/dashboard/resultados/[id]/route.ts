@@ -224,6 +224,12 @@ export async function GET(
         })
       : [];
 
+    const puntajePorArea = resultado.puntajePorArea
+      ? typeof resultado.puntajePorArea === "string"
+        ? JSON.parse(resultado.puntajePorArea)
+        : resultado.puntajePorArea
+      : null;
+
     return NextResponse.json({
       examen: {
         id:            resultado.examen.id,
@@ -246,6 +252,9 @@ export async function GET(
         totalCorrectas,
         totalIncorrectas,
         sinResponder,
+        puntajePorArea,
+        ranking:          resultado.ranking ?? null,
+        percentil:        resultado.percentil ?? null,
       },
       preguntas,
       sesiones: resumenSesiones,

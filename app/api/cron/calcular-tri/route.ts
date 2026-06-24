@@ -8,7 +8,8 @@
 //
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { calcularTRIGrupo } from "@/lib/tri-engine";
+import { calcularTRIGrupo, calcularTRIGrupoPorArea, ClaveConArea } from "@/lib/tri-engine";
+import { calcularRanking, calcularPercentil } from "@/lib/ranking-utils";
 
 // ── GET: llamado por el cron automático ───────────────────────────────────
 export async function GET(req: Request) {
@@ -48,6 +49,8 @@ export async function GET(req: Request) {
     for (const examen of examensPendientes) {
       try {
         await procesarTRIExamen(examen);
+        await calcularRanking(examen.id);
+        await calcularPercentil(examen.id);
 
         // BUG FIX #1: cerrar automáticamente si aún está PUBLICADO y su fechaCierre pasó
         if (examen.estado === "PUBLICADO") {
@@ -102,6 +105,8 @@ export async function POST(req: Request) {
     if (examen.triCalculado) return NextResponse.json({ error: "TRI ya calculado para este simulacro" }, { status: 400 });
 
     await procesarTRIExamen(examen);
+    await calcularRanking(examenId);
+    await calcularPercentil(examenId);
 
     // Cerrar si sigue publicado
     await (db as any).examenTemplate.update({
@@ -139,7 +144,15 @@ async function procesarTRIExamen(examen: any) {
       if (!resultadosSesion.length) continue;
 
       const claves: Record<string, string> = {};
-      for (const c of sesion.claves) claves[String(c.numeroPregunta)] = c.respuesta;
+      const clavesConArea: ClaveConArea[] = [];
+      for (const c of sesion.claves) {
+        claves[String(c.numeroPregunta)] = c.respuesta;
+        clavesConArea.push({
+          numero: c.numeroPregunta,
+          respuesta: c.respuesta,
+          area: c.area,
+        });
+      }
 
       const { pesos, resultados } = calcularTRIGrupo(
         resultadosSesion.map((r: any) => ({
@@ -148,6 +161,23 @@ async function procesarTRIExamen(examen: any) {
         })),
         claves,
       );
+
+      // Calcular también por área si hay área data disponible
+      const tieneAreas = clavesConArea.some((c) => c.area);
+      let pesosPorArea: any = {};
+      let resultadosPorArea: any[] = [];
+
+      if (tieneAreas) {
+        const resultado = calcularTRIGrupoPorArea(
+          resultadosSesion.map((r: any) => ({
+            estudianteId: r.estudianteId,
+            respuestas:   r.respuestas as Record<string, string>,
+          })),
+          clavesConArea,
+        );
+        pesosPorArea = resultado.pesosPorArea;
+        resultadosPorArea = resultado.resultados;
+      }
 
       if (pesos.length > 0) {
         // BUG FIX #3: "pesosPregunta" con 's' — nombre real del modelo en schema.prisma
@@ -165,9 +195,16 @@ async function procesarTRIExamen(examen: any) {
       }
 
       for (const r of resultados) {
+        const puntajePorArea = resultadosPorArea.find(
+          (rpa: any) => rpa.estudianteId === r.estudianteId
+        )?.puntajePorArea || null;
+
         await (db as any).resultadoSesion.updateMany({
           where: { estudianteId: r.estudianteId, sesionId: sesion.id },
-          data:  { puntajeTRI: r.puntajeTRI },
+          data: {
+            puntajeTRI: r.puntajeTRI,
+            puntajePorArea: puntajePorArea ? JSON.stringify(puntajePorArea) : undefined,
+          },
         });
       }
     }
@@ -175,25 +212,60 @@ async function procesarTRIExamen(examen: any) {
     // Consolidar TRI global (promedio ponderado por total de preguntas de cada sesión)
     const todosRS = await (db as any).resultadoSesion.findMany({
       where:  { examenId: examen.id, puntajeTRI: { not: null } },
-      select: { estudianteId: true, puntajeTRI: true, total: true },
+      select: { estudianteId: true, puntajeTRI: true, total: true, puntajePorArea: true },
     });
 
-    const porEstudiante = new Map<string, { sumPonderada: number; totalPreguntas: number }>();
+    const porEstudiante = new Map<
+      string,
+      { sumPonderada: number; totalPreguntas: number; puntajePorArea: any }
+    >();
     for (const r of todosRS) {
-      const prev = porEstudiante.get(r.estudianteId) ?? { sumPonderada: 0, totalPreguntas: 0 };
+      const prev = porEstudiante.get(r.estudianteId) ?? {
+        sumPonderada: 0,
+        totalPreguntas: 0,
+        puntajePorArea: {},
+      };
+
+      // Consolidar puntajes por área (promedio ponderado)
+      const ppa = r.puntajePorArea ? JSON.parse(r.puntajePorArea) : {};
+      const consolidadoPPA = { ...prev.puntajePorArea };
+      for (const [area, puntaje] of Object.entries(ppa)) {
+        if (!consolidadoPPA[area]) consolidadoPPA[area] = [];
+        consolidadoPPA[area].push({ puntaje, total: r.total });
+      }
+
       porEstudiante.set(r.estudianteId, {
-        sumPonderada:   prev.sumPonderada   + (r.puntajeTRI * r.total),
+        sumPonderada: prev.sumPonderada + r.puntajeTRI * r.total,
         totalPreguntas: prev.totalPreguntas + r.total,
+        puntajePorArea: consolidadoPPA,
       });
     }
 
-    for (const [estudianteId, { sumPonderada, totalPreguntas }] of porEstudiante) {
+    for (const [estudianteId, { sumPonderada, totalPreguntas, puntajePorArea }] of porEstudiante) {
       const triGlobal = totalPreguntas > 0
         ? Number((sumPonderada / totalPreguntas).toFixed(2))
         : 0;
+
+      // Consolidar puntajes por área finales
+      const puntajePorAreaFinal: Record<string, number> = {};
+      for (const [area, registros] of Object.entries(puntajePorArea)) {
+        if (Array.isArray(registros) && registros.length > 0) {
+          const arr = registros as any[];
+          const sumPond = arr.reduce((acc, r) => acc + r.puntaje * r.total, 0);
+          const totalP = arr.reduce((acc, r) => acc + r.total, 0);
+          puntajePorAreaFinal[area] = totalP > 0 ? Number((sumPond / totalP).toFixed(2)) : 0;
+        }
+      }
+
       await (db as any).resultadoSimulacro.updateMany({
         where: { estudianteId, examenId: examen.id },
-        data:  { puntajeTRI: triGlobal, estadoCalif: "OFICIAL" },
+        data: {
+          puntajeTRI: triGlobal,
+          puntajePorArea: Object.keys(puntajePorAreaFinal).length > 0 
+            ? JSON.stringify(puntajePorAreaFinal) 
+            : undefined,
+          estadoCalif: "OFICIAL",
+        },
       });
     }
 
@@ -207,7 +279,15 @@ async function procesarTRIExamen(examen: any) {
     if (!resultados.length) return; // sin participantes, no hay TRI que calcular
 
     const claves: Record<string, string> = {};
-    for (const c of examen.claves) claves[String(c.numeroPregunta)] = c.respuesta;
+    const clavesConArea: ClaveConArea[] = [];
+    for (const c of examen.claves) {
+      claves[String(c.numeroPregunta)] = c.respuesta;
+      clavesConArea.push({
+        numero: c.numeroPregunta,
+        respuesta: c.respuesta,
+        area: c.area,
+      });
+    }
 
     const { pesos, resultados: tri } = calcularTRIGrupo(
       resultados.map((r: any) => ({
@@ -216,6 +296,21 @@ async function procesarTRIExamen(examen: any) {
       })),
       claves,
     );
+
+    // Calcular también por área si hay área data disponible
+    const tieneAreas = clavesConArea.some((c) => c.area);
+    let resultadosPorArea: any[] = [];
+
+    if (tieneAreas) {
+      const resultado = calcularTRIGrupoPorArea(
+        resultados.map((r: any) => ({
+          estudianteId: r.estudianteId,
+          respuestas:   r.respuestas as Record<string, string>,
+        })),
+        clavesConArea,
+      );
+      resultadosPorArea = resultado.resultados;
+    }
 
     if (pesos.length > 0) {
       // BUG FIX #3: "pesosPregunta" con 's'
@@ -232,9 +327,17 @@ async function procesarTRIExamen(examen: any) {
     }
 
     for (const r of tri) {
+      const puntajePorArea = resultadosPorArea.find(
+        (rpa: any) => rpa.estudianteId === r.estudianteId
+      )?.puntajePorArea || null;
+
       await (db as any).resultadoSimulacro.updateMany({
         where: { estudianteId: r.estudianteId, examenId: examen.id },
-        data:  { puntajeTRI: r.puntajeTRI, estadoCalif: "OFICIAL" },
+        data: {
+          puntajeTRI: r.puntajeTRI,
+          puntajePorArea: puntajePorArea ? JSON.stringify(puntajePorArea) : undefined,
+          estadoCalif: "OFICIAL",
+        },
       });
     }
   }

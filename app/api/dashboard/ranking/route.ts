@@ -116,10 +116,18 @@ export async function GET(req: Request) {
       return { ...e, posicion: pos };
     });
 
-    const total        = rankingConPos.length;
-    const ranking      = rankingConPos.slice(0, limit);
-    const miPosicion   = rankingConPos.find((r: any) => r.id === session.user.id)?.posicion ?? null;
-    const miEntrada    = rankingConPos.find((r: any) => r.id === session.user.id) ?? null;
+    const total = rankingConPos.length;
+    const rankingConPercentil = rankingConPos.map((e: any) => ({
+      ...e,
+      percentil:
+        total > 1
+          ? Math.round((1 - (e.posicion - 1) / (total - 1)) * 100)
+          : 100,
+    }));
+
+    const ranking = rankingConPercentil.slice(0, limit);
+    const miPosicion = rankingConPercentil.find((r: any) => r.id === session.user.id)?.posicion ?? null;
+    const miEntrada = rankingConPercentil.find((r: any) => r.id === session.user.id) ?? null;
 
     // Materias disponibles para el filtro
     const materiasDisponibles = await (db as any).examenTemplate.findMany({

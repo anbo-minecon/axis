@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { calcularTRIGrupo } from "@/lib/tri-engine";
+import { calcularRanking, calcularPercentil } from "@/lib/ranking-utils";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function parseFecha(valor: string | null | undefined): Date | null {
@@ -107,6 +108,8 @@ export async function PATCH(
     if (estado === "CERRADO" && !examen.triCalculado) {
       try {
         await ejecutarTRI(examen);
+        await calcularRanking(examen.id);
+        await calcularPercentil(examen.id);
         triEjecutado = true;
       } catch (e: any) {
         // No bloquear el cierre si el TRI falla (ej. sin participantes aún)

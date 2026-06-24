@@ -67,12 +67,28 @@ export async function GET() {
       pcts: number[]; tiempos: number[]; oficiales: number;
     }> = {};
 
+    const porArea: Record<string, { pcts: number[]; oficiales: number }> = {};
+
     for (const r of resultados) {
       const m = r.examen.materia;
       if (!porMateria[m]) porMateria[m] = { pcts: [], tiempos: [], oficiales: 0 };
       porMateria[m].pcts.push(pctEfectivo(r));
       porMateria[m].tiempos.push(r.tiempoUsado ?? 0);
       if (r.estadoCalif === "OFICIAL") porMateria[m].oficiales++;
+
+      const puntajePorArea = r.puntajePorArea
+        ? typeof r.puntajePorArea === "string"
+          ? JSON.parse(r.puntajePorArea)
+          : r.puntajePorArea
+        : null;
+
+      if (puntajePorArea) {
+        for (const [area, puntaje] of Object.entries(puntajePorArea)) {
+          if (!porArea[area]) porArea[area] = { pcts: [], oficiales: 0 };
+          porArea[area].pcts.push(Number(puntaje));
+          if (r.estadoCalif === "OFICIAL") porArea[area].oficiales++;
+        }
+      }
     }
 
     const materias = Object.entries(porMateria)
@@ -90,6 +106,20 @@ export async function GET() {
         };
       })
       .sort((a, b) => b.promedioPorc - a.promedioPorc);
+
+    const areas = Object.entries(porArea)
+      .map(([area, { pcts, oficiales }]) => {
+        const avg = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+        return {
+          area,
+          cantidad:       pcts.length,
+          promedio:       Math.round(avg),
+          mejor:          Math.round(Math.max(...pcts)),
+          peor:           Math.round(Math.min(...pcts)),
+          oficiales,
+        };
+      })
+      .sort((a, b) => b.promedio - a.promedio);
 
     // ── Progresión cronológica (para gráfica de línea) ────────────────────
     const progresion = resultados.map((r: any) => ({
@@ -122,6 +152,7 @@ export async function GET() {
         tendencia,
       },
       materias,
+      areas,
       progresion,
       mejorSimulacro: {
         nombre:  mejorRes.examen.nombre,

@@ -33,6 +33,13 @@ const claveSchema = z.object({
   respuesta:  z.enum(["A", "B", "C", "D"]).nullable(),
   sesion:     z.number().int().positive().default(1),   // sin límite de 2 — puede haber N sesiones
   dificultad: z.enum(["facil", "media", "dificil"]).optional().default("media"),
+  area:       z.enum([
+    "LECTURA CRITICA",
+    "MATEMATICAS",
+    "CIENCIAS NATURALES",
+    "SOCIALES Y CIUDADANAS",
+    "INGLES",
+  ]).optional(),
 });
 
 const sesionSchema = z.object({
@@ -134,6 +141,7 @@ export async function POST(req: Request) {
             sesionId:       sesionDb.id,
             numeroPregunta: c.numero,
             respuesta:      c.respuesta as string,
+            area:           c.area || undefined, // ICFES area si está disponible
             // dificultad se guarda en metadata si el schema lo soporta;
             // si no existe la columna en Prisma, simplemente se omite sin error
           }));
@@ -182,6 +190,7 @@ export async function POST(req: Request) {
           sesionId:       sesionUnica.id,
           numeroPregunta: c.numero,
           respuesta:      c.respuesta as string,
+          area:           c.area || undefined, // ICFES area si está disponible
         })),
       });
     } else {
@@ -191,6 +200,7 @@ export async function POST(req: Request) {
           examenId:       examen.id,
           numeroPregunta: c.numero,
           respuesta:      c.respuesta as string,
+          area:           c.area || undefined, // ICFES area si está disponible
         })),
       });
     }

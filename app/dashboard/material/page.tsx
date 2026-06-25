@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { MaterialClient } from "@/components/dashboard/MaterialClient";
 
 export const metadata = { title: "Material de Estudio | AXIS Pre-ICFES" };
+export const dynamic = "force-dynamic";
 
 export default async function MaterialPage() {
   const session = await getServerSession(authOptions);

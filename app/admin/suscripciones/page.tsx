@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { SuscripcionesClient } from "./SuscripcionesClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function SuscripcionesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/login");

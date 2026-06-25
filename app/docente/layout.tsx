@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DocenteShell } from "@/components/docente/DocenteShell";
 
+export const dynamic = "force-dynamic";
+
 export default async function DocenteLayout({
   children,
 }: {

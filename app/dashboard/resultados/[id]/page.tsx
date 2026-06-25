@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ResultadoDetalleClient } from "@/components/dashboard/ResultadoDetalleClient";
 
 export const metadata = { title: "Detalle del Resultado | AXIS Pre-ICFES" };
+export const dynamic = "force-dynamic";
 
 export default async function ResultadoDetallePage({
   params,

@@ -7,6 +7,7 @@ import { ResultadosListClient } from "@/components/dashboard/ResultadosListClien
 import { SuscripcionInactiva } from "@/components/dashboard/SuscripcionInactiva";
 
 export const metadata = { title: "Resultados | AXIS Pre-ICFES" };
+export const dynamic = "force-dynamic";
 
 export default async function ResultadosPage() {
   const session = await getServerSession(authOptions);

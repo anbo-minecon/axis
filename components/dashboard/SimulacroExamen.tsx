@@ -440,7 +440,11 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
     setFase("enviando");
 
     const respObj: Record<string, string> = {};
-    for (const [k, v] of Object.entries(respuestas)) respObj[String(k)] = v;
+    for (const [k, v] of Object.entries(respuestas)) {
+      if (v === "A" || v === "B" || v === "C" || v === "D") {
+        respObj[String(k)] = v;
+      }
+    }
 
     const endpoint = examen.tieneSesiones
       ? `/api/dashboard/simulacros/${examen.id}/sesion/${sesionActual.numero}/enviar`

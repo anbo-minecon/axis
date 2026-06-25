@@ -6,8 +6,24 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { calcularPuntajePreliminar } from "@/lib/tri-engine";
 
+const ANSWER_VALUES = ["A", "B", "C", "D"] as const;
+
 const bodySchema = z.object({
-  respuestas:  z.record(z.string(), z.enum(["A", "B", "C", "D"])),
+  respuestas: z.record(z.string(), z.string())
+    .refine(
+      (respuestas) => Object.values(respuestas).every((value) =>
+        ANSWER_VALUES.includes(String(value).trim().toUpperCase() as any)
+      ),
+      { message: "Respuestas inválidas" },
+    )
+    .transform((respuestas) => {
+      const cleaned: Record<string, string> = {};
+      for (const [key, value] of Object.entries(respuestas)) {
+        const normalized = String(value).trim().toUpperCase();
+        if (ANSWER_VALUES.includes(normalized as any)) cleaned[key] = normalized;
+      }
+      return cleaned;
+    }),
   tiempoUsado: z.number().int().nonnegative(),
 });
 

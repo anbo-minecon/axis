@@ -12,17 +12,58 @@ const credentialsSchema = z.object({
   password: z.string().min(1),
 });
 
-export const authOptions: NextAuthOptions = {
-  // ── Usar el adapter personalizado que mapea "Usuario" → "User" ───────────
-  adapter: CustomPrismaAdapter(db),
+const googleClientId = process.env.GOOGLE_ID;
+const googleClientSecret = process.env.GOOGLE_SECRET;
+const authSecret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET;
 
-  providers: [
+if (!authSecret) {
+  console.warn(
+    "[Auth] WARNING: NEXTAUTH_SECRET or AUTH_SECRET is not configured. Production JWT/session handling may fail."
+  );
+}
+
+const providers: any[] = [
+  CredentialsProvider({
+    name: "Credentials",
+    credentials: {
+      email:    { label: "Email",    type: "email"    },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      try {
+        const parsed = credentialsSchema.parse(credentials);
+
+        const usuario = await db.usuario.findUnique({
+          where:   { email: parsed.email },
+          include: { suscripcion: true },
+        });
+
+        if (!usuario || !usuario.passwordHash) return null;
+
+        const validPassword = await compare(parsed.password, usuario.passwordHash);
+        if (!validPassword) return null;
+
+        return {
+          id:    usuario.id,
+          email: usuario.email,
+          name:  usuario.nombre,
+          image: usuario.imagen,
+          rol:   usuario.rol,
+        };
+      } catch (error) {
+        console.error("[Auth] Error en authorize:", error);
+        return null;
+      }
+    },
+  }),
+];
+
+if (googleClientId && googleClientSecret) {
+  providers.unshift(
     GoogleProvider({
-      clientId: process.env.GOOGLE_ID!,
-      clientSecret: process.env.GOOGLE_SECRET!,
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
       allowDangerousEmailAccountLinking: true,
-      // profile() devuelve solo lo que NextAuth necesita.
-      // createUser() del adapter se encarga de guardar en la BD.
       profile(profile) {
         return {
           id:    profile.sub,
@@ -32,41 +73,13 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
+  );
+}
 
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email:    { label: "Email",    type: "email"    },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        try {
-          const parsed = credentialsSchema.parse(credentials);
-
-          const usuario = await db.usuario.findUnique({
-            where:   { email: parsed.email },
-            include: { suscripcion: true },
-          });
-
-          if (!usuario || !usuario.passwordHash) return null;
-
-          const validPassword = await compare(parsed.password, usuario.passwordHash);
-          if (!validPassword) return null;
-
-          return {
-            id:    usuario.id,
-            email: usuario.email,
-            name:  usuario.nombre,
-            image: usuario.imagen,
-            rol:   usuario.rol,
-          };
-        } catch (error) {
-          console.error("[Auth] Error en authorize:", error);
-          return null;
-        }
-      },
-    }),
-  ],
+export const authOptions: NextAuthOptions = {
+  secret: authSecret,
+  adapter: CustomPrismaAdapter(db),
+  providers,
 
   session: {
     strategy: "jwt",

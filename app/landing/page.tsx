@@ -1,6 +1,6 @@
 // app/landing/page.tsx
 import { Navigation } from "@/components/landing/Navigation";
-import { AnunciosCarousel } from "@/components/landing/AnunciosCarousel";
+import { AnunciosModal } from "@/components/landing/AnunciosModal";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { AreasICFES } from "@/components/landing/AreasICFES";
 import { Caracteristicas } from "@/components/landing/Caracteristicas";
@@ -34,32 +34,10 @@ export default async function LandingPage() {
   return (
     <main className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
       <Navigation />
+      <AnunciosModal anuncios={anuncios} />
 
-      {/*
-        ── Zona superior (ocupa el 100vh sin scroll) ──
-        Si hay anuncios: carrusel compacto + AreasICFES visible justo debajo
-        Si no hay anuncios: HeroSection como siempre
-      */}
-      {hayAnuncios ? (
-        // pt-[64px] = altura del header fijo
-        <div className="pt-[64px] min-h-screen flex flex-col">
-          {/* Carrusel — altura dinámica estilo ML */}
-          <AnunciosCarousel anuncios={anuncios} />
-
-          {/* AreasICFES inmediatamente debajo, visible sin scroll */}
-          <div className="flex-1 bg-white dark:bg-gray-900">
-            <AreasICFES />
-          </div>
-        </div>
-      ) : (
-        <HeroSection />
-      )}
-
-      {/*
-        Si hay anuncios AreasICFES ya se renderizó arriba, no repetir.
-        Si no hay, se muestra normalmente en el flujo.
-      */}
-      {!hayAnuncios && <AreasICFES />}
+      <HeroSection />
+      <AreasICFES />
 
       <Caracteristicas />
       <WhyAXIS />

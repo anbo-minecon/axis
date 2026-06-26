@@ -1,17 +1,13 @@
 // app/api/admin/anuncios/upload/route.ts
 //
-// ⚠️  IMPORTANTE PARA DESPLIEGUE:
-// Esta ruta guarda imágenes en public/images/anuncios/.
-// Funciona perfectamente en VPS / servidor propio.
-// En Vercel el sistema de archivos es efímero — las imágenes
-// se perderán en cada redeploy. Para Vercel usa URL externa (Imgur, Cloudinary).
+// Sube la imagen a Vercel Blob (almacenamiento persistente, compatible
+// con el filesystem efímero de Vercel). Devuelve una URL pública estable.
 //
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { put } from "@vercel/blob";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const MAX_SIZE_MB   = 5;
@@ -48,24 +44,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Crear carpeta si no existe
-    const uploadDir = join(process.cwd(), "public", "images", "anuncios");
-    await mkdir(uploadDir, { recursive: true });
-
-    // Nombre único: timestamp + nombre original sanitizado
+    // Nombre único: timestamp + extensión original
     const ext      = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-    const safeName = `anuncio_${Date.now()}.${ext}`;
-    const filePath = join(uploadDir, safeName);
+    const safeName = `anuncios/anuncio_${Date.now()}.${ext}`;
 
-    // Guardar archivo
-    const bytes  = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    // Subir a Vercel Blob (almacenamiento persistente)
+    const blob = await put(safeName, file, {
+      access: "public",
+      contentType: file.type,
+    });
 
-    // URL pública
-    const url = `/images/anuncios/${safeName}`;
-
-    return NextResponse.json({ ok: true, url }, { status: 201 });
+    // blob.url ya es una URL pública completa y estable (CDN de Vercel)
+    return NextResponse.json({ ok: true, url: blob.url }, { status: 201 });
   } catch (e) {
     console.error("[POST /api/admin/anuncios/upload]", e);
     return NextResponse.json({ error: "Error al guardar la imagen" }, { status: 500 });

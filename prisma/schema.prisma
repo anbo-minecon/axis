@@ -427,6 +427,7 @@ model ClaveExamen {
   numeroPregunta Int
   respuesta      String
   area           String?        // ICFES area: LECTURA CRITICA, MATEMATICAS, CIENCIAS NATURALES, SOCIALES Y CIUDADANAS, INGLES
+  dificultad String?   @default("media")   // ← NUEVO: facil | media | dificil
 
   @@unique([examenId, numeroPregunta, sesionId])
   @@map("claves_examen")

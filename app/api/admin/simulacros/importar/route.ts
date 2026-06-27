@@ -258,6 +258,7 @@ export async function POST(req: Request) {
           const clavesDelSesion = grupo.claves
             .filter((c) => c.sesionNumero === sesionDb.numero)
             .map((c) => ({
+              examenId: examen.id,
               numeroPregunta: c.numeroPregunta,
               respuesta: c.respuesta,
               sesionId: sesionDb.id,
@@ -298,6 +299,7 @@ export async function POST(req: Request) {
         const sesion1 = examen.sesiones[0];
         const clavesConSesion = grupo.claves
           .map((c) => ({
+            examenId: examen.id,
             numeroPregunta: c.numeroPregunta,
             respuesta: c.respuesta,
             sesionId: sesion1.id,

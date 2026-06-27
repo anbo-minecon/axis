@@ -20,7 +20,7 @@ Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia
 - **Base de datos**: PostgreSQL
 - **ORM**: Prisma v5
 - **Validación**: Zod
-- **Autenticación**: Auth.js (NextAuth v5 beta)
+- **Autenticación**: next-auth v4
 - **Password hashing**: bcryptjs
 - **Serialización**: SuperJSON
 
@@ -71,7 +71,7 @@ axis-preicfes/
 │   └── developer/            # Componentes rol Developer
 │
 ├── 📂 lib/                   # Utilidades y configuración
-│   ├── auth.ts               # Configuración Auth.js
+│   ├── auth.ts               # Configuración next-auth
 │   ├── db.ts                 # Cliente Prisma
 │   ├── logger.ts             # Sistema de logging en archivos
 │   ├── utils.ts              # Funciones auxiliares
@@ -198,7 +198,7 @@ axis-preicfes/
 
 | Archivo                     | Propósito                                    |
 | --------------------------- | --------------------------------------------- |
-| `auth.ts`                 | Configuración de NextAuth, proveedores       |
+| `auth.ts`                 | Configuración de next-auth, proveedores       |
 | `auth-guard.ts`           | Middleware para rutas protegidas              |
 | `db.ts`                   | Cliente de Prisma singleton                   |
 | `logger.ts`               | Sistema de logging en archivos .log           |
@@ -229,7 +229,7 @@ axis-preicfes/
 Procedimientos disponibles:
 
 - `registro` - Crear nueva cuenta
-- `login` - Autencer usuario (deprecado, usa NextAuth)
+- `login` - Autenticar usuario (deprecado, usa next-auth)
 - `obtenerPerfil` - Obtener datos del usuario
 - `actualizarPerfil` - Editar perfil del usuario
 
@@ -353,7 +353,7 @@ cp .env.example .env
 
 # Editar .env con tus valores:
 # - DATABASE_URL (PostgreSQL)
-# - AUTH_SECRET (NextAuth v5)
+# - AUTH_SECRET (next-auth)
 # - AUTH_URL
 ```
 
@@ -363,7 +363,7 @@ cp .env.example .env
 # Base de datos PostgreSQL
 DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/axis_preicfes"
 
-# Auth.js (NextAuth v5)
+# next-auth
 AUTH_SECRET="genera-un-secret-seguro-con-openssl-rand-base64-32"
 AUTH_URL="http://localhost:3000"
 
@@ -403,7 +403,7 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | Variable                 | Descripción                        | Ejemplo                                          |
 | ------------------------ | ----------------------------------- | ------------------------------------------------ |
 | `DATABASE_URL`         | Conexión a PostgreSQL              | `postgresql://user:pass@localhost:5432/dbname` |
-| `AUTH_SECRET`          | Secret para Auth.js (NextAuth v5)   | `openssl rand -base64 32`                      |
+| `AUTH_SECRET`          | Secret para next-auth                 | `openssl rand -base64 32`                      |
 | `AUTH_URL`             | URL base de la app                  | `http://localhost:3000`                        |
 | `AUTH_GOOGLE_ID`       | Google OAuth Client ID (opcional)   | `tu-google-client-id`                          |
 | `AUTH_GOOGLE_SECRET`   | Google OAuth Secret (opcional)      | `tu-google-secret`                             |
@@ -422,7 +422,7 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 2. → tRPC: auth.registro
 3. → Backend: Validar + Hash password
 4. → Prisma: Guardar en BD
-5. → NextAuth: Crear sesión
+5. → next-auth: Crear sesión
 6. → Frontend: Redirigir a Dashboard
 ```
 
@@ -430,17 +430,17 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 
 ## 📚 Archivos de Documentación Adicional
 
-- **[BACKEND_SETUP.md](BACKEND_SETUP.md)** - Configuración detallada del backend
-- **[BACKEND_ARCHITECTURE.md](BACKEND_ARCHITECTURE.md)** - Arquitectura de la API tRPC
-- **[FRONTEND_GUIDE.md](FRONTEND_GUIDE.md)** - Guía de componentes frontend
-- **[DIAGNOSTICO_CONEXION.md](DIAGNOSTICO_CONEXION.md)** - Solución de problemas de conexión
-- **[GUIA_RAPIDA_REGISTRO.md](GUIA_RAPIDA_REGISTRO.md)** - Tutorial rápido de registro
-- **[INDEX_DOCUMENTATION.md](INDEX_DOCUMENTATION.md)** - Índice de documentación 🔐
-- **[DEVELOPER_QUICKSTART.md](DEVELOPER_QUICKSTART.md)** - Setup rápido rol Developer 🔐
-- **[DEVELOPER_ROLE.md](DEVELOPER_ROLE.md)** - Guía completa rol Developer 🔐
-- **[DEVELOPER_IMPLEMENTATION.md](DEVELOPER_IMPLEMENTATION.md)** - Detalles técnicos Developer 🔐
-- **[README_DEVELOPER_ROLE.md](README_DEVELOPER_ROLE.md)** - Resumen ejecutivo Developer 🔐
-- **[VERIFICATION_CHECKLIST.md](VERIFICATION_CHECKLIST.md)** - Checklist de verificación 🔐
+- **[BACKEND_SETUP.md](docs/BACKEND_SETUP.md)** - Configuración detallada del backend
+- **[DEVELOPER_QUICKSTART.md](docs/DEVELOPER_QUICKSTART.md)** - Setup rápido rol Developer 🔐
+- **[DEVELOPER_ROLE.md](docs/DEVELOPER_ROLE.md)** - Guía completa rol Developer 🔐
+- **[DEVELOPER_IMPLEMENTATION.md](docs/DEVELOPER_IMPLEMENTATION.md)** - Detalles técnicos Developer 🔐
+- **[INDEX_DOCUMENTATION.md](docs/INDEX_DOCUMENTATION.md)** - Índice de documentación 🔐
+- **[ANALISIS_CLIENTE_ICFES.md](docs/ANALISIS_CLIENTE_ICFES.md)** - Análisis de cliente ICFES
+- **[COMPARATIVA_PYTHON_TYPESCRIPT.md](docs/COMPARATIVA_PYTHON_TYPESCRIPT.md)** - Comparativa Python/TypeScript
+- **[DECISION_PUNTAJES_DIFERIDOS.md](docs/DECISION_PUNTAJES_DIFERIDOS.md)** - Decisión puntajes diferidos
+- **[IMPORTACION_SIMULACROS_SESIONES.md](docs/IMPORTACION_SIMULACROS_SESIONES.md)** - Importación de simulacros y sesiones
+- **[RESUMEN_EJECUTIVO_ICFES.md](docs/RESUMEN_EJECUTIVO_ICFES.md)** - Resumen ejecutivo ICFES
+- **[SIMULACRO_SESSIONS_TRI_IMPLEMENTATION.md](docs/SIMULACRO_SESSIONS_TRI_IMPLEMENTATION.md)** - Implementación de sesiones TRI de simulacros
 
 ---
 
@@ -450,7 +450,7 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | ------------------------------------------------- | ---------------- | --------------------------------------------------------------- |
 | **Configuración Base**                     | ✅ Completado    | Dependencias, entorno, base de datos                            |
 | **Landing Page**                            | ✅ Completada    | Diseño responsive, secciones completas                         |
-| **Autenticación**                          | ✅ Funcional     | Login, registro, Auth.js v5                                     |
+| **Autenticación**                          | ✅ Funcional     | Login, registro, next-auth                                     |
 | **Dashboard Estudiantil**                   | ✅ Funcional     | Interfaz principal, navegación                                 |
 | **Base de Datos**                           | ✅ Conectada     | PostgreSQL + Prisma ORM                                         |
 | **Sistema de Notificaciones**               | ✅ Implementado  | Toast notifications                                             |

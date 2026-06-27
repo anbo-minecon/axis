@@ -123,8 +123,8 @@ function PantallaResultadoSesion({ sesionActual, resultado, examen, onSiguiente 
             <p className="text-xs text-[var(--text-muted)] mb-1">Puntaje preliminar (Sesión {sesionActual.numero})</p>
             <div className="flex items-end justify-between">
               <span className={cn("text-4xl font-extrabold", nivel.color)}>
-                {resultado.puntajePreliminar}
-                <span className="text-lg text-gray-500 font-normal"> / 100</span>
+                {Math.round((resultado.puntajePreliminar / 100) * 500)}
+                <span className="text-lg text-gray-500 font-normal"> / 500</span>
               </span>
               <span className={cn("flex items-center gap-1 text-sm font-bold", nivel.color)}>
                 <NivelIcon className="h-4 w-4" />{nivel.label}
@@ -275,6 +275,7 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
   const promedioGlobal = resultadosPorSesion.length > 0
     ? Math.round(resultadosPorSesion.reduce((a, r) => a + r.resultado.puntajePreliminar, 0) / resultadosPorSesion.length)
     : 0;
+  const promedioGlobalEscalado = Math.round((promedioGlobal / 100) * 500);
   const nivel     = getNivel(promedioGlobal);
   const NivelIcon = nivel.icon;
 
@@ -291,8 +292,8 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
             <div>
               <p className="text-xs text-[var(--text-muted)] mb-1">Puntaje global preliminar</p>
               <p className={cn("text-5xl font-extrabold", nivel.color)}>
-                {promedioGlobal}
-                <span className="text-2xl text-gray-500 font-semibold"> / 100</span>
+                {promedioGlobalEscalado}
+                <span className="text-2xl text-gray-500 font-semibold"> / 500</span>
               </p>
             </div>
             <div className="text-right">
@@ -312,6 +313,7 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
             <h2 className="text-sm font-bold text-[var(--text-primary)]">Puntaje por sesión</h2>
             {resultadosPorSesion.map(({ sesion, resultado }) => {
               const n = getNivel(resultado.puntajePreliminar);
+              const puntajeEscaladoSesion = Math.round((resultado.puntajePreliminar / 100) * 500);
               return (
                 <div key={sesion.id} className="flex items-center gap-3">
                   <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600/20 text-xs font-bold text-blue-400">
@@ -324,7 +326,7 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
                     </div>
                   </div>
                   <span className={cn("text-sm font-extrabold shrink-0", n.color)}>
-                    {resultado.puntajePreliminar}
+                    {puntajeEscaladoSesion}
                   </span>
                 </div>
               );

@@ -13,6 +13,9 @@ import {
 // ── Tipos ──────────────────────────────────────────────────────────────────
 interface PreguntaDetalle {
   numero: number;
+  sesionId?: string;
+  sesionNumero?: number;
+  sesionNombre?: string;
   respuestaCorrecta: string;
   respuestaDada: string | null;
   correcto: boolean;
@@ -44,6 +47,7 @@ interface DatosDetalle {
     puntaje: number;
     total: number;
     pct: number;
+    puntajeEscalado: number;
     puntajePreliminar: number;
     puntajeTRI: number | null;
     estadoCalif: string;
@@ -217,15 +221,16 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
 
   // Filtrar preguntas
   let preguntasFiltradas = preguntas;
-  if (filtro === "correctas")    preguntasFiltradas = preguntas.filter((p) => p.correcto);
-  if (filtro === "incorrectas")  preguntasFiltradas = preguntas.filter((p) => !p.correcto && !p.sinResponder);
-  if (filtro === "sinResponder") preguntasFiltradas = preguntas.filter((p) => p.sinResponder);
+  if (filtro === "correctas")    preguntasFiltradas = preguntasFiltradas.filter((p) => p.correcto);
+  if (filtro === "incorrectas")  preguntasFiltradas = preguntasFiltradas.filter((p) => !p.correcto && !p.sinResponder);
+  if (filtro === "sinResponder") preguntasFiltradas = preguntasFiltradas.filter((p) => p.sinResponder);
+  if (sesionFiltro !== "todas")    preguntasFiltradas = preguntasFiltradas.filter((p) => p.sesionId === sesionFiltro);
 
   const filtros = [
-    { id: "todas",        label: `Todas ${preguntas.length}`,                  },
-    { id: "correctas",    label: `Correctas ${resumen.totalCorrectas}`,         },
-    { id: "incorrectas",  label: `Incorrectas ${resumen.totalIncorrectas}`,     },
-    { id: "sinResponder", label: `Sin responder ${resumen.sinResponder}`,       },
+    { id: "todas",        label: `Todas ${preguntas.length}` },
+    { id: "correctas",    label: `Correctas ${resumen.totalCorrectas}` },
+    { id: "incorrectas",  label: `Incorrectas ${resumen.totalIncorrectas}` },
+    { id: "sinResponder", label: `Sin responder ${resumen.sinResponder}` },
   ];
 
   return (
@@ -277,8 +282,8 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
               {esOficial ? "Puntaje TRI" : "Puntaje prelim."}
             </p>
             <p className={cn("text-2xl font-extrabold", nivel.color)}>
-              {resumen.pct}
-              <span className="text-sm text-gray-600 font-normal">/100</span>
+              {resumen.puntajeEscalado}
+              <span className="text-sm text-gray-600 font-normal">/500</span>
             </p>
             <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/10">
               <div className={cn("h-full rounded-full", nivel.bg)} style={{ width: `${resumen.pct}%` }} />
@@ -325,8 +330,8 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
                   {getAreaLabel(area)}
                 </p>
                 <div className="flex items-end justify-between gap-3">
-                  <p className="text-3xl font-extrabold text-white">{Math.round(puntaje)}</p>
-                  <span className="text-xs text-gray-400">/100</span>
+                  <p className="text-3xl font-extrabold text-white">{Math.round((puntaje / 100) * 500)}</p>
+                  <span className="text-xs text-gray-400">/500</span>
                 </div>
                 <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
                   <div className="h-full rounded-full bg-blue-500" style={{ width: `${Math.min(100, Math.max(0, puntaje))}%` }} />
@@ -395,6 +400,28 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
               {f.label}
             </button>
           ))}
+          {sesiones.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.2em] text-gray-500">Sesiones</span>
+              <button
+                onClick={() => setSesionFiltro("todas")}
+                className={cn("rounded-xl px-3 py-1.5 text-[11px] font-semibold transition border",
+                  sesionFiltro === "todas"
+                    ? "bg-white text-slate-950 border-white"
+                    : "border-white/10 text-gray-400 hover:text-white hover:border-white/20")}
+              >Todas</button>
+              {sesiones.map((s) => (
+                <button
+                  key={s.sesionId}
+                  onClick={() => setSesionFiltro(s.sesionId)}
+                  className={cn("rounded-xl px-3 py-1.5 text-[11px] font-semibold transition border",
+                    sesionFiltro === s.sesionId
+                      ? "bg-white text-slate-950 border-white"
+                      : "border-white/10 text-gray-400 hover:text-white hover:border-white/20")}
+                >S{s.numero}</button>
+              ))}
+            </div>
+          )}
           <span className="ml-auto text-[10px] text-gray-600">
             {preguntasFiltradas.length} pregunta{preguntasFiltradas.length !== 1 ? "s" : ""}
           </span>
@@ -405,7 +432,9 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
           <p className="text-sm text-gray-600 text-center py-8">No hay preguntas en esta categoría.</p>
         ) : (
           <div className="space-y-2">
-            {preguntasFiltradas.map((p) => <FilaPregunta key={p.numero} p={p} />)}
+            {preguntasFiltradas.map((p) => (
+              <FilaPregunta key={`${p.sesionId ?? "global"}-${p.numero}`} p={p} />
+            ))}
           </div>
         )}
       </div>

@@ -446,8 +446,8 @@ export function EstadisticasClient() {
                     )}
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className={cn("text-3xl font-extrabold", nivel.color)}>{a.promedio}%</span>
-                    <span className="text-xs text-gray-400">/100</span>
+                    <span className={cn("text-3xl font-extrabold", nivel.color)}>{Math.round((a.promedio / 100) * 500)}</span>
+                    <span className="text-xs text-gray-400">/500</span>
                   </div>
                   <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/10">
                     <div className={cn("h-full rounded-full", nivel.bg)}

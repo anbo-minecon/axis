@@ -85,11 +85,12 @@ function fmtTiempo(segs: number) {
 
 // ── Card ───────────────────────────────────────────────────────────────────
 function SimulacroCardItem({ s }: { s: SimulacroCard }) {
-  // BUG FIX: usar puntajeEfectivo (ya calculado en API) en vez de puntaje/total*100
-  const pct        = s.resultado?.puntajeEfectivo ?? 0;
-  const nivel      = s.resultado ? getNivel(pct) : null;
-  const materiaLabel = s.tieneSesiones ? "Multi-materia" : s.materia;
-  const esOficial  = s.resultado?.estadoCalif === "OFICIAL";
+  // Mostrar puntaje efectivo como porcentaje para el nivel y como escala ICFES sobre 500 en la tarjeta
+  const pct            = s.resultado?.puntajeEfectivo ?? 0;
+  const puntajeEscalado = Math.round((pct / 100) * 500);
+  const nivel          = s.resultado ? getNivel(pct) : null;
+  const materiaLabel   = s.tieneSesiones ? "Multi-materia" : s.materia;
+  const esOficial      = s.resultado?.estadoCalif === "OFICIAL";
 
   const Imagen = () => (
     <div className="relative h-44 w-full overflow-hidden bg-gradient-to-br from-blue-900/30 to-purple-900/30">
@@ -194,8 +195,8 @@ function SimulacroCardItem({ s }: { s: SimulacroCard }) {
             <div className="flex items-end justify-between">
               {/* BUG FIX: mostrar puntajeEfectivo/100, NO puntaje/total */}
               <span className="text-2xl font-extrabold text-[var(--text-primary)]">
-                {pct}
-                <span className="text-base font-semibold text-gray-500"> /100</span>
+                {puntajeEscalado}
+                <span className="text-base font-semibold text-gray-500"> /500</span>
               </span>
               <span className={cn("flex items-center gap-1 text-xs font-bold", nivel!.color)}>
                 <NivelIcon className="h-3.5 w-3.5" />{nivel!.label}

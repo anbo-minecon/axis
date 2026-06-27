@@ -111,47 +111,76 @@ export async function GET(
     // ── 3. Construir mapa unificado de respuestas ─────────────────────────
     // Para multi-sesión: respuestas están en ResultadoSesion
     // Para individual: respuestas están en ResultadoSimulacro
-    let respuestasEstudiante: Record<string, string | null> = {};
+    const respuestasEstudiante: Record<string, string | null> = {};
+    const respuestaKey = (sesionId: string, numeroPregunta: number) => `${sesionId}:${numeroPregunta}`;
 
     if (tieneSesiones) {
       for (const rs of resultadosSesion) {
         const resp = rs.respuestas as Record<string, string>;
         for (const [num, val] of Object.entries(resp)) {
-          respuestasEstudiante[num] = val;
+          respuestasEstudiante[respuestaKey(rs.sesionId, Number(num))] = val;
         }
       }
     } else {
       // BUG FIX: las respuestas individuales SÍ están en ResultadoSimulacro.respuestas
-      // No están vacías — verificar y usar
-      const respRaw = resultado.respuestas as Record<string, string> ?? {};
-      respuestasEstudiante = respRaw;
+      const respRaw = (resultado.respuestas as Record<string, string>) ?? {};
+      for (const [num, val] of Object.entries(respRaw)) {
+        respuestasEstudiante[num] = val;
+      }
     }
 
-    // ── 4. Construir claves sin duplicados ────────────────────────────────
-    const clavesMap = new Map<number, string>();
+    // ── 4. Construir claves ordenadas por sesión y pregunta ──────────────
+    const clavesOrdenadas: Array<{
+      sesionId: string | null;
+      sesionNumero: number | null;
+      sesionNombre: string | null;
+      numeroPregunta: number;
+      respuesta: string;
+    }> = [];
+    const seenClave = new Set<string>();
 
     if (tieneSesiones) {
       for (const sesion of resultado.examen.sesiones) {
         for (const clave of sesion.claves) {
-          if (!clavesMap.has(clave.numeroPregunta))
-            clavesMap.set(clave.numeroPregunta, clave.respuesta);
+          const key = `${sesion.id}:${clave.numeroPregunta}`;
+          if (seenClave.has(key)) continue;
+          seenClave.add(key);
+          clavesOrdenadas.push({
+            sesionId:       sesion.id,
+            sesionNumero:   sesion.numero,
+            sesionNombre:   sesion.nombre,
+            numeroPregunta: clave.numeroPregunta,
+            respuesta:      clave.respuesta,
+          });
         }
       }
     } else {
       for (const clave of resultado.examen.claves) {
-        if (!clavesMap.has(clave.numeroPregunta))
-          clavesMap.set(clave.numeroPregunta, clave.respuesta);
+        const key = `global:${clave.numeroPregunta}`;
+        if (seenClave.has(key)) continue;
+        seenClave.add(key);
+        clavesOrdenadas.push({
+          sesionId:       null,
+          sesionNumero:   null,
+          sesionNombre:   null,
+          numeroPregunta: clave.numeroPregunta,
+          respuesta:      clave.respuesta,
+        });
       }
     }
 
-    const clavesOrdenadas = Array.from(clavesMap.entries()).sort((a, b) => a[0] - b[0]);
-
-    const preguntas = clavesOrdenadas.map(([num, correcta]) => {
-      const dada     = respuestasEstudiante[String(num)] ?? null;
-      const correcto = dada !== null && dada === correcta;
+    const preguntas = clavesOrdenadas.map((clave) => {
+      const claveId = clave.sesionId
+        ? respuestaKey(clave.sesionId, clave.numeroPregunta)
+        : String(clave.numeroPregunta);
+      const dada     = respuestasEstudiante[claveId] ?? null;
+      const correcto = dada !== null && dada === clave.respuesta;
       return {
-        numero:            num,
-        respuestaCorrecta: correcta,
+        numero:            clave.numeroPregunta,
+        sesionId:          clave.sesionId,
+        sesionNumero:      clave.sesionNumero,
+        sesionNombre:      clave.sesionNombre,
+        respuestaCorrecta: clave.respuesta,
         respuestaDada:     dada,
         correcto,
         sinResponder:      dada === null,
@@ -218,6 +247,7 @@ export async function GET(
             puntajePreliminar: pctSesion,
             puntajeTRI:        rs.puntajeTRI != null ? Math.round(Number(rs.puntajeTRI)) : null,
             pct:               pctSesion,
+            puntajeEscalado:   Math.round((pctSesion / 100) * 500),
             tiempoUsado:       rs.tiempoUsado ?? 0,
             completadoEn:      rs.completadoEn,
           };
@@ -242,6 +272,7 @@ export async function GET(
         puntaje:           resultado.puntaje ?? totalCorrectas,
         total:             resultado.total   ?? clavesOrdenadas.length,
         pct,
+        puntajeEscalado:  Math.round((pct / 100) * 500),
         puntajePreliminar: puntajePreliminarReal,
         puntajeTRI:        resultado.puntajeTRI != null
           ? Math.round(Number(resultado.puntajeTRI))

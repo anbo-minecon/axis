@@ -92,6 +92,7 @@ export default async function ResultadoPage({
     puntaje:           resultado.puntaje ?? 0,
     total:             resultado.total ?? 0,
   });
+  const puntajeEscalado = Math.round((pct / 100) * 500);
   const nivel = getNivel(pct);
   const NivelIcon = nivel.icon;
   const esOficial = resultado.estadoCalif === "OFICIAL";
@@ -137,9 +138,9 @@ export default async function ResultadoPage({
             </p>
             <div className="flex items-baseline gap-1.5">
               <span className="text-4xl font-extrabold text-[var(--text-primary)]">
-                {pct}
+                {puntajeEscalado}
               </span>
-              <span className="text-lg text-gray-500 font-semibold">/ 100</span>
+              <span className="text-lg text-gray-500 font-semibold">/ 500</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
               <div

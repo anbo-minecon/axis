@@ -23,6 +23,7 @@ interface ResultadoCard {
   puntajeTRI: number | null;
   estadoCalif: string;
   pct: number;           // porcentaje efectivo 0-100 (ya corregido en API)
+  puntajeEscalado: number;
   tiempoUsado: number;
   completadoEn: string;
 }
@@ -60,6 +61,8 @@ function ResultadoCardItem({ r }: { r: ResultadoCard }) {
   const nivel      = getNivel(r.pct);
   const NivelIcon  = nivel.icon;
   const esOficial  = r.estadoCalif === "OFICIAL";
+
+  const puntajeEscalado = Math.round((r.pct / 100) * 500);
 
   return (
     <Link
@@ -100,8 +103,8 @@ function ResultadoCardItem({ r }: { r: ResultadoCard }) {
               {esOficial ? "Puntaje TRI" : "Puntaje preliminar"}
             </p>
             <p className="text-2xl font-extrabold text-[var(--text-primary)]">
-              {r.pct}
-              <span className="text-base font-semibold text-gray-500"> /100</span>
+              {puntajeEscalado}
+              <span className="text-base font-semibold text-gray-500"> /500</span>
             </p>
           </div>
           <div className="text-right">

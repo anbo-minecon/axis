@@ -375,8 +375,10 @@ export function DeveloperDashboard({ initialTab = "overview" }: { initialTab?: T
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".7"/></svg>
             Resumen
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", marginLeft: "auto", animation: "pulse 2s infinite" }} />
-          </NavItem>
-          <NavItem tab="apis" active={activeTab === "apis"} onClick={() => setActiveTab("apis")}>
+          </NavItem>          <NavItem tab="simulacros" active={activeTab === "simulacros"} onClick={() => setActiveTab("simulacros")}> 
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M3 8h10M3 12h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            Simulacros
+          </NavItem>          <NavItem tab="apis" active={activeTab === "apis"} onClick={() => setActiveTab("apis")}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M8 2v12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1"/></svg>
             APIs &amp; Servicios
           </NavItem>

@@ -101,8 +101,6 @@ function PantallaResultadoSesion({ sesionActual, resultado, examen, onSiguiente 
   sesionActual: SesionInfo; resultado: ResultadoSesion;
   examen: ExamenInfo; onSiguiente: () => void;
 }) {
-  const nivel      = getNivel(resultado.puntajePreliminar);
-  const NivelIcon  = nivel.icon;
   const siguiente  = examen.sesiones.find((s) => s.numero === sesionActual.numero + 1);
 
   return (
@@ -119,20 +117,12 @@ function PantallaResultadoSesion({ sesionActual, resultado, examen, onSiguiente 
             </div>
           </div>
 
-          <div className="rounded-xl bg-white/5 border border-white/10 px-5 py-4">
-            <p className="text-xs text-[var(--text-muted)] mb-1">Puntaje preliminar (Sesión {sesionActual.numero})</p>
-            <div className="flex items-end justify-between">
-              <span className={cn("text-4xl font-extrabold", nivel.color)}>
-                {Math.round((resultado.puntajePreliminar / 100) * 500)}
-                <span className="text-lg text-gray-500 font-normal"> / 500</span>
-              </span>
-              <span className={cn("flex items-center gap-1 text-sm font-bold", nivel.color)}>
-                <NivelIcon className="h-4 w-4" />{nivel.label}
-              </span>
-            </div>
-            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-              <div className={cn("h-full rounded-full", nivel.bg)} style={{ width: `${resultado.puntajePreliminar}%` }} />
-            </div>
+          <div className="flex items-start gap-3 rounded-xl bg-white/5 border border-white/10 px-5 py-4">
+            <Info className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-[var(--text-secondary)]">
+              Tus respuestas de esta sesión quedaron registradas. El puntaje se publicará cuando el
+              simulacro cierre y se calcule el resultado oficial.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -272,13 +262,6 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
   resultadosPorSesion: { sesion: SesionInfo; resultado: ResultadoSesion }[];
   router: ReturnType<typeof useRouter>;
 }) {
-  const promedioGlobal = resultadosPorSesion.length > 0
-    ? Math.round(resultadosPorSesion.reduce((a, r) => a + r.resultado.puntajePreliminar, 0) / resultadosPorSesion.length)
-    : 0;
-  const promedioGlobalEscalado = Math.round((promedioGlobal / 100) * 500);
-  const nivel     = getNivel(promedioGlobal);
-  const NivelIcon = nivel.icon;
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] overflow-y-auto">
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
@@ -288,58 +271,19 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
             <p className="text-sm font-semibold text-green-400">Simulacro completado</p>
           </div>
           <h1 className="text-xl font-extrabold text-[var(--text-primary)]">{examen.nombre}</h1>
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="text-xs text-[var(--text-muted)] mb-1">Puntaje global preliminar</p>
-              <p className={cn("text-5xl font-extrabold", nivel.color)}>
-                {promedioGlobalEscalado}
-                <span className="text-2xl text-gray-500 font-semibold"> / 500</span>
-              </p>
-            </div>
-            <div className="text-right">
-              <p className={cn("flex items-center gap-1 justify-end text-sm font-bold", nivel.color)}>
-                <NivelIcon className="h-4 w-4" />{nivel.label}
-              </p>
-              <p className="text-xs text-[var(--text-muted)] mt-1">Resultado preliminar</p>
-            </div>
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-            <div className={cn("h-full rounded-full", nivel.bg)} style={{ width: `${promedioGlobal}%` }} />
-          </div>
+          <p className="text-sm text-[var(--text-secondary)]">
+            ¡Buen trabajo! Tus respuestas fueron registradas
+            {resultadosPorSesion.length > 1 ? ` en las ${resultadosPorSesion.length} sesiones` : ""}.
+          </p>
         </div>
-
-        {resultadosPorSesion.length > 1 && (
-          <div className="rounded-2xl border border-white/10 bg-[var(--bg-card)] p-5 space-y-3">
-            <h2 className="text-sm font-bold text-[var(--text-primary)]">Puntaje por sesión</h2>
-            {resultadosPorSesion.map(({ sesion, resultado }) => {
-              const n = getNivel(resultado.puntajePreliminar);
-              const puntajeEscaladoSesion = Math.round((resultado.puntajePreliminar / 100) * 500);
-              return (
-                <div key={sesion.id} className="flex items-center gap-3">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-600/20 text-xs font-bold text-blue-400">
-                    {sesion.numero}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[var(--text-primary)] truncate">{sesion.nombre}</p>
-                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                      <div className={cn("h-full rounded-full", n.bg)} style={{ width: `${resultado.puntajePreliminar}%` }} />
-                    </div>
-                  </div>
-                  <span className={cn("text-sm font-extrabold shrink-0", n.color)}>
-                    {puntajeEscaladoSesion}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3.5">
           <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-bold text-amber-300">Resultado preliminar</p>
+            <p className="text-sm font-bold text-amber-300">Resultados pendientes de publicación</p>
             <p className="text-xs text-amber-400 mt-1">
-              Tu puntaje oficial se calculará cuando el simulacro cierre, usando el modelo TRI.
+              Tu puntaje se calculará y publicará para todos los participantes cuando el simulacro
+              cierre. Te avisaremos cuando esté disponible en tu sección de Resultados.
             </p>
           </div>
         </div>

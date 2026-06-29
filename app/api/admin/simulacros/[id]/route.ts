@@ -28,7 +28,6 @@ const updateSchema = z.object({
   materia:         z.string().min(1).optional(),
   totalPreguntas:  z.number().int().positive().optional(),
   tiempoMin:       z.number().int().positive().optional(),
-  // BUG FIX #1: CERRADO añadido al enum de validación Zod (igual que en schema.prisma)
   estado:          z.enum(["BORRADOR", "PUBLICADO", "CERRADO", "ARCHIVADO"]).optional(),
   fechaDisponible: z.string().optional().nullable(),
   fechaCierre:     z.string().optional().nullable(),
@@ -83,7 +82,6 @@ export async function PATCH(
     const body = await req.json();
     const { estado } = body;
 
-    // BUG FIX #1: CERRADO incluido en la lista de estados válidos
     if (!estado || !["BORRADOR", "PUBLICADO", "CERRADO", "ARCHIVADO"].includes(estado)) {
       return NextResponse.json({ error: `Estado inválido: "${estado}"` }, { status: 400 });
     }
@@ -100,25 +98,26 @@ export async function PATCH(
     });
     if (!examen) return NextResponse.json({ error: "Simulacro no encontrado" }, { status: 404 });
 
-    // BUG FIX #3: al cerrar, ejecutar TRI antes de cambiar estado
-    // Antes el TRI solo lo ejecutaba el cron; ahora también se dispara manualmente.
+    // ── BUG FIX #6: el cierre SIEMPRE recalcula TRI para TODOS los
+    // participantes actuales, sin importar si triCalculado ya estaba en
+    // true por un cierre anterior. Esto evita que estudiantes que terminaron
+    // después del primer cálculo se queden congelados en PRELIMINAR.
+    // (antes: `if (estado === "CERRADO" && !examen.triCalculado)`)
     let triEjecutado = false;
     let triError: string | null = null;
 
-    if (estado === "CERRADO" && !examen.triCalculado) {
+    if (estado === "CERRADO") {
       try {
         await ejecutarTRI(examen);
         await calcularRanking(examen.id);
         await calcularPercentil(examen.id);
         triEjecutado = true;
       } catch (e: any) {
-        // No bloquear el cierre si el TRI falla (ej. sin participantes aún)
         triError = e?.message ?? "Error en cálculo TRI";
         console.warn("[PATCH cerrar] TRI no ejecutado:", triError);
       }
     }
 
-    // Actualizar estado (y marcar triCalculado si el TRI corrió)
     const updated = await (db as any).examenTemplate.update({
       where: { id: params.id },
       data: {
@@ -128,7 +127,7 @@ export async function PATCH(
     });
 
     await _auditLog(session.user.id, params.id, examen.nombre,
-      `Estado → ${estado}${triEjecutado ? " (TRI calculado)" : ""}${triError ? ` (TRI pendiente: ${triError})` : ""}`);
+      `Estado → ${estado}${triEjecutado ? " (TRI recalculado)" : ""}${triError ? ` (TRI pendiente: ${triError})` : ""}`);
 
     return NextResponse.json({
       ok: true,
@@ -248,15 +247,18 @@ export async function DELETE(
 
 // ─────────────────────────────────────────────────────────────────────────
 // Cálculo TRI interno (misma lógica que el cron pero integrado aquí)
-// BUG FIX #4: usa campo "aciertos" (no "correctas") al leer ResultadoSesion
-// BUG FIX #5: usa "pesosPregunta" (nombre correcto del modelo Prisma, no "pesoPregunta")
+// BUG FIX #6: antes de recrear los pesos, se borran los anteriores —
+// si no, "createMany ... skipDuplicates: true" deja los pesos viejos
+// intactos en un recálculo y nunca se actualizan con el grupo completo.
 // ─────────────────────────────────────────────────────────────────────────
 async function ejecutarTRI(examen: any) {
   const tieneSesiones = examen.tieneSesiones && examen.sesiones?.length > 0;
 
+  // Limpiar pesos previos de este examen (van a recalcularse desde cero)
+  await (db as any).pesosPregunta.deleteMany({ where: { examenId: examen.id } });
+
   if (tieneSesiones) {
     for (const sesion of examen.sesiones) {
-      // BUG FIX #4: select incluye "aciertos" no "correctas"
       const resultadosSesion = await (db as any).resultadoSesion.findMany({
         where:  { sesionId: sesion.id },
         select: { estudianteId: true, respuestas: true, aciertos: true, total: true },
@@ -272,7 +274,6 @@ async function ejecutarTRI(examen: any) {
       );
 
       if (pesos.length > 0) {
-        // BUG FIX #5: modelo correcto es "pesosPregunta" (plural con mayúscula)
         await (db as any).pesosPregunta.createMany({
           data: pesos.map((p) => ({
             examenId:        examen.id,
@@ -294,7 +295,8 @@ async function ejecutarTRI(examen: any) {
       }
     }
 
-    // Consolidar TRI global por estudiante
+    // Consolidar TRI global por estudiante — incluye a TODOS los que
+    // tengan al menos una sesión calculada (ya no depende de un flag global)
     const todosRS = await (db as any).resultadoSesion.findMany({
       where: { examenId: examen.id, puntajeTRI: { not: null } },
       select: { estudianteId: true, puntajeTRI: true, total: true },
@@ -318,7 +320,6 @@ async function ejecutarTRI(examen: any) {
     }
 
   } else {
-    // Sin sesiones
     const resultados = await (db as any).resultadoSimulacro.findMany({
       where:  { examenId: examen.id },
       select: { estudianteId: true, respuestas: true },
@@ -334,7 +335,6 @@ async function ejecutarTRI(examen: any) {
     );
 
     if (pesos.length > 0) {
-      // BUG FIX #5: modelo correcto es "pesosPregunta"
       await (db as any).pesosPregunta.createMany({
         data: pesos.map((p) => ({
           examenId:        examen.id,

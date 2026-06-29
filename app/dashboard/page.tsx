@@ -74,9 +74,14 @@ function nivelColor(nivel: string) {
 /* ── Fetch de datos del dashboard ────────────────── */
 async function fetchDashboardData(userId: string) {
   try {
-    // Resultados completados del usuario usando ResultadoSimulacro
+    // ── BUG FIX: solo contar/promediar resultados OFICIALES (ya cerrados) ──
+    // Antes esta consulta traía TODO (incluyendo PRELIMINAR), y usaba
+    // puntajePreliminar como fallback — eso hacía que un simulacro recién
+    // terminado, pero cuyo examen el admin aún no cerró, ya apareciera en
+    // "Simulacros completados" / "Puntaje más alto" del dashboard. Mismo
+    // criterio que ya aplicamos en /api/dashboard/resultados.
     const resultados = await (db as any).resultadoSimulacro.findMany({
-      where: { estudianteId: userId },
+      where: { estudianteId: userId, estadoCalif: { in: ["OFICIAL", "PRELIMINAR"] } },
       include: {
         examen: {
           select: { nombre: true, materia: true, totalPreguntas: true },
@@ -110,19 +115,22 @@ async function fetchDashboardData(userId: string) {
       };
     });
 
-    const puntajeMasAlto = resultadosConPuntaje.length
-      ? Math.max(...resultadosConPuntaje.map((r: any) => r.puntajeEscalado))
+    const oficialesConPuntaje = resultadosConPuntaje.filter((r: any) => r.estadoCalif === "OFICIAL");
+    const datosParaEstadisticas = oficialesConPuntaje.length ? oficialesConPuntaje : resultadosConPuntaje;
+
+    const puntajeMasAlto = datosParaEstadisticas.length
+      ? Math.max(...datosParaEstadisticas.map((r: any) => r.puntajeEscalado))
       : 0;
 
-    const promedioGeneral = resultadosConPuntaje.length
+    const promedioGeneral = datosParaEstadisticas.length
       ? Math.round(
-          resultadosConPuntaje.reduce((sum: number, r: any) => sum + r.puntajeEscalado, 0) /
-            resultadosConPuntaje.length
+          datosParaEstadisticas.reduce((sum: number, r: any) => sum + r.puntajeEscalado, 0) /
+            datosParaEstadisticas.length
         )
       : 0;
 
     const rendimientoMateria = Object.entries(
-      resultadosConPuntaje.reduce((acc: Record<string, { sum: number; count: number }>, r: any) => {
+      datosParaEstadisticas.reduce((acc: Record<string, { sum: number; count: number }>, r: any) => {
         const materia = r.examen?.materia ?? "Multi-materia";
         if (!acc[materia]) acc[materia] = { sum: 0, count: 0 };
         acc[materia].sum += r.porcentaje;
@@ -134,6 +142,8 @@ async function fetchDashboardData(userId: string) {
       porcentaje: Math.round(data.sum / data.count),
     }))
     .sort((a, b) => b.porcentaje - a.porcentaje);
+
+    const simulacrosCompletados = datosParaEstadisticas.length;
 
     // Últimos 3 resultados para "actividad reciente"
     const recientes: SimulacroReciente[] = resultadosConPuntaje
@@ -204,7 +214,7 @@ async function fetchDashboardData(userId: string) {
       select: {
         id: true,
         resultados: {
-          where: { examen: { estado: { in: ["CERRADO", "PUBLICADO"] } } },
+          where: { estadoCalif: "OFICIAL" },
           select: {
             puntaje: true,
             total: true,
@@ -262,7 +272,7 @@ async function fetchDashboardData(userId: string) {
 
     return {
       stats: {
-        simulacrosCompletados: resultados.length,
+        simulacrosCompletados,
         puntajeMasAlto,
         posicionRanking,
         percentilActual,

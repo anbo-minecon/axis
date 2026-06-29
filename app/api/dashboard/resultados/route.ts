@@ -17,19 +17,15 @@ function puntajeEfectivoFn(r: {
   estadoCalif: string;
   puntajeTRI: number | null;
   puntajePreliminar: number;
-  puntaje: number;   // aciertos crudos
+  puntaje: number;
   total: number;
 }): number {
-  // 1. TRI oficial si existe
   if (r.estadoCalif === "OFICIAL" && r.puntajeTRI != null)
     return Math.round(Number(r.puntajeTRI));
 
-  // 2. Preliminar guardado si es > 0
   if (r.puntajePreliminar > 0)
     return Math.round(r.puntajePreliminar);
 
-  // 3. BUG FIX: puntajePreliminar=0 con datos históricos (Int truncó decimales)
-  // pero hay aciertos, recalcular con la fórmula original ^1.5
   if (r.puntaje > 0 && r.total > 0)
     return recalcularPreliminar(r.puntaje, r.total);
 
@@ -42,8 +38,16 @@ export async function GET() {
     if (!session?.user?.id)
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
+    // ── BUG FIX #7: solo se devuelven resultados OFICIALES ──
+    // El cliente pidió que el estudiante no vea NADA de su resultado
+    // (ni preliminar) hasta que el admin cierre el simulacro. Mientras
+    // estadoCalif siga en "PRELIMINAR", el registro existe en la base
+    // de datos pero esta lista simplemente no lo incluye.
     const resultados = await (db as any).resultadoSimulacro.findMany({
-      where:   { estudianteId: session.user.id },
+      where: {
+        estudianteId: session.user.id,
+        estadoCalif:  "OFICIAL",
+      },
       include: {
         examen: {
           select: {
@@ -73,12 +77,12 @@ export async function GET() {
         materia:           r.examen.materia,
         tiempoMin:         r.examen.tiempoMin,
         totalPreguntas:    r.examen._count.claves,
-        puntaje:           r.puntaje           ?? 0,   // aciertos crudos
+        puntaje:           r.puntaje           ?? 0,
         total:             r.total             ?? 0,
         puntajePreliminar: r.puntajePreliminar ?? 0,
         puntajeTRI:        r.puntajeTRI != null ? Math.round(Number(r.puntajeTRI)) : null,
         estadoCalif:       r.estadoCalif       ?? "PRELIMINAR",
-        pct:               puntajeEfectivo,             // porcentaje real 0-100
+        pct:               puntajeEfectivo,
         tiempoUsado:       r.tiempoUsado       ?? 0,
         completadoEn:      r.completadoEn,
       };
@@ -89,4 +93,13 @@ export async function GET() {
     console.error("[GET /api/dashboard/resultados]", error);
     return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
+}
+
+// ── NUEVO: cuántos simulacros completó el estudiante que aún no se publican ──
+// Útil si quieres mostrar en el dashboard algo como "Tienes 2 resultados
+// pendientes de publicación" sin revelar ningún puntaje.
+async function obtenerPendientesCount(estudianteId: string) {
+  return (db as any).resultadoSimulacro.count({
+    where: { estudianteId, estadoCalif: "PRELIMINAR" },
+  });
 }

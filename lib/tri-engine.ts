@@ -106,6 +106,17 @@ export function calcularPesos(
     for (const r of resultados) {
       r.pesoNormalizado = r.pesoBruto / sumaPesos;
     }
+  } else if (resultados.length > 0) {
+    // ── FIX: grupo sin variabilidad estadística (todos acertaron igual,
+    // ej. grupos muy chicos donde el 100% respondió bien) ──
+    // pesoBruto = dificultad * (1 + discriminacion) sale 0 para todos,
+    // y antes esto dejaba pesoNormalizado en 0 → puntaje TRI = 0 aunque
+    // el estudiante tuviera todo correcto. Repartimos peso uniforme en
+    // este caso, equivalente a calificar por % de aciertos simple.
+    const pesoUniforme = 1 / resultados.length;
+    for (const r of resultados) {
+      r.pesoNormalizado = pesoUniforme;
+    }
   }
 
   return resultados;
@@ -164,16 +175,18 @@ export function calcularTRIGrupo(
   const pesos = calcularPesos(respuestasGrupo, claves);
 
   // 2. Si no hay pesos válidos, usar calificación simple
-  if (pesos.length === 0) {
+  // (incluye el caso límite donde pesos.length > 0 pero todos quedaron en 0)
+  const sumaPesoNormalizado = pesos.reduce((a, p) => a + p.pesoNormalizado, 0);
+  if (pesos.length === 0 || sumaPesoNormalizado === 0) {
     return {
-      pesos: [],
+      pesos,
       resultados: respuestasGrupo.map((e) => {
         const correctas = Object.keys(claves).filter(
           (n) => e.respuestas[n]?.toUpperCase() === claves[n]?.toUpperCase()
         ).length;
         return {
           estudianteId: e.estudianteId,
-          puntajeTRI:   calcularPuntajePreliminar(correctas, Object.keys(claves).length),
+          puntajeTRI:   calcularPuntajePreliminar(correctas, Object.keys(claves).length, factorCurva),
         };
       }),
     };

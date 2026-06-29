@@ -1,0 +1,1 @@
+{"timestamp":"2026-06-29T02:36:55.559Z","level":"INFO","message":"Intento de acceso: ACCESO_DASHBOARD_ADMIN","data":"{\"usuarioId\":\"admin-dashboard\",\"accion\":\"ACCESO_DASHBOARD_ADMIN\",\"estado\":\"EXITOSO\",\"detalles\":{\"totalUsuarios\":5,\"simulacrosCompletados\":0,\"suscripcionesActivas\":1},\"timestamp\":\"2026-06-29T02:36:55.559Z\"}"}

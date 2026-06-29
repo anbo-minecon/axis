@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DeveloperPerfilTab } from "./DeveloperPerfilTab";
+import { DeveloperSimulacrosTab } from "./DeveloperSimulacrosTab";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface ApiEndpoint {
@@ -70,7 +71,7 @@ interface DashboardData {
   integraciones: any[];
 }
 
-type Tab = "overview" | "apis" | "logs" | "audit" | "backups" | "perfil";
+type Tab = "overview" | "simulacros" | "apis" | "logs" | "audit" | "backups" | "perfil";
 type LogLevel = "ALL" | "ERROR" | "WARN" | "INFO" | "OK";
 
 // ─── Spark Chart ──────────────────────────────────────────────────────────────
@@ -414,7 +415,7 @@ export function DeveloperDashboard({ initialTab = "overview" }: { initialTab?: T
       <main style={css.main}>
         <div style={css.topbar}>
           <div style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>
-            {{ overview: "Resumen del Sistema", apis: "APIs & Servicios", logs: "Logs del Sistema", audit: "Registro de Auditoría", backups: "Gestión de Respaldos", perfil: "Mi Perfil" }[activeTab]}
+            {{ overview: "Resumen del Sistema", simulacros: "Módulo de Simulacros", apis: "APIs & Servicios", logs: "Logs del Sistema", audit: "Registro de Auditoría", backups: "Gestión de Respaldos", perfil: "Mi Perfil" }[activeTab]}
           </div>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, color: "#22c55e" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", animation: "pulse 1.5s infinite" }} />
@@ -629,6 +630,8 @@ export function DeveloperDashboard({ initialTab = "overview" }: { initialTab?: T
           )}
 
           {/* ══ BACKUPS ═══════════════════════════════════════════════════════ */}
+          {activeTab === "simulacros" && <DeveloperSimulacrosTab />}
+
           {activeTab === "backups" && (
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>

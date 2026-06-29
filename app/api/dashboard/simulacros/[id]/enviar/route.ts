@@ -5,26 +5,32 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
-const ANSWER_VALUES = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
+const ANSWER_VALUES_AD = ["A", "B", "C", "D"] as const;
+const ANSWER_VALUES_AH = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 
 const bodySchema = z.object({
-  respuestas: z.record(z.string(), z.string())
-    .refine(
-      (respuestas) => Object.values(respuestas).every((value) =>
-        ANSWER_VALUES.includes(String(value).trim().toUpperCase() as any)
-      ),
-      { message: "Respuestas inválidas" },
-    )
-    .transform((respuestas) => {
-      const cleaned: Record<string, string> = {};
-      for (const [key, value] of Object.entries(respuestas)) {
-        const normalized = String(value).trim().toUpperCase();
-        if (ANSWER_VALUES.includes(normalized as any)) cleaned[key] = normalized;
-      }
-      return cleaned;
-    }),
+  respuestas: z.record(z.string(), z.string()),
   tiempoUsado: z.number().int().nonnegative(),
 });
+
+function getAllowedAnswers(materia: string) {
+  return materia === "Inglés" ? ANSWER_VALUES_AH : ANSWER_VALUES_AD;
+}
+
+function normalizeRespuestas(respuestas: Record<string, string>, materia: string) {
+  const allowed = getAllowedAnswers(materia);
+  const cleaned: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(respuestas)) {
+    const normalized = String(value).trim().toUpperCase();
+    if (!allowed.includes(normalized as any)) {
+      throw new Error("Respuestas inválidas");
+    }
+    cleaned[key] = normalized;
+  }
+
+  return cleaned;
+}
 
 function calcularPuntajePreliminar(aciertos: number, total: number) {
   if (total <= 0) return 0;
@@ -47,7 +53,7 @@ export async function POST(
       return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
     }
 
-    const { respuestas, tiempoUsado } = parsed.data;
+    const { respuestas: rawRespuestas, tiempoUsado } = parsed.data;
 
     // Verificar que el examen existe
     const examen = await (db as any).examenTemplate.findUnique({
@@ -57,6 +63,13 @@ export async function POST(
 
     if (!examen) {
       return NextResponse.json({ error: "Examen no encontrado" }, { status: 404 });
+    }
+
+    let respuestas: Record<string, string>;
+    try {
+      respuestas = normalizeRespuestas(rawRespuestas, examen.materia);
+    } catch {
+      return NextResponse.json({ error: "Respuestas inválidas" }, { status: 400 });
     }
 
     // Verificar si ya completó el examen

@@ -67,6 +67,9 @@ const MATERIA_COLORS: Record<string, string> = {
 const getMateriaColor = (m: string) =>
   MATERIA_COLORS[m] ?? "bg-gray-500/20 text-gray-300 border-gray-500/30";
 
+const ANSWER_OPTIONS_AD = ["A", "B", "C", "D"] as const;
+const ANSWER_OPTIONS_AH = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
+
 const ANSWER_OPTIONS: Respuesta[] = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 // ── Modal de confirmación ──────────────────────────────────────────────────
@@ -661,11 +664,11 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
               </div>
             </div>
 
-            {/* Opciones A-H */}
+            {/* Opciones de respuestas */}
             <div>
               <p className="text-sm font-semibold text-[var(--text-muted)] mb-4">Selecciona tu respuesta:</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
-                {ANSWER_OPTIONS.map((op) => {
+                {(examen.materia === "Inglés" ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => {
                   const selected = respuestas[preguntaActual] === op;
                   return (
                     <button

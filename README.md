@@ -23,6 +23,9 @@ Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia
 - **Autenticación**: next-auth v4
 - **Password hashing**: bcryptjs
 - **Serialización**: SuperJSON
+- **Tiempo Real**: Pusher (websockets)
+- **Almacenamiento**: Vercel Blob
+- **Excel**: xlsx (importación/exportación)
 
 ### DevOps & Herramientas
 
@@ -31,6 +34,7 @@ Plataforma integral de preparación para las Pruebas de Estado ICFES en Colombia
 - **Linter**: ESLint (Next.js config)
 - **PostCSS**: Procesamiento de CSS
 - **Environment**: Variables de entorno seguras
+- **Scripts de diagnóstico**: Herramientas de debugging
 
 ---
 
@@ -58,24 +62,39 @@ axis-preicfes/
 │   ├── auth/                 # Login y registro
 │   ├── dashboard/            # Área estudiantil protegida
 │   ├── admin/                # Panel administración
-│   ├── developer/            # Rol técnico oculto �
+│   ├── developer/            # Rol técnico oculto 🔐
+│   ├── docente/              # Panel docente (nuevo)
 │   └── api/                  # Endpoints API
 │
 ├── 📂 components/            # Componentes React
-│   ├── landing/              # Componentes página principal (13 archivos)
-│   ├── shared/               # Componentes reutilizables (6 archivos)
-│   ├── dashboard/            # Componentes dashboard (5 archivos)
-│   ├── simulacro/            # Componentes de exámenes (README only)
+│   ├── landing/              # Componentes página principal (15 archivos)
+│   ├── shared/               # Componentes reutilizables (9 archivos)
+│   ├── dashboard/            # Componentes dashboard (14 archivos)
+│   ├── admin/                # Componentes admin (12 archivos)
+│   ├── simulacro/            # Componentes de exámenes (1 archivo)
 │   ├── ui/                   # Componentes base shadcn/ui (🔴 vacía)
-│   ├── icons/                # Iconos personalizados
-│   └── developer/            # Componentes rol Developer
+│   ├── icons/                # Iconos personalizados (4 archivos)
+│   ├── developer/            # Componentes rol Developer (5 archivos)
+│   └── docente/              # Componentes rol Docente (4 archivos)
 │
 ├── 📂 lib/                   # Utilidades y configuración
 │   ├── auth.ts               # Configuración next-auth
+│   ├── auth-adapter.ts       # Adapter next-auth Prisma
+│   ├── auth-guard.ts         # Middleware de autenticación
 │   ├── db.ts                 # Cliente Prisma
 │   ├── logger.ts             # Sistema de logging en archivos
+│   ├── notifications.ts      # Sistema de toast notifications
 │   ├── utils.ts              # Funciones auxiliares
-│   └── (otros archivos de configuración)
+│   ├── trpc-client.ts        # Cliente tRPC frontend
+│   ├── developer-auth.ts     # Autenticación rol Developer
+│   ├── developer-guard.ts    # Middleware protección Developer
+│   ├── developer-protection.ts # Ocultamiento rol Developer
+│   ├── classroom-client.ts   # Cliente Google Classroom
+│   ├── pusher.ts             # Configuración Pusher (tiempo real)
+│   ├── pusher-client.ts      # Cliente Pusher frontend
+│   ├── ranking-utils.ts      # Utilidades de ranking
+│   ├── suscripcion-utils.ts  # Utilidades de suscripciones
+│   └── tri-engine.ts         # Motor TRI (Teoría Respuesta al Ítem)
 │
 ├── 📂 hooks/                 # React Hooks personalizados
 │   ├── useTheme.ts           # Manejo de temas
@@ -102,6 +121,13 @@ axis-preicfes/
 ├── 📂 styles/                # Estilos adicionales (🔴 vacía)
 ├── 📂 store/                 # Estado global (🔴 vacía)
 ├── 📂 scripts/               # Scripts de desarrollo
+│   ├── setup-developer.ts    # Crear usuario Developer
+│   ├── seed-areas.ts         # Seed de áreas ICFES
+│   ├── seed-developer-data.ts # Seed datos Developer
+│   ├── seed-roles-usuarios.ts # Seed roles usuarios
+│   ├── get-developer.ts      # Obtener credenciales Developer
+│   ├── diagnostico-*.ts      # Scripts de diagnóstico (6 archivos)
+│   └── prisma/seed.ts        # Seed principal
 ├── 📂 node_modules/          # Dependencias instaladas
 ├── 📂 .next/                 # Build de Next.js
 └── 📄 README.md              # Documentación del proyecto
@@ -114,16 +140,17 @@ axis-preicfes/
 | `styles/`        | **🔴 Vacía** | Estilos CSS adicionales personalizados                |
 | `store/`         | **🔴 Vacía** | Estado global (Redux/Zustand) si se requiere          |
 | `components/ui/` | **🔴 Vacía** | Componentes base shadcn/ui (botones, inputs, dialogs) |
+| `docs/` | **🔴 Vacía** | Documentación adicional (archivos movidos a raíz) |
 
 ### **📊 Distribución de Archivos**
 
 | Categoría              | Carpetas | Con Contenido | Vacías |
 | ----------------------- | -------- | ------------- | ------- |
-| **Principales**   | 12       | 9             | 3       |
-| **Components**    | 6        | 5             | 1       |
-| **Total general** | 18+      | 14+           | 4+      |
+| **Principales**   | 13       | 13            | 0       |
+| **Components**    | 9        | 8             | 1       |
+| **Total general** | 22+      | 21+           | 1+      |
 
-**Porcentaje de desarrollo:** ~75% completado
+**Porcentaje de desarrollo:** ~85% completado
 
 ---
 
@@ -143,12 +170,15 @@ axis-preicfes/
 | `/dashboard/classroom/clases/[id]`    | Tablón de clase (anuncios+tareas) | ✅ Feed en vivo          |
 | `/dashboard/classroom/calendario`     | Calendario visual mensual          | ✅ Grid 7×6 con eventos |
 | `/dashboard/planes`                   | Planes de suscripción             | ✅ Funcional             |
-| `/dashboard/estadisticas`             | Estadísticas personales           | 🔄                       |
-| `/dashboard/perfil`                   | Configuración de perfil           | 🔄                       |
+| `/dashboard/estadisticas`             | Estadísticas personales           | ✅ Completado            |
+| `/dashboard/perfil`                   | Configuración de perfil           | 🔄 En desarrollo         |
+| `/docente/dashboard`                  | Dashboard docente                 | ✅ Completado            |
+| `/docente/clases`                     | Gestión de clases docente         | ✅ Completado            |
+| `/docente/estudiantes`                | Gestión de estudiantes            | ✅ Completado            |
 | `/admin/classroom`                    | Gestión de Google Classroom       | ✅ Calendario admin      |
-| `/admin/planes`                       | Gestión de planes                 | 🔄                       |
-| `/admin/preguntas`                    | Banco de preguntas                 | 🔄                       |
-| `/admin/usuarios`                     | Gestión de usuarios               | 🔄                       |
+| `/admin/planes`                       | Gestión de planes                 | ✅ Completado            |
+| `/admin/preguntas`                    | Banco de preguntas                 | 🔄 En desarrollo         |
+| `/admin/usuarios`                     | Gestión de usuarios               | ✅ Completado            |
 | `/developer/login`                    | Login del Developer                | ✅                       |
 | `/developer/dashboard`                | Dashboard técnico (rol oculto)    | ✅                       |
 
@@ -175,6 +205,8 @@ axis-preicfes/
 #### Compartidos (`components/shared/`)
 
 - `ToastContainer.tsx` - Sistema de notificaciones tipo toast
+- `ThemeProvider.tsx` - Proveedor de tema claro/oscuro
+- `ThemeToggle.tsx` - Botón toggle de tema
 - Componentes reutilizables en toda la app
 
 #### Iconos (`components/icons/`)
@@ -198,7 +230,7 @@ axis-preicfes/
 
 | Archivo                     | Propósito                                    |
 | --------------------------- | --------------------------------------------- |
-| `auth.ts`                 | Configuración de next-auth, proveedores       |
+| `auth.ts`                 | Configuración de next-auth, proveedores      |
 | `auth-guard.ts`           | Middleware para rutas protegidas              |
 | `db.ts`                   | Cliente de Prisma singleton                   |
 | `logger.ts`               | Sistema de logging en archivos .log           |
@@ -300,6 +332,8 @@ Define los modelos:
 | ------------ | ----------------------------------- |
 | `index.ts` | Tipos globales del proyecto         |
 | `auth.ts`  | Tipos relacionados a autenticación |
+| `icfes.ts` | Tipos específicos ICFES |
+| `next-auth.d.ts` | Extensiones de tipos next-auth |
 
 ---
 
@@ -324,6 +358,14 @@ npm run db:seed          # Ejecuta seeders (si existen)
 
 # Rol Developer (Setup)
 npx tsx scripts/setup-developer.ts  # Crear usuario Developer con credenciales
+
+# Scripts de diagnóstico
+npx tsx scripts/diagnostico-dashboard.ts    # Diagnosticar dashboard
+npx tsx scripts/diagnostico-usuario.ts      # Diagnosticar usuario
+npx tsx scripts/diagnostico-estados.ts      # Diagnosticar estados
+npx tsx scripts/diagnostico-resultados.ts   # Diagnosticar resultados
+npx tsx scripts/diagnostico-usuarios.ts     # Diagnosticar usuarios
+npx tsx scripts/diagnostico-usuarios-resultados.ts # Usuarios y resultados
 
 # Linting
 npm run lint             # Ejecuta ESLint
@@ -403,7 +445,7 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | Variable                 | Descripción                        | Ejemplo                                          |
 | ------------------------ | ----------------------------------- | ------------------------------------------------ |
 | `DATABASE_URL`         | Conexión a PostgreSQL              | `postgresql://user:pass@localhost:5432/dbname` |
-| `AUTH_SECRET`          | Secret para next-auth                 | `openssl rand -base64 32`                      |
+| `AUTH_SECRET`          | Secret para next-auth               | `openssl rand -base64 32`                      |
 | `AUTH_URL`             | URL base de la app                  | `http://localhost:3000`                        |
 | `AUTH_GOOGLE_ID`       | Google OAuth Client ID (opcional)   | `tu-google-client-id`                          |
 | `AUTH_GOOGLE_SECRET`   | Google OAuth Secret (opcional)      | `tu-google-secret`                             |
@@ -412,6 +454,13 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | `NEXT_PUBLIC_APP_URL`  | URL pública de la app              | `http://localhost:3000`                        |
 | `NEXT_PUBLIC_APP_NAME` | Nombre de la aplicación            | `Axis Pre-ICFES`                               |
 | `REDIS_URL`            | Conexión a Redis (opcional caché) | `redis://localhost:6379`                       |
+| `PUSHER_APP_ID`       | Pusher App ID (tiempo real)       | `tu-pusher-app-id`                            |
+| `PUSHER_KEY`          | Pusher Key                        | `tu-pusher-key`                               |
+| `PUSHER_SECRET`       | Pusher Secret                     | `tu-pusher-secret`                            |
+| `PUSHER_CLUSTER`      | Pusher Cluster                    | `mt1`                                         |
+| `PUSHER_HOST`         | Pusher Host (opcional)            | `localhost`                                   |
+| `PUSHER_PORT`         | Pusher Port (opcional)            | `6001`                                        |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (almacenamiento) | `tu-blob-token`                               |
 
 ---
 
@@ -450,7 +499,7 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | ------------------------------------------------- | ---------------- | --------------------------------------------------------------- |
 | **Configuración Base**                     | ✅ Completado    | Dependencias, entorno, base de datos                            |
 | **Landing Page**                            | ✅ Completada    | Diseño responsive, secciones completas                         |
-| **Autenticación**                          | ✅ Funcional     | Login, registro, next-auth                                     |
+| **Autenticación**                          | ✅ Funcional     | Login, registro, next-auth                                      |
 | **Dashboard Estudiantil**                   | ✅ Funcional     | Interfaz principal, navegación                                 |
 | **Base de Datos**                           | ✅ Conectada     | PostgreSQL + Prisma ORM                                         |
 | **Sistema de Notificaciones**               | ✅ Implementado  | Toast notifications                                             |
@@ -469,18 +518,26 @@ Accede a: **[http://localhost:3000](http://localhost:3000)**
 | **Sincronización Google Classroom**        | ✅ Completado    | Miembros, eventos, datos bidireccionales                        |
 | **Sistema de Pagos**                        | ⏳ Pendiente     | Integración con pasarelas                                      |
 | **Móvil (PWA)**                            | ⏳ Pendiente     | Versión móvil optimizada                                      |
-| x] Mostrar imágenes en simulacros de estudiantes |                  |                                                                 |
+| **Panel Docente**                          | ✅ Completado    | Gestión de clases y estudiantes                                |
+| **Sistema de Ranking**                     | ✅ Completado    | Ranking de estudiantes por puntaje                             |
+| **Motor TRI**                              | ✅ Completado    | Teoría Respuesta al Ítem para calibración                     |
+| **Tiempo Real (Pusher)**                   | ✅ Completado    | Actualizaciones en vivo via websockets                        |
+| **Almacenamiento Blob**                    | ✅ Completado    | Archivos en Vercel Blob Storage                               |
+| **Importación Excel**                      | ✅ Completado    | Importación de datos desde Excel                               |
 
+- [X] Implementar panel docente completo
+- [X] Sistema de ranking de estudiantes
+- [X] Motor TRI para calibración de preguntas
+- [X] Integración Pusher para tiempo real
+- [X] Almacenamiento en Vercel Blob
+- [X] Importación/Exportación Excel
 - [X] Corregir layouts duplicados en dashboard
 - [X] Arreglar queries de datos del dashboard
 - [X] Resolver conflictos de ThemeProvider
 - [ ] Implementar motor de simulacros con temporizador
 - [ ] Cargar banco de preguntas inicial
-- [ ] Desarrollar panel de administración completo
-- [ ] Agregar estadísticas detalladas por materia
-- [ ] Implementar sistema de suscripciones integrado
-- [ ] Agregar estadísticas detalladas
-- [ ] Implementar sistema de suscripciones
+- [ ] Implementar sistema de suscripciones con pasarela de pagos
+- [ ] Desarrollar versión móvil PWA
 
 ---
 
@@ -505,7 +562,38 @@ Equipo AXIS Pre-ICFES
 
 ---
 
-## 🔐 Rol Developer (Nuevo)
+## �‍🏫 Rol Docente (Nuevo)
+
+### Características Principales
+
+**Rol para docentes que gestionan clases y estudiantes:**
+
+- ✅ **Dashboard Docente**: Vista principal con estadísticas
+- ✅ **Gestión de Clases**: Crear y administrar clases
+- ✅ **Gestión de Estudiantes**: Ver y gestionar estudiantes
+- ✅ **Asignación de Tareas**: Crear y asignar tareas
+- ✅ **Seguimiento de Progreso**: Monitorear avance de estudiantes
+- ✅ **Ranking de Clase**: Ver ranking de estudiantes
+
+### Acceso Rápido
+
+```bash
+# Acceder a
+http://localhost:3000/docente/dashboard
+```
+
+### Rutas Disponibles
+
+```
+/docente/dashboard          - Dashboard principal
+/docente/clases             - Gestión de clases
+/docente/estudiantes        - Gestión de estudiantes
+/docente/tareas             - Gestión de tareas
+```
+
+---
+
+## 🔐 Rol Developer
 
 ### Características Principales
 
@@ -904,8 +992,8 @@ html.dark {
 
 ---
 
-**Última actualización:** Junio 17, 2026
-**Versión:** v0.6.0
+**Última actualización:** Junio 29, 2026
+**Versión:** v0.1.0
 **Estado:** Desarrollo activo 🚀
 
 ---
@@ -914,3 +1002,4 @@ html.dark {
 
 - **Documentación técnica**: Revisa los archivos `.md` en la raíz
 - **Issues**: Reporta problemas en el repositorio del proyecto
+

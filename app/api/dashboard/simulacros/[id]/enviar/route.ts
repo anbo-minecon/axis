@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
-const ANSWER_VALUES = ["A", "B", "C", "D"] as const;
+const ANSWER_VALUES = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
 
 const bodySchema = z.object({
   respuestas: z.record(z.string(), z.string())

@@ -30,7 +30,7 @@ function parseFecha(valor: string | null | undefined): Date | null {
 // ── Schemas ────────────────────────────────────────────────────────────────
 const claveSchema = z.object({
   numero:     z.number().int().positive(),
-  respuesta:  z.enum(["A", "B", "C", "D"]).nullable(),
+  respuesta:  z.enum(["A", "B", "C", "D", "E", "F", "G", "H"]).nullable(),
   sesion:     z.number().int().positive().default(1),   // sin límite de 2 — puede haber N sesiones
   dificultad: z.enum(["facil", "media", "dificil"]).optional().default("media"),
   area:       z.enum([

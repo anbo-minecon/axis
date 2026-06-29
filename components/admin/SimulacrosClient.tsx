@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
 type TipoSimulacro  = "individual" | "grupal";
-type RespuestaLetra = "A" | "B" | "C" | "D";
+type RespuestaLetra = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H";
 type Dificultad     = "facil" | "media" | "dificil";
 type Tab            = "crear" | "importar";
 
@@ -839,9 +839,9 @@ function ClavePreguntaCard({
           )}
         </div>
       </div>
-      {/* Opciones A B C D */}
+      {/* Opciones A-H */}
       <div className="grid grid-cols-2 gap-1">
-        {(["A", "B", "C", "D"] as RespuestaLetra[]).map((op) => (
+        {(["A", "B", "C", "D", "E", "F", "G", "H"] as RespuestaLetra[]).map((op) => (
           <button
             key={op}
             onClick={() => onToggleRespuesta(op)}
@@ -1075,7 +1075,7 @@ function ImportarExcelForm() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { color: "border-green-500/20 bg-green-500/5", icon: <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />, text: "Los nombres de columna deben ser exactamente como se indica (minúsculas)." },
-          { color: "border-green-500/20 bg-green-500/5", icon: <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />, text: "Respuestas válidas: A, B, C o D (mayúsculas). Dificultad: facil, media o dificil." },
+          { color: "border-green-500/20 bg-green-500/5", icon: <CheckCircle2 className="h-4 w-4 text-green-400 shrink-0" />, text: "Respuestas válidas: A, B, C, D, E, F, G u H (mayúsculas). Dificultad: facil, media o dificil." },
           { color: "border-amber-500/20 bg-amber-500/5", icon: <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />, text: "Filas con errores en respuesta o dificultad serán rechazadas." },
         ].map((item, i) => (
           <div key={i} className={cn("flex items-start gap-2 rounded-xl border p-3", item.color)}>

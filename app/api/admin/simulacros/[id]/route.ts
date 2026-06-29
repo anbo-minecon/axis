@@ -33,7 +33,7 @@ const updateSchema = z.object({
   fechaCierre:     z.string().optional().nullable(),
   claves: z.array(z.object({
     numeroPregunta: z.number().int().positive(),
-    respuesta:      z.enum(["A", "B", "C", "D"]),
+    respuesta:      z.enum(["A", "B", "C", "D", "E", "F", "G", "H"]),
     sesionNumero:   z.number().int().positive().optional(),
   })).optional(),
 });

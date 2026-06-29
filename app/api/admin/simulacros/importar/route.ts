@@ -48,7 +48,7 @@ interface GrupoSimulacro {
   claves: ClavePorSesion[];
 }
 
-const RESPUESTAS_VALIDAS = new Set(["A", "B", "C", "D"]);
+const RESPUESTAS_VALIDAS = new Set(["A", "B", "C", "D", "E", "F", "G", "H"]);
 const AREAS_CANONICAS: Record<string, string> = {
   "LECTURA CRITICA": "LECTURA CRITICA",
   "LECTURA CRÍTICA": "LECTURA CRITICA",
@@ -165,7 +165,7 @@ export async function POST(req: Request) {
       }
       if (!RESPUESTAS_VALIDAS.has(respuesta)) {
         mensajesError.push(
-          `Fila ${fila}: respuesta "${row.respuesta_correcta}" no válida (debe ser A, B, C o D) — rechazada.`
+          `Fila ${fila}: respuesta "${row.respuesta_correcta}" no válida (debe ser A, B, C, D, E, F, G u H) — rechazada.`
         );
         filasRechazadas++;
         return;

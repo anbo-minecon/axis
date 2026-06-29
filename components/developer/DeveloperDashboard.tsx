@@ -190,6 +190,7 @@ function NavItem({ tab, active, onClick, children, badge }: { tab: Tab; active: 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function DeveloperDashboard({ initialTab = "overview" }: { initialTab?: Tab } = {}) {
   const router = useRouter();
+  const [token, setToken] = useState<string>("");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -208,10 +209,11 @@ export function DeveloperDashboard({ initialTab = "overview" }: { initialTab?: T
   const fetchData = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true);
-      const token = localStorage.getItem("developer_token");
-      if (!token) { router.push("/developer/login"); return; }
+      const storedToken = localStorage.getItem("developer_token");
+      if (!storedToken) { router.push("/developer/login"); return; }
+      setToken(storedToken);
 
-      const hdr = { Authorization: `Bearer ${token}` };
+      const hdr = { Authorization: `Bearer ${storedToken}` };
 
       // Pedimos dashboard y logs en paralelo
       const [dashRes, sysRes, auditRes] = await Promise.all([
@@ -632,7 +634,7 @@ export function DeveloperDashboard({ initialTab = "overview" }: { initialTab?: T
           )}
 
           {/* ══ BACKUPS ═══════════════════════════════════════════════════════ */}
-          {activeTab === "simulacros" && <DeveloperSimulacrosTab />}
+          {activeTab === "simulacros" && token && <DeveloperSimulacrosTab token={token} />}
 
           {activeTab === "backups" && (
             <div>

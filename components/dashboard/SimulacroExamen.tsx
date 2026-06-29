@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
-type Respuesta = "A" | "B" | "C" | "D";
+type Respuesta = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H";
 type Fase = "inicio" | "examen" | "enviando" | "resultado_sesion" | "resultado_final";
 
 interface SesionInfo {
@@ -66,6 +66,8 @@ const MATERIA_COLORS: Record<string, string> = {
 };
 const getMateriaColor = (m: string) =>
   MATERIA_COLORS[m] ?? "bg-gray-500/20 text-gray-300 border-gray-500/30";
+
+const ANSWER_OPTIONS: Respuesta[] = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
 // ── Modal de confirmación ──────────────────────────────────────────────────
 function Modal({ titulo, mensaje, confirmLabel, confirmClass, onConfirm, onCancel }: {
@@ -323,6 +325,8 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
   const [resultadoSesionActual, setResultadoSesion] = useState<ResultadoSesion | null>(null);
   const [resultadosPorSesion,   setResultadosPorSesion] = useState<{ sesion: SesionInfo; resultado: ResultadoSesion }[]>([]);
 
+  const materiaLabel = examen.tieneSesiones ? "Multi-materia" : examen.materia;
+
   const timerRef        = useRef<ReturnType<typeof setInterval> | null>(null);
   const tiempoInicioRef = useRef<number>(0);
 
@@ -387,7 +391,7 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
 
     const respObj: Record<string, string> = {};
     for (const [k, v] of Object.entries(respuestas)) {
-      if (v === "A" || v === "B" || v === "C" || v === "D") {
+      if (["A", "B", "C", "D", "E", "F", "G", "H"].includes(v as string)) {
         respObj[String(k)] = v;
       }
     }
@@ -657,11 +661,11 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
               </div>
             </div>
 
-            {/* Opciones A B C D */}
+            {/* Opciones A-H */}
             <div>
               <p className="text-sm font-semibold text-[var(--text-muted)] mb-4">Selecciona tu respuesta:</p>
-              <div className="grid grid-cols-2 gap-3">
-                {(["A", "B", "C", "D"] as Respuesta[]).map((op) => {
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
+                {ANSWER_OPTIONS.map((op) => {
                   const selected = respuestas[preguntaActual] === op;
                   return (
                     <button

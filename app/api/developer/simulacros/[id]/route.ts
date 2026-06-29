@@ -26,7 +26,7 @@ const updateSchema = z.object({
     .array(
       z.object({
         id: z.string().min(1),
-        respuesta: z.enum(["A", "B", "C", "D"]),
+        respuesta: z.enum(["A", "B", "C", "D", "E", "F", "G", "H"]),
       })
     )
     .optional(),

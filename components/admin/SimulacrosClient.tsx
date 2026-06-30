@@ -1,7 +1,7 @@
 // components/admin/SimulacrosClient.tsx
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   User, Layers, Plus, Trash2, ChevronDown, ChevronUp,
   Clock, Upload, Download, CheckCircle2, AlertTriangle,
@@ -71,6 +71,9 @@ const DIFICULTAD_COLOR: Record<Dificultad, string> = {
   dificil: "bg-red-500/20 text-red-400 border-red-500/40",
 };
 
+const ANSWER_OPTIONS_AD = ["A", "B", "C", "D"] as const;
+const ANSWER_OPTIONS_AH = ["A", "B", "C", "D", "E", "F", "G", "H"] as const;
+
 function makeClaves(inicio: number, cantidad: number): ClaveRespuesta[] {
   return Array.from({ length: cantidad }, (_, i) => ({
     numero: inicio + i,
@@ -111,6 +114,7 @@ function CrearSimulacroForm() {
   const [nombre,     setNombre]     = useState("");
   const [materia,    setMateria]    = useState("");           // solo para individual
   const [tiempoMin,  setTiempoMin]  = useState(90);          // solo para individual
+  const [tiempoGrupalTotal, setTiempoGrupalTotal] = useState(600);  // solo para grupal
   const [fechaLimite,setFechaLimite]= useState("");
 
   // Estado sesiones (grupal)
@@ -125,6 +129,22 @@ function CrearSimulacroForm() {
     setTimeout(() => setToast(null), 4500);
   };
 
+  // Cuando se elimina una sesión o se agrega, redistribuir tiempo
+  useEffect(() => {
+    if (tipo === "grupal" && sesiones.length > 0 && tiempoGrupalTotal > 0) {
+      const tiempoXSesion = Math.floor(tiempoGrupalTotal / sesiones.length);
+      setSesiones((prev) => prev.map((s) => ({ ...s, tiempoMin: tiempoXSesion })));
+    }
+  }, [sesiones.length]); // Reacciona a cambios en cantidad de sesiones
+
+  // Cuando cambia el tiempo total, redistribuir entre sesiones existentes
+  useEffect(() => {
+    if (tipo === "grupal" && sesiones.length > 0 && tiempoGrupalTotal > 0) {
+      const tiempoXSesion = Math.floor(tiempoGrupalTotal / sesiones.length);
+      setSesiones((prev) => prev.map((s) => ({ ...s, tiempoMin: tiempoXSesion })));
+    }
+  }, [tiempoGrupalTotal]); // Reacciona a cambios en el tiempo total
+
   // ── Totales ──────────────────────────────────────────────────────────────
   const totalPreguntas = tipo === "individual"
     ? 10  // placeholder; el admin define la clave manual
@@ -132,7 +152,7 @@ function CrearSimulacroForm() {
 
   const totalTiempo = tipo === "individual"
     ? tiempoMin
-    : sesiones.reduce((a, s) => a + s.tiempoMin, 0);
+    : tiempoGrupalTotal;
 
   const totalSesiones = tipo === "grupal" ? sesiones.length : 1;
 
@@ -159,23 +179,49 @@ function CrearSimulacroForm() {
     const nuevaSesion: SesionConfig = {
       id: uid(),
       numero: num,
-      tiempoMin: 135,
+      tiempoMin: 0, // Se actualizará con redistribución
       bloques: [],
       claves: [],
       expandida: true,
       clavesExpandidas: false,
     };
-    setSesiones((prev) => [...prev, nuevaSesion]);
+    setSesiones((prev) => {
+      const nuevas = [...prev, nuevaSesion];
+      // Redistribuir tiempo automáticamente
+      if (tiempoGrupalTotal > 0) {
+        const tiempoXSesion = Math.floor(tiempoGrupalTotal / nuevas.length);
+        return nuevas.map((s) => ({ ...s, tiempoMin: tiempoXSesion }));
+      }
+      return nuevas;
+    });
   };
 
-  const eliminarSesion = (id: string) =>
-    setSesiones((prev) => prev.filter((s) => s.id !== id).map((s, i) => ({ ...s, numero: i + 1 })));
+  const eliminarSesion = (id: string) => {
+    setSesiones((prev) => {
+      const nuevas = prev.filter((s) => s.id !== id).map((s, i) => ({ ...s, numero: i + 1 }));
+      // Redistribuir tiempo cuando se elimina una sesión
+      if (nuevas.length > 0 && tiempoGrupalTotal > 0) {
+        const tiempoXSesion = Math.floor(tiempoGrupalTotal / nuevas.length);
+        return nuevas.map((s) => ({ ...s, tiempoMin: tiempoXSesion }));
+      }
+      return nuevas;
+    });
+  };
 
   const toggleSesion = (id: string, campo: "expandida" | "clavesExpandidas") =>
     setSesiones((prev) => prev.map((s) => s.id === id ? { ...s, [campo]: !s[campo] } : s));
 
   const setTiempoSesion = (id: string, t: number) =>
     setSesiones((prev) => prev.map((s) => s.id === id ? { ...s, tiempoMin: t } : s));
+
+  // Redistribuir tiempo cuando cambia el total de grupal
+  const actualizarTiempoGrupal = (totalMins: number) => {
+    setTiempoGrupalTotal(totalMins);
+    if (sesiones.length > 0 && totalMins > 0) {
+      const tiempoXSesion = Math.floor(totalMins / sesiones.length);
+      setSesiones((prev) => prev.map((s) => ({ ...s, tiempoMin: tiempoXSesion })));
+    }
+  };
 
   // Bloques de materia
   const agregarBloque = (sesionId: string) => {
@@ -371,7 +417,7 @@ function CrearSimulacroForm() {
       showToast("ok", estado === "PUBLICADO" ? "Simulacro publicado con éxito." : "Guardado como borrador.");
       // Reset completo
       setNombre(""); setMateria(""); setTiempoMin(90); setFechaLimite("");
-      setSesiones([]); setTipo(null); setClavesInd(makeClaves(1, 10));
+      setSesiones([]); setTipo(null); setClavesInd(makeClaves(1, 10)); setTiempoGrupalTotal(600);
     } catch (err) {
       console.error("[handleGuardar]", err);
       showToast("error", "Error de conexión. Intenta de nuevo.");
@@ -520,6 +566,7 @@ function CrearSimulacroForm() {
             onSetDificultad={setDifInd}
             onAgregarMas={agregarClavesInd}
             loading={loading}
+            materia={materia}
           />
         </>
       )}
@@ -556,6 +603,31 @@ function CrearSimulacroForm() {
                 />
                 <p className="text-[10px] text-gray-600 mt-1">El acceso se bloqueará automáticamente en esta fecha.</p>
               </div>
+            </div>
+
+            {/* Tiempo total para grupal */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-400 mb-1.5">
+                <Clock className="inline h-3 w-3 mr-1" />
+                Tiempo total del simulacro <span className="text-red-400">*</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={tiempoGrupalTotal}
+                  onChange={(e) => actualizarTiempoGrupal(Math.max(60, Number(e.target.value)))}
+                  min={60}
+                  step={30}
+                  className={inputCls}
+                  disabled={loading}
+                />
+                <span className="text-xs text-gray-500 whitespace-nowrap">min</span>
+              </div>
+              <p className="text-[10px] text-gray-600 mt-1">
+                {sesiones.length > 0 
+                  ? `Se distribuirá automáticamente: ${Math.floor(tiempoGrupalTotal / sesiones.length)} min por sesión`
+                  : "Define el tiempo total. Se distribuirá entre las sesiones."}
+              </p>
             </div>
 
             {/* Resumen */}
@@ -752,6 +824,7 @@ function CrearSimulacroForm() {
                                 dificultad={dificultad}
                                 onToggleRespuesta={(op) => toggleRespGrupal(sesion.id, numero, op)}
                                 onSetDificultad={(d)  => setDifGrupal(sesion.id, numero, d)}
+                                materia={bloque.materia}
                               />
                             ))}
                           </div>
@@ -795,9 +868,11 @@ function CrearSimulacroForm() {
 function ClavePreguntaCard({
   numero, respuesta, dificultad,
   onToggleRespuesta, onSetDificultad,
+  materia,
 }: {
   numero: number;
   respuesta: RespuestaLetra | null;
+  materia?: string;
   dificultad: Dificultad;
   onToggleRespuesta: (op: RespuestaLetra) => void;
   onSetDificultad:   (d: Dificultad)   => void;
@@ -839,9 +914,9 @@ function ClavePreguntaCard({
           )}
         </div>
       </div>
-      {/* Opciones A-H */}
+      {/* Opciones de respuestas basadas en materia */}
       <div className="grid grid-cols-2 gap-1">
-        {(["A", "B", "C", "D", "E", "F", "G", "H"] as RespuestaLetra[]).map((op) => (
+        {(materia === "Inglés" ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => (
           <button
             key={op}
             onClick={() => onToggleRespuesta(op)}
@@ -862,7 +937,7 @@ function ClavePreguntaCard({
 
 // ── Panel de claves para simulacro individual ─────────────────────────────
 function ClavesRespuestasPanel({
-  claves, titulo, onToggleRespuesta, onSetDificultad, onAgregarMas, loading,
+  claves, titulo, onToggleRespuesta, onSetDificultad, onAgregarMas, loading, materia,
 }: {
   claves: ClaveRespuesta[];
   titulo: string;
@@ -870,6 +945,7 @@ function ClavesRespuestasPanel({
   onSetDificultad:   (num: number, d: Dificultad)   => void;
   onAgregarMas:      (n: number) => void;
   loading: boolean;
+  materia?: string;
 }) {
   const defTotal = claves.filter((c) => c.respuesta !== null).length;
   const facil    = claves.filter((c) => c.dificultad === "facil").length;
@@ -911,6 +987,7 @@ function ClavesRespuestasPanel({
             dificultad={dificultad}
             onToggleRespuesta={(op) => onToggleRespuesta(numero, op)}
             onSetDificultad={(d)   => onSetDificultad(numero, d)}
+            materia={materia}
           />
         ))}
       </div>

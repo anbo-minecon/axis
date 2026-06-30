@@ -64,14 +64,31 @@ export async function POST(
     // Verificar estado del examen
     const examen = await (db as any).examenTemplate.findUnique({
       where:  { id: params.id },
-      select: { estado: true, materia: true },
+      select: { estado: true, materia: true, tieneSesiones: true },
     });
     if (!examen || !["PUBLICADO", "CERRADO"].includes(examen.estado))
       return NextResponse.json({ error: "El simulacro no está disponible" }, { status: 403 });
 
+    // Para grupal, validar más permisivamente (permitir A-H)
+    // Para individual, validar según materia específica
+    const validarRespuestas = examen.tieneSesiones 
+      ? (respuestas: Record<string, string>) => {
+          // Grupal: permitir A-H para cualquier pregunta
+          const cleaned: Record<string, string> = {};
+          for (const [key, value] of Object.entries(respuestas)) {
+            const normalized = String(value).trim().toUpperCase();
+            if (!ANSWER_VALUES_AH.includes(normalized as any)) {
+              throw new Error("Respuestas inválidas");
+            }
+            cleaned[key] = normalized;
+          }
+          return cleaned;
+        }
+      : (respuestas: Record<string, string>) => normalizeRespuestas(respuestas, examen.materia);
+
     let respuestas: Record<string, string>;
     try {
-      respuestas = normalizeRespuestas(rawRespuestas, examen.materia);
+      respuestas = validarRespuestas(rawRespuestas);
     } catch {
       return NextResponse.json({ error: "Respuestas inválidas" }, { status: 400 });
     }

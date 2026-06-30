@@ -22,7 +22,17 @@ export async function GET(
         nombre: true,
         materia: true,
         tiempoMin: true,
+        tieneSesiones: true,
         _count: { select: { claves: true } },
+        sesiones: {
+          select: {
+            id: true,
+            numero: true,
+            nombre: true,
+            tiempoMin: true,
+          },
+          orderBy: { numero: "asc" },
+        },
       },
     });
 
@@ -40,6 +50,19 @@ export async function GET(
       },
     });
 
+    // Calcular preguntas por sesión
+    const sesionesConPreguntas = await Promise.all(
+      examen.sesiones.map(async (s: any) => {
+        const clavesSesion = await (db as any).claveExamen.count({
+          where: { examenId: params.id, sesionId: s.id },
+        });
+        return {
+          ...s,
+          totalPreguntas: clavesSesion,
+        };
+      })
+    );
+
     return NextResponse.json({
       examen: {
         id: examen.id,
@@ -47,6 +70,8 @@ export async function GET(
         materia: examen.materia,
         tiempoMin: examen.tiempoMin,
         totalPreguntas: examen._count.claves,
+        tieneSesiones: examen.tieneSesiones,
+        sesiones: sesionesConPreguntas,
       },
       yaCompletado: !!resultado,
     });

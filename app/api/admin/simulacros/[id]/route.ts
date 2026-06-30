@@ -175,6 +175,22 @@ export async function PUT(
     if (fdRaw          !== undefined) updateData.fechaDisponible = parseFecha(fdRaw);
     if (fcRaw          !== undefined) updateData.fechaCierre     = parseFecha(fcRaw);
 
+    // Si se actualiza el tiempo total y el examen tiene sesiones, redistribuir entre sesiones
+    if (tiempoMin !== undefined && examen.tieneSesiones) {
+      const sesiones = await (db as any).sesionExamen.findMany({
+        where: { examenId: params.id },
+        orderBy: { numero: "asc" },
+      });
+      
+      if (sesiones.length > 0) {
+        const tiempoPorSesion = Math.floor(tiempoMin / sesiones.length);
+        await (db as any).sesionExamen.updateMany({
+          where: { examenId: params.id },
+          data: { tiempoMin: tiempoPorSesion },
+        });
+      }
+    }
+
     if (claves && claves.length > 0) {
       const sesionesExistentes = await (db as any).sesionExamen.findMany({
         where: { examenId: params.id }, orderBy: { numero: "asc" },

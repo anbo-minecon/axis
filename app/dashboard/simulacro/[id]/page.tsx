@@ -37,6 +37,13 @@ export default async function SimulacroPage({
           _count:    { select: { claves: true } },
         },
       },
+      claves: {
+        select: {
+          numeroPregunta: true,
+          area:           true,
+        },
+        orderBy: { numeroPregunta: "asc" },
+      },
     },
   });
 
@@ -85,6 +92,11 @@ export default async function SimulacroPage({
       tiempoMin:      s.tiempoMin,
       totalPreguntas: s._count.claves,
     })),
+    // Agregar áreas de preguntas para determinar opciones dinámicas
+    areasPorPregunta: (examen.claves ?? []).reduce((acc: Record<number, string>, c: any) => {
+      acc[c.numeroPregunta] = c.area;
+      return acc;
+    }, {}),
   };
 
   return <SimulacroExamen examen={examenData} />;

@@ -41,6 +41,7 @@ export default async function SimulacroPage({
         select: {
           numeroPregunta: true,
           area:           true,
+          sesionId:       true,
         },
         orderBy: { numeroPregunta: "asc" },
       },
@@ -93,8 +94,19 @@ export default async function SimulacroPage({
       totalPreguntas: s._count.claves,
     })),
     // Agregar áreas de preguntas para determinar opciones dinámicas
-    areasPorPregunta: (examen.claves ?? []).reduce((acc: Record<number, string>, c: any) => {
-      acc[c.numeroPregunta] = c.area;
+    // Priorizar INGLES cuando hay múltiples áreas para la misma pregunta
+    areasPorSesion: (examen.sesiones ?? []).reduce((acc: Record<string, Record<number, string>>, sesion: any) => {
+      const clavesSesion = (examen.claves ?? []).filter((c: any) => c.sesionId === sesion.id);
+      acc[sesion.id] = clavesSesion.reduce((innerAcc: Record<number, string>, c: any) => {
+        const preguntaNum = c.numeroPregunta;
+        const areaActual = c.area;
+        
+        // Si ya existe un área para esta pregunta, solo reemplazar si el nuevo es INGLES
+        if (!innerAcc[preguntaNum] || areaActual === "INGLES") {
+          innerAcc[preguntaNum] = areaActual;
+        }
+        return innerAcc;
+      }, {});
       return acc;
     }, {}),
   };

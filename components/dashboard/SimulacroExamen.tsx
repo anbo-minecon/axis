@@ -31,7 +31,7 @@ interface ExamenInfo {
   totalPreguntas: number;
   tieneSesiones: boolean;
   sesiones: SesionInfo[];
-  areasPorPregunta: Record<number, string>;
+  areasPorSesion: Record<string, Record<number, string>>;
 }
 
 interface ResultadoSesion {
@@ -669,7 +669,7 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
             <div>
               <p className="text-sm font-semibold text-[var(--text-muted)] mb-4">Selecciona tu respuesta:</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
-                {(examen.areasPorPregunta[preguntaActual] === "INGLES" ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => {
+                {((examen.areasPorSesion?.[sesionActual.id]?.[preguntaActual] === "INGLES") ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => {
                   const selected = respuestas[preguntaActual] === op;
                   return (
                     <button

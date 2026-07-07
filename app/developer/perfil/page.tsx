@@ -1,10 +1,19 @@
 // app/developer/perfil/page.tsx
-import { DeveloperDashboard } from "@/components/developer/DeveloperDashboard";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { DeveloperPerfilForm } from "@/components/developer/DeveloperPerfilForm";
 
-export const metadata = { title: "Mi Perfil | Developer AXIS" };
+export const metadata = { title: "Mi Perfil | AXIS Developer" };
+export const dynamic = "force-dynamic";
 
-export default function PerfilDeveloperPage() {
-  // Deep link: abre el mismo dashboard de developer (mismo sidebar,
-  // mismo shell) directamente en la pestaña "Mi Perfil".
-  return <DeveloperDashboard initialTab="perfil" />;
+export default async function DeveloperPerfilPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect("/auth/login");
+
+  if (session.user.rol !== "DEVELOPER") {
+    redirect("/dashboard");
+  }
+
+  return <DeveloperPerfilForm userId={session.user.id} />;
 }

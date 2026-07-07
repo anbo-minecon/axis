@@ -40,7 +40,6 @@ export default async function LandingPage() {
       <AreasICFES />
 
       <Caracteristicas />
-      <WhyAXIS />
       <HowItWorks />
       <Testimonials />
       <ImpactStats />

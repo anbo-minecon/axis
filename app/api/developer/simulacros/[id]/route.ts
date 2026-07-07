@@ -147,6 +147,31 @@ export async function DELETE(
   }
 
   try {
+    // Verificar regla de negocio: solo eliminar si <10 participantes
+    const examen = await (db as any).examenTemplate.findUnique({
+      where: { id: params.id },
+      include: {
+        _count: {
+          select: {
+            resultados: true,
+          },
+        },
+      },
+    });
+
+    if (!examen) {
+      return NextResponse.json({ error: "Simulacro no encontrado" }, { status: 404 });
+    }
+
+    const participantes = examen._count?.resultados ?? 0;
+    if (participantes >= 10) {
+      return NextResponse.json(
+        { error: "No se puede eliminar un simulacro con 10 o más participantes. Solo puede archivarse." },
+        { status: 400 }
+      );
+    }
+
+    // Eliminar en cascada
     await (db as any).examenTemplate.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });
   } catch (error: any) {

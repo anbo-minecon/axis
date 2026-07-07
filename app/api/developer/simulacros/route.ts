@@ -13,10 +13,15 @@ export async function GET() {
   try {
     const simulacros = await (db as any).examenTemplate.findMany({
       include: {
-        _count: { select: { claves: true } },
         sesiones: {
           select: { id: true, numero: true, nombre: true, tiempoMin: true },
           orderBy: { numero: "asc" },
+        },
+        claves: {
+          select: { id: true },
+        },
+        resultados: {
+          select: { id: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -30,9 +35,12 @@ export async function GET() {
         totalPreguntas: sim.totalPreguntas,
         tiempoMin: sim.tiempoMin,
         estado: sim.estado,
+        tipo: sim.tieneSesiones ? "GRUPAL" : "INDIVIDUAL",
+        materiasCount: sim.tieneSesiones ? sim.sesiones.length : 1,
+        participantes: sim.resultados?.length ?? 0,
         createdAt: sim.createdAt.toISOString(),
         updatedAt: sim.updatedAt.toISOString(),
-        totalClaves: sim._count?.claves ?? 0,
+        totalClaves: sim.claves?.length ?? 0,
         sesiones: sim.sesiones,
       })),
     });

@@ -8,7 +8,7 @@ import {
   Clock, Maximize2, Minimize2, AlertTriangle, ChevronLeft,
   ChevronRight, CheckCircle2, Send, Trophy,
   TrendingUp, TrendingDown, Minus, Home, Loader2,
-  Info, BookOpen, Layers,
+  Info, BookOpen, Layers, X,
 } from "lucide-react";
 
 // ── Tipos ──────────────────────────────────────────────────────────────────
@@ -32,6 +32,8 @@ interface ExamenInfo {
   tieneSesiones: boolean;
   sesiones: SesionInfo[];
   areasPorSesion: Record<string, Record<number, string>>;
+  draftRespuestas?: Record<number, Respuesta> | null;
+  draftTiempoUsado?: number;
 }
 
 interface ResultadoSesion {
@@ -268,6 +270,9 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
   resultadosPorSesion: { sesion: SesionInfo; resultado: ResultadoSesion }[];
   router: ReturnType<typeof useRouter>;
 }) {
+  const totalCorrectas = resultadosPorSesion.reduce((sum, r) => sum + r.resultado.correctas, 0);
+  const totalPreguntas = resultadosPorSesion.reduce((sum, r) => sum + r.resultado.total, 0);
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] overflow-y-auto">
       <div className="mx-auto max-w-2xl px-4 py-8 space-y-5">
@@ -283,13 +288,55 @@ function PantallaResultadoFinal({ examen, resultadosPorSesion, router }: {
           </p>
         </div>
 
+        {/* Resumen general */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3 text-center">
+            <p className="text-2xl font-extrabold text-green-400">{totalCorrectas}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">Correctas</p>
+          </div>
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-center">
+            <p className="text-2xl font-extrabold text-red-400">{totalPreguntas - totalCorrectas}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">Incorrectas</p>
+          </div>
+        </div>
+
+        {/* Resultados por sesión */}
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+            Resultados por sesión
+          </p>
+          {resultadosPorSesion.map(({ sesion, resultado }) => (
+            <div key={sesion.id} className="rounded-xl border border-white/10 bg-[var(--bg-card)] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-600 text-[10px] font-extrabold text-white">
+                    {sesion.numero}
+                  </span>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">{sesion.nombre}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-green-400">{resultado.correctas}</span>
+                  <span className="text-xs text-[var(--text-muted)]">/ {resultado.total}</span>
+                </div>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-green-500 transition-all"
+                  style={{ width: `${(resultado.correctas / resultado.total) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Aviso sobre puntaje oficial */}
         <div className="flex items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3.5">
           <Info className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-bold text-amber-300">Resultados pendientes de publicación</p>
+            <p className="text-sm font-bold text-amber-300">Puntaje preliminar</p>
             <p className="text-xs text-amber-400 mt-1">
-              Tu puntaje se calculará y publicará para todos los participantes cuando el simulacro
-              cierre. Te avisaremos cuando esté disponible en tu sección de Resultados.
+              El puntaje oficial se calculará con el modelo TRI cuando el simulacro cierre.
+              La revisión detallada de preguntas estará disponible después del cierre oficial.
             </p>
           </div>
         </div>
@@ -320,12 +367,17 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
 
   const [fase,             setFase]             = useState<Fase>("inicio");
   const [preguntaActual,   setPreguntaActual]   = useState(1);
-  const [respuestas,       setRespuestas]       = useState<Record<number, Respuesta>>({});
+  const [respuestas,       setRespuestas]       = useState<Record<number, Respuesta>>(
+    examen.draftRespuestas ?? {} as Record<number, Respuesta>
+  );
   const [tiempoRestante,   setTiempoRestante]   = useState(sesionActual.tiempoMin * 60);
-  const [tiempoUsado,      setTiempoUsado]      = useState(0);
+  const [tiempoUsado,      setTiempoUsado]      = useState(examen.draftTiempoUsado ?? 0);
   const [isFullscreen,     setIsFullscreen]     = useState(false);
   const [showExitModal,    setShowExitModal]    = useState(false);
   const [showEnviarModal,  setShowEnviarModal]  = useState(false);
+  const [showQuestionsPanel, setShowQuestionsPanel] = useState(false);
+  const [connectionWarning, setConnectionWarning] = useState(false);
+  const [isSavingDraft,     setIsSavingDraft]     = useState(false);
   const [resultadoSesionActual, setResultadoSesion] = useState<ResultadoSesion | null>(null);
   const [resultadosPorSesion,   setResultadosPorSesion] = useState<{ sesion: SesionInfo; resultado: ResultadoSesion }[]>([]);
 
@@ -341,10 +393,32 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
   useEffect(() => {
     setFase("inicio");
     setPreguntaActual(1);
-    setRespuestas({});
-    setTiempoRestante(sesionActual.tiempoMin * 60);
-    setTiempoUsado(0);
-  }, [sesionIdx, sesionActual.tiempoMin]);
+    setTiempoRestante(Math.max(sesionActual.tiempoMin * 60 - (sesionIdx === 0 ? (examen.draftTiempoUsado ?? 0) : 0), 0));
+    if (sesionIdx === 0 && examen.draftRespuestas) {
+      setRespuestas(examen.draftRespuestas);
+      setTiempoUsado(examen.draftTiempoUsado ?? 0);
+    } else {
+      setRespuestas({});
+      setTiempoUsado(0);
+    }
+  }, [sesionIdx, sesionActual.tiempoMin, examen.draftRespuestas, examen.draftTiempoUsado]);
+
+  // Detección de conectividad
+  useEffect(() => {
+    const handleOnline = () => setConnectionWarning(false);
+    const handleOffline = () => setConnectionWarning(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Verificar conectividad inicial
+    setConnectionWarning(!navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const entrarFullscreen = useCallback(async () => {
     try { await document.documentElement.requestFullscreen?.(); } catch { /* ok */ }
@@ -481,35 +555,61 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
           onCancel={() => setShowEnviarModal(false)} />
       )}
 
+      {/* Notificación de conectividad */}
+      {connectionWarning && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 shadow-lg">
+          <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-200">Conexión insuficiente</p>
+            <p className="text-xs text-amber-300/80">Verifica tu conexión para evitar perder respuestas</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Panel izquierdo ── */}
-      <aside className="flex w-[220px] sm:w-[250px] shrink-0 flex-col border-r border-white/10 bg-[var(--bg-card)] overflow-hidden">
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-40 w-[280px] shrink-0 flex-col border-r border-white/10 bg-[var(--bg-card)] overflow-hidden transition-transform duration-300",
+        "md:relative md:translate-x-0",
+        showQuestionsPanel ? "translate-x-0" : "-translate-x-full"
+      )}>
 
         {/* Nombre + MATERIA + SESIÓN */}
-        <div className="border-b border-white/10 px-4 py-3 space-y-1.5">
-          <p className="text-xs font-bold text-[var(--text-primary)] truncate leading-tight">{examen.nombre}</p>
+        <div className="border-b border-white/10 px-4 py-3 space-y-1.5 flex items-start justify-between">
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <p className="text-xs font-bold text-[var(--text-primary)] truncate leading-tight">{examen.nombre}</p>
 
-          {/* Badge materia */}
-          <span className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-            getMateriaColor(examen.tieneSesiones ? "Multi-materia" : examen.materia),
-          )}>
-            <BookOpen className="h-2.5 w-2.5" />
-            {examen.tieneSesiones ? "Multi-materia" : examen.materia}
-          </span>
+            {/* Badge materia */}
+            <span className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+              getMateriaColor(examen.tieneSesiones ? "Multi-materia" : examen.materia),
+            )}>
+              <BookOpen className="h-2.5 w-2.5" />
+              {examen.tieneSesiones ? "Multi-materia" : examen.materia}
+            </span>
 
-          {/* Badge sesión actual */}
-          {examen.tieneSesiones && (
-            <div className="flex items-center gap-1.5">
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-600 text-[9px] font-extrabold text-white">
-                {sesionActual.numero}
-              </span>
-              <span className="text-[10px] text-blue-300 font-semibold truncate">{sesionActual.nombre}</span>
-            </div>
-          )}
+            {/* Badge sesión actual */}
+            {examen.tieneSesiones && (
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-blue-600 text-[9px] font-extrabold text-white">
+                  {sesionActual.numero}
+                </span>
+                <span className="text-[10px] text-blue-300 font-semibold truncate">{sesionActual.nombre}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Botón cerrar panel en móvil */}
+          <button
+            onClick={() => setShowQuestionsPanel(false)}
+            className="md:hidden p-1 text-gray-400 hover:text-white transition"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
           {/* Mini progreso sesiones */}
           {examen.tieneSesiones && sesiones.length > 1 && (
-            <div className="flex items-center gap-1 mt-1">
+            <div className="flex items-center gap-1">
               {sesiones.map((s) => (
                 <div
                   key={s.id}
@@ -526,7 +626,6 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
               </span>
             </div>
           )}
-        </div>
 
         {/* Timer */}
         <div className="border-b border-white/10 px-4 py-3">
@@ -632,6 +731,13 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Botón para abrir panel de preguntas en móvil */}
+            <button
+              onClick={() => setShowQuestionsPanel(!showQuestionsPanel)}
+              className="md:hidden rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-gray-300 hover:bg-white/10 transition"
+            >
+              Preguntas
+            </button>
             <button
               onClick={() => setShowExitModal(true)}
               className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition"
@@ -649,8 +755,8 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
         </div>
 
         {/* Contenido pregunta */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-2xl px-6 py-8 space-y-8">
+        <div className="flex-1 overflow-y-auto flex flex-col">
+          <div className="mx-auto max-w-2xl px-4 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-8 flex-1">
 
             {/* Instrucción cuadernillo */}
             <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-5 py-4">
@@ -666,10 +772,10 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
             </div>
 
             {/* Opciones de respuestas */}
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-muted)] mb-4">Selecciona tu respuesta:</p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
-                {((examen.areasPorSesion?.[sesionActual.id]?.[preguntaActual] === "INGLES") ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => {
+            <div className="flex-1 flex flex-col justify-center min-h-0">
+              <p className="text-sm font-semibold text-[var(--text-muted)] mb-3">Selecciona tu respuesta:</p>
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-4">
+                {((examen.areasPorSesion?.[sesionActual.id]?.[preguntaActual]?.toUpperCase() === "INGLES") ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => {
                   const selected = respuestas[preguntaActual] === op;
                   return (
                     <button
@@ -679,7 +785,7 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
                         [preguntaActual]: prev[preguntaActual] === op ? (undefined as any) : op,
                       }))}
                       className={cn(
-                        "flex items-center justify-center rounded-2xl border py-6 text-2xl font-extrabold transition-all active:scale-[0.97]",
+                        "flex items-center justify-center rounded-xl border py-4 sm:py-6 text-xl sm:text-2xl font-extrabold transition-all active:scale-[0.97]",
                         selected
                           ? "border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-600/30"
                           : "border-white/10 bg-[var(--bg-card)] text-[var(--text-muted)] hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-white",
@@ -694,10 +800,10 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
 
             {/* Aviso sin responder */}
             {respondidas < totalPreguntas && (
-              <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5">
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <p className="text-xs text-amber-400">
-                  Tienes <span className="font-bold">{totalPreguntas - respondidas}</span> preguntas sin responder.
+              <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 sm:px-4 py-2 sm:py-2.5">
+                <AlertTriangle className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400 shrink-0" />
+                <p className="text-[10px] sm:text-xs text-amber-400">
+                  Tienes <span className="font-bold">{totalPreguntas - respondidas}</span> sin responder.
                 </p>
               </div>
             )}
@@ -705,32 +811,62 @@ export function SimulacroExamen({ examen }: { examen: ExamenInfo }) {
         </div>
 
         {/* Nav inferior */}
-        <div className="border-t border-white/10 bg-[var(--bg-card)] px-4 py-3">
-          <div className="flex items-center justify-between">
+        <div className="border-t border-white/10 bg-[var(--bg-card)] px-3 sm:px-4 py-2 sm:py-3 shrink-0">
+          <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => setPreguntaActual((p) => Math.max(1, p - 1))}
               disabled={preguntaActual === 1}
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/10 bg-white/5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 transition disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ChevronLeft className="h-4 w-4" />Anterior
+              <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Anterior
             </button>
-            <span className="text-xs text-[var(--text-muted)]">{preguntaActual} / {totalPreguntas}</span>
+
             <button
-              onClick={() => {
-                if (preguntaActual === totalPreguntas) setShowEnviarModal(true);
-                else setPreguntaActual((p) => Math.min(totalPreguntas, p + 1));
+              onClick={async () => {
+                setIsSavingDraft(true);
+                const endpoint = examen.tieneSesiones
+                  ? `/api/dashboard/simulacros/${examen.id}/sesion/${sesionActual.numero}/borrador`
+                  : `/api/dashboard/simulacros/${examen.id}/borrador`;
+                try {
+                  const res = await fetch(endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ respuestas, tiempoUsado }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data.error || "No se pudo guardar el borrador");
+                  setIsSavingDraft(false);
+                  alert("Borrador guardado correctamente.");
+                } catch (err: any) {
+                  setIsSavingDraft(false);
+                  alert(err?.message ?? "Error al guardar el borrador.");
+                }
               }}
-              className={cn(
-                "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition",
-                preguntaActual === totalPreguntas
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "border border-white/10 bg-white/5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10",
-              )}
+              disabled={isSavingDraft}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10 transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {preguntaActual === totalPreguntas
-                ? <><Send className="h-4 w-4" />Enviar</>
-                : <>Siguiente<ChevronRight className="h-4 w-4" /></>}
+              {isSavingDraft ? "Guardando…" : "Guardar borrador"}
             </button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] sm:text-xs text-[var(--text-muted)]">{preguntaActual} / {totalPreguntas}</span>
+              <button
+                onClick={() => {
+                  if (preguntaActual === totalPreguntas) setShowEnviarModal(true);
+                  else setPreguntaActual((p) => Math.min(totalPreguntas, p + 1));
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 sm:gap-2 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition",
+                  preguntaActual === totalPreguntas
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "border border-white/10 bg-white/5 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/10",
+                )}
+              >
+                {preguntaActual === totalPreguntas
+                  ? <><Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />Enviar</>
+                  : <>Siguiente<ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></>}
+              </button>
+            </div>
           </div>
         </div>
       </div>

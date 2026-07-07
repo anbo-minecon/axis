@@ -128,7 +128,7 @@ function Gauge({ pct, color }: { pct: number; color: string }) {
 }
 
 // ── Fila de pregunta ───────────────────────────────────────────────────────
-function FilaPregunta({ p }: { p: PreguntaDetalle }) {
+function FilaPregunta({ p, esOficial }: { p: PreguntaDetalle; esOficial: boolean }) {
   return (
     <div className={cn(
       "flex items-center gap-3 px-4 py-3 rounded-xl border transition-all",
@@ -167,13 +167,15 @@ function FilaPregunta({ p }: { p: PreguntaDetalle }) {
         </span>
       </div>
 
-      {/* Respuesta correcta */}
-      <div className="flex items-center gap-2 shrink-0">
-        <span className="text-[10px] text-gray-600">Correcta:</span>
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400 text-xs font-extrabold">
-          {p.respuestaCorrecta}
-        </span>
-      </div>
+      {/* Respuesta correcta - solo si es oficial */}
+      {esOficial && (
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[10px] text-gray-600">Correcta:</span>
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-blue-500/20 text-blue-400 text-xs font-extrabold">
+            {p.respuestaCorrecta}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -433,7 +435,7 @@ export function ResultadoDetalleClient({ examenId }: { examenId: string }) {
         ) : (
           <div className="space-y-2">
             {preguntasFiltradas.map((p) => (
-              <FilaPregunta key={`${p.sesionId ?? "global"}-${p.numero}`} p={p} />
+              <FilaPregunta key={`${p.sesionId ?? "global"}-${p.numero}`} p={p} esOficial={esOficial} />
             ))}
           </div>
         )}

@@ -30,10 +30,32 @@ const MATERIAS_DISPONIBLES = [
   "Inglés",
 ];
 
+const AREAS_DISPONIBLES = [
+  "LECTURA CRITICA",
+  "MATEMATICAS",
+  "CIENCIAS NATURALES",
+  "SOCIALES Y CIUDADANAS",
+  "INGLES",
+];
+
+const MATERIA_AREA_MAP: Record<string, string> = {
+  "Lectura Crítica": "LECTURA CRITICA",
+  "Matemáticas": "MATEMATICAS",
+  "Ciencias Naturales": "CIENCIAS NATURALES",
+  "Sociales y Ciudadanas": "SOCIALES Y CIUDADANAS",
+  "Inglés": "INGLES",
+};
+
+function getAreaFromMateria(materia?: string): string | undefined {
+  if (!materia) return undefined;
+  return MATERIA_AREA_MAP[materia.trim()] ?? undefined;
+}
+
 interface ClaveRespuesta {
   numero: number;
   respuesta: RespuestaLetra | null;
   dificultad: Dificultad;
+  area?: string;
 }
 
 interface BloqueMateria {
@@ -168,6 +190,9 @@ function CrearSimulacroForm() {
   const setDifInd = (num: number, d: Dificultad) =>
     setClavesInd((prev) => prev.map((c) => c.numero === num ? { ...c, dificultad: d } : c));
 
+  const setAreaInd = (num: number, area: string) =>
+    setClavesInd((prev) => prev.map((c) => c.numero === num ? { ...c, area } : c));
+
   const agregarClavesInd = (n: number) => {
     const desde = clavesInd.length + 1;
     setClavesInd((prev) => [...prev, ...makeClaves(desde, n)]);
@@ -262,11 +287,22 @@ function CrearSimulacroForm() {
   };
 
   const setBloqueMateria = (sesionId: string, bloqueId: string, mat: string) =>
-    setSesiones((prev) => prev.map((s) =>
-      s.id !== sesionId ? s : {
+    setSesiones((prev) => prev.map((s) => {
+      if (s.id !== sesionId) return s;
+      const bloque = s.bloques.find((b) => b.id === bloqueId);
+      if (!bloque) return s;
+      const defaultArea = getAreaFromMateria(mat);
+      return {
         ...s,
         bloques: s.bloques.map((b) => b.id === bloqueId ? { ...b, materia: mat } : b),
-      }));
+        claves: s.claves.map((c) => {
+          if (defaultArea && c.numero >= bloque.inicio && c.numero < bloque.inicio + bloque.cantidad) {
+            return c.area ? c : { ...c, area: defaultArea };
+          }
+          return c;
+        }),
+      };
+    }));
 
   const setBloqueCantidad = (sesionId: string, bloqueId: string, qty: number) => {
     setSesiones((prev) => prev.map((s) => {
@@ -320,6 +356,13 @@ function CrearSimulacroForm() {
         claves: s.claves.map((c) => c.numero === num ? { ...c, dificultad: d } : c),
       }));
 
+  const setAreaGrupal = (sesionId: string, num: number, area: string) =>
+    setSesiones((prev) => prev.map((s) =>
+      s.id !== sesionId ? s : {
+        ...s,
+        claves: s.claves.map((c) => c.numero === num ? { ...c, area } : c),
+      }));
+
   // ── Guardar ───────────────────────────────────────────────────────────
   const handleGuardar = async (estado: "BORRADOR" | "PUBLICADO") => {
     if (!nombre.trim()) return showToast("error", "El nombre del simulacro es obligatorio.");
@@ -354,6 +397,18 @@ function CrearSimulacroForm() {
           : f;
       };
 
+      const areaPorNumero = new Map<number, string>();
+      sesiones.forEach((s) => {
+        s.bloques.forEach((b) => {
+          const defaultArea = getAreaFromMateria(b.materia);
+          if (defaultArea) {
+            for (let n = b.inicio; n < b.inicio + b.cantidad; n += 1) {
+              if (!areaPorNumero.has(n)) areaPorNumero.set(n, defaultArea);
+            }
+          }
+        });
+      });
+
       // totalPreguntas: cuenta real de claves definidas + sin definir del form
       const totalPreguntasReal = tipo === "individual"
         ? clavesInd.length
@@ -371,7 +426,7 @@ function CrearSimulacroForm() {
 
       if (tipo === "individual") {
         body.materia = materia;
-        // Incluir TODAS las claves con respuesta definida, incluyendo dificultad
+        // Incluir TODAS las claves con respuesta definida, incluyendo dificultad y área
         body.claves = clavesInd
           .filter((c) => c.respuesta !== null)
           .map((c) => ({
@@ -379,6 +434,7 @@ function CrearSimulacroForm() {
             respuesta:  c.respuesta,
             sesion:     1,
             dificultad: c.dificultad,
+            area:       c.area || getAreaFromMateria(materia),
           }));
       } else {
         body.materia = "Multi-materia";
@@ -395,6 +451,7 @@ function CrearSimulacroForm() {
               respuesta:  c.respuesta,
               sesion:     s.numero,
               dificultad: c.dificultad,
+              area:       c.area || areaPorNumero.get(c.numero),
             }))
         );
       }
@@ -564,6 +621,7 @@ function CrearSimulacroForm() {
             titulo="Clave de respuestas"
             onToggleRespuesta={toggleRespInd}
             onSetDificultad={setDifInd}
+            onSetArea={setAreaInd}
             onAgregarMas={agregarClavesInd}
             loading={loading}
             materia={materia}
@@ -816,14 +874,16 @@ function CrearSimulacroForm() {
                             {bloque.materia || "Sin materia"} (P{bloque.inicio}–P{bloque.inicio + bloque.cantidad - 1})
                           </p>
                           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {clavesBloque.map(({ numero, respuesta, dificultad }) => (
+                            {clavesBloque.map(({ numero, respuesta, dificultad, area }) => (
                               <ClavePreguntaCard
                                 key={numero}
                                 numero={numero}
                                 respuesta={respuesta}
                                 dificultad={dificultad}
+                                area={area || getAreaFromMateria(bloque.materia)}
                                 onToggleRespuesta={(op) => toggleRespGrupal(sesion.id, numero, op)}
                                 onSetDificultad={(d)  => setDifGrupal(sesion.id, numero, d)}
+                                onSetArea={(a) => setAreaGrupal(sesion.id, numero, a)}
                                 materia={bloque.materia}
                               />
                             ))}
@@ -866,57 +926,95 @@ function CrearSimulacroForm() {
 
 // ── Componente clave individual ────────────────────────────────────────────
 function ClavePreguntaCard({
-  numero, respuesta, dificultad,
-  onToggleRespuesta, onSetDificultad,
+  numero, respuesta, dificultad, area,
+  onToggleRespuesta, onSetDificultad, onSetArea,
   materia,
 }: {
   numero: number;
   respuesta: RespuestaLetra | null;
   materia?: string;
   dificultad: Dificultad;
+  area?: string;
   onToggleRespuesta: (op: RespuestaLetra) => void;
   onSetDificultad:   (d: Dificultad)   => void;
+  onSetArea?:        (area: string)    => void;
 }) {
   const [difOpen, setDifOpen] = useState(false);
+  const [areaOpen, setAreaOpen] = useState(false);
 
   return (
     <div className="rounded-xl border border-white/10 bg-[var(--bg-card)] p-2.5 space-y-2">
-      {/* Número + dificultad */}
+      {/* Número + dificultad + área */}
       <div className="flex items-center justify-between gap-1">
         <span className="text-xs font-bold text-gray-300">P{numero}</span>
-        <div className="relative">
-          <button
-            onClick={() => setDifOpen((v) => !v)}
-            className={cn(
-              "flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-bold transition",
-              DIFICULTAD_COLOR[dificultad],
-            )}
-          >
-            {DIFICULTAD_LABEL[dificultad]}
-            <ChevronDown className="h-2.5 w-2.5" />
-          </button>
-          {difOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 rounded-xl border border-white/10 bg-[#0d1526] shadow-2xl overflow-hidden">
-              {(["facil", "media", "dificil"] as Dificultad[]).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => { onSetDificultad(d); setDifOpen(false); }}
-                  className={cn(
-                    "block w-full px-3 py-1.5 text-left text-[10px] font-bold whitespace-nowrap",
-                    DIFICULTAD_COLOR[d],
-                    "hover:opacity-80 transition",
-                  )}
-                >
-                  {DIFICULTAD_LABEL[d]}
-                </button>
-              ))}
+        <div className="flex items-center gap-1">
+          {/* Selector de área */}
+          {onSetArea && (
+            <div className="relative">
+              <button
+                onClick={() => setAreaOpen((v) => !v)}
+                className={cn(
+                  "flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-bold transition",
+                  area ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-white/5 text-gray-400 border-white/10",
+                )}
+              >
+                {area || "Área"}
+                <ChevronDown className="h-2.5 w-2.5" />
+              </button>
+              {areaOpen && (
+                <div className="absolute right-0 top-full z-10 mt-1 rounded-xl border border-white/10 bg-[#0d1526] shadow-2xl overflow-hidden max-h-40 overflow-y-auto">
+                  {AREAS_DISPONIBLES.map((a) => (
+                    <button
+                      key={a}
+                      onClick={() => { onSetArea(a); setAreaOpen(false); }}
+                      className={cn(
+                        "block w-full px-3 py-1.5 text-left text-[10px] font-bold whitespace-nowrap",
+                        area === a ? "bg-blue-500/20 text-blue-400" : "text-gray-400",
+                        "hover:opacity-80 transition",
+                      )}
+                    >
+                      {a}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
+          {/* Selector de dificultad */}
+          <div className="relative">
+            <button
+              onClick={() => setDifOpen((v) => !v)}
+              className={cn(
+                "flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[10px] font-bold transition",
+                DIFICULTAD_COLOR[dificultad],
+              )}
+            >
+              {DIFICULTAD_LABEL[dificultad]}
+              <ChevronDown className="h-2.5 w-2.5" />
+            </button>
+            {difOpen && (
+              <div className="absolute right-0 top-full z-10 mt-1 rounded-xl border border-white/10 bg-[#0d1526] shadow-2xl overflow-hidden">
+                {(["facil", "media", "dificil"] as Dificultad[]).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => { onSetDificultad(d); setDifOpen(false); }}
+                    className={cn(
+                      "block w-full px-3 py-1.5 text-left text-[10px] font-bold whitespace-nowrap",
+                      DIFICULTAD_COLOR[d],
+                      "hover:opacity-80 transition",
+                    )}
+                  >
+                    {DIFICULTAD_LABEL[d]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-      {/* Opciones de respuestas basadas en materia */}
+      {/* Opciones de respuestas basadas en área */}
       <div className="grid grid-cols-2 gap-1">
-        {(materia === "Inglés" ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => (
+        {(area === "INGLES" ? ANSWER_OPTIONS_AH : ANSWER_OPTIONS_AD).map((op) => (
           <button
             key={op}
             onClick={() => onToggleRespuesta(op)}
@@ -937,12 +1035,13 @@ function ClavePreguntaCard({
 
 // ── Panel de claves para simulacro individual ─────────────────────────────
 function ClavesRespuestasPanel({
-  claves, titulo, onToggleRespuesta, onSetDificultad, onAgregarMas, loading, materia,
+  claves, titulo, onToggleRespuesta, onSetDificultad, onSetArea, onAgregarMas, loading, materia,
 }: {
   claves: ClaveRespuesta[];
   titulo: string;
   onToggleRespuesta: (num: number, op: RespuestaLetra) => void;
   onSetDificultad:   (num: number, d: Dificultad)   => void;
+  onSetArea?:        (num: number, area: string)    => void;
   onAgregarMas:      (n: number) => void;
   loading: boolean;
   materia?: string;
@@ -979,14 +1078,16 @@ function ClavesRespuestasPanel({
 
       {/* Grid de cards */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {claves.map(({ numero, respuesta, dificultad }) => (
+        {claves.map(({ numero, respuesta, dificultad, area }) => (
           <ClavePreguntaCard
             key={numero}
             numero={numero}
             respuesta={respuesta}
             dificultad={dificultad}
+            area={area || getAreaFromMateria(materia)}
             onToggleRespuesta={(op) => onToggleRespuesta(numero, op)}
             onSetDificultad={(d)   => onSetDificultad(numero, d)}
+            onSetArea={onSetArea ? (a) => onSetArea(numero, a) : undefined}
             materia={materia}
           />
         ))}

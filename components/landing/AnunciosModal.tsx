@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +19,7 @@ export function AnunciosModal({ anuncios }: AnunciosModalProps) {
   const [abierto, setAbierto] = useState(anuncios.length > 0);
   const [actual, setActual] = useState(0);
   const total = anuncios.length;
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const anuncio = anuncios[actual];
 
@@ -26,6 +27,26 @@ export function AnunciosModal({ anuncios }: AnunciosModalProps) {
     if (!anuncio) return "";
     return anuncio.titulo || "Anuncio";
   }, [anuncio]);
+
+  // Carrusel automático cada 5 segundos si hay más de un anuncio
+  useEffect(() => {
+    if (abierto && total > 1) {
+      intervalRef.current = setInterval(() => {
+        setActual((prev) => (prev + 1) % total);
+      }, 5000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [abierto, total]);
 
   if (!abierto || total === 0) return null;
 

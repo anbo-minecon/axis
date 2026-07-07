@@ -36,15 +36,9 @@ export function Navigation() {
           <ThemeToggle />
           <Link
             href="/auth/login"
-            className="hidden sm:inline text-gray-700 dark:text-gray-200 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors"
-          >
-            Iniciar sesión
-          </Link>
-          <Link
-            href="/auth/registro"
             className="px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
           >
-            Registrarse
+            Iniciar sesión
           </Link>
         </div>
 
@@ -69,6 +63,12 @@ export function Navigation() {
               <a href="#faq" className="block text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
                 FAQ
               </a>
+              <Link
+                href="/auth/login"
+                className="block px-6 py-2 bg-blue-600 dark:bg-blue-700 text-white font-semibold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-center"
+              >
+                Iniciar sesión
+              </Link>
             </nav>
           </div>
         )}

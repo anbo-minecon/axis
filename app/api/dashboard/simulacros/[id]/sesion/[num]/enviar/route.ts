@@ -93,7 +93,7 @@ export async function POST(
       return NextResponse.json({ error: "Respuestas inválidas" }, { status: 400 });
     }
 
-    // Verificar que no respondió esta sesión antes
+    // Verificar si existe un borrador previo
     const existente = await (db as any).resultadoSesion.findUnique({
       where: {
         estudianteId_sesionId: {
@@ -101,8 +101,10 @@ export async function POST(
           sesionId:     sesion.id,
         },
       },
+      select: { id: true, esBorrador: true },
     });
-    if (existente)
+
+    if (existente && !existente.esBorrador)
       return NextResponse.json({ error: "Ya respondiste esta sesión" }, { status: 409 });
 
     // Calcular aciertos

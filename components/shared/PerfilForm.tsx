@@ -18,6 +18,7 @@ import {
   GraduationCap,
   ShieldCheck,
 } from "lucide-react";
+import PerfilClient from "@/components/dashboard/PerfilClient";
 
 export type RolPerfil = "ESTUDIANTE" | "DOCENTE" | "ADMIN";
 
@@ -353,6 +354,7 @@ export function PerfilForm({ rol }: PerfilFormProps) {
           </button>
         </div>
       </div>
+      {rol === "ESTUDIANTE" && <PerfilClient user={data} />}
     </div>
   );
 }

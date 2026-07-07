@@ -14,7 +14,7 @@ datasource db {
 
 model Usuario {
   id            String    @id @default(cuid())
-  nombre        String?   // Opcional para Google OAuth — se completa en /auth/registro-google
+  nombre        String? // Opcional para Google OAuth — se completa en /auth/registro-google
   email         String    @unique
   emailVerified DateTime?
   passwordHash  String?
@@ -23,6 +23,7 @@ model Usuario {
   // Perfil extendido
   documento    String?
   telefono     String?
+  protegerDocumento Boolean @default(true)
   departamento String?
   municipio    String?
 
@@ -45,8 +46,8 @@ model Usuario {
   sessions Session[]
 
   //── Relacion con Classroom (NUEVO — para integración con Google Classroom) ────────────
-  classroomToken   ClassroomToken?
-  classroomClases  ClassroomClase[] @relation("ClaseDocente")
+  classroomToken  ClassroomToken?
+  classroomClases ClassroomClase[] @relation("ClaseDocente")
 
   // ── Relaciones de negocio ─────────────────────────────────────────────────
   simulacros       Simulacro[]
@@ -120,19 +121,19 @@ model VerificationToken {
 // ─── GRUPOS ───────────────────────────────────────────────────────────────────
 
 model Grupo {
-  id           String    @id @default(cuid())
+  id           String           @id @default(cuid())
   nombre       String
   descripcion  String?
   departamento String?
   municipio    String?
   docenteId    String?
-  docente      Usuario?  @relation("GrupoDocente", fields: [docenteId], references: [id])
+  docente      Usuario?         @relation("GrupoDocente", fields: [docenteId], references: [id])
   estudiantes  Usuario[]
   clases       ClassroomClase[]
   horario      String?
-  activo       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  activo       Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@map("grupos")
 }
@@ -210,10 +211,10 @@ model Intento {
   duracionMin    Int?
   respuestasUser RespuestaIntento[]
 
-  @@map("intentos")
   @@index([usuarioId])
   @@index([estado])
   @@index([fechaInicio])
+  @@map("intentos")
 }
 
 model RespuestaIntento {
@@ -226,8 +227,8 @@ model RespuestaIntento {
   tiempoSegundos Int?
   respondidaEn   DateTime @default(now())
 
-  @@map("respuestas_intento")
   @@index([intentoId])
+  @@map("respuestas_intento")
 }
 
 enum TipoSimulacro {
@@ -290,19 +291,19 @@ model Suscripcion {
 // ─── DEVELOPER ACCESS ────────────────────────────────────────────────────────
 
 model DeveloperCredential {
-  id            String    @id @default(cuid())
-  usuarioId     String    @unique
-  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  passwordHash  String
-  tokenSecret   String?
+  id           String  @id @default(cuid())
+  usuarioId    String  @unique
+  usuario      Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  passwordHash String
+  tokenSecret  String?
 
   // BUG FIX: campos que developer-auth.ts ya necesitaba y no existían
-  activo        Boolean   @default(true)
-  ultimoAcceso  DateTime?
-  direccionIP   String?
+  activo       Boolean   @default(true)
+  ultimoAcceso DateTime?
+  direccionIP  String?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("developer_credentials")
 }
@@ -310,21 +311,21 @@ model DeveloperCredential {
 // ─── LOGS ────────────────────────────────────────────────────────────────────
 
 model AuditLog {
-  id         String   @id @default(cuid())
+  id        String   @id @default(cuid())
   // usuarioId es nullable para permitir logs de acciones sin usuario autenticado
-  usuarioId  String?
-  usuario    Usuario? @relation(fields: [usuarioId], references: [id])
-  accion     String
-  recurso    String?
-  recursoId  String?
-  resultado  String   @default("EXITOSO")
-  mensaje    String?
-  ip         String?
-  createdAt  DateTime @default(now())
+  usuarioId String?
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+  accion    String
+  recurso   String?
+  recursoId String?
+  resultado String   @default("EXITOSO")
+  mensaje   String?
+  ip        String?
+  createdAt DateTime @default(now())
 
-  @@map("audit_logs")
   @@index([createdAt])
   @@index([usuarioId])
+  @@map("audit_logs")
 }
 
 model SystemLog {
@@ -336,9 +337,9 @@ model SystemLog {
   stack      String?
   createdAt  DateTime @default(now())
 
-  @@map("system_logs")
   @@index([createdAt])
   @@index([nivel])
+  @@map("system_logs")
 }
 
 model BackupLog {
@@ -352,8 +353,8 @@ model BackupLog {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@map("backup_logs")
   @@index([createdAt])
+  @@map("backup_logs")
 }
 
 model IntegrationLog {
@@ -369,18 +370,18 @@ model IntegrationLog {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  @@map("integration_logs")
   @@index([createdAt])
+  @@map("integration_logs")
 }
 
 // ─── EXÁMENES TEMPLATE (sistema nuevo con TRI) ────────────────────────────────
 
 model ExamenTemplate {
-  id             String  @id @default(cuid())
+  id             String @id @default(cuid())
   nombre         String
   materia        String
-  totalPreguntas Int     @default(50)
-  tiempoMin      Int     @default(120)
+  totalPreguntas Int    @default(50)
+  tiempoMin      Int    @default(120)
 
   tieneSesiones Boolean        @default(false)
   sesiones      SesionExamen[]
@@ -426,8 +427,8 @@ model ClaveExamen {
   sesion         SesionExamen?  @relation(fields: [sesionId], references: [id], onDelete: SetNull)
   numeroPregunta Int
   respuesta      String
-  area           String?        // ICFES area: LECTURA CRITICA, MATEMATICAS, CIENCIAS NATURALES, SOCIALES Y CIUDADANAS, INGLES
-  dificultad String?   @default("media")   // ← NUEVO: facil | media | dificil
+  area           String? // ICFES area: LECTURA CRITICA, MATEMATICAS, CIENCIAS NATURALES, SOCIALES Y CIUDADANAS, INGLES
+  dificultad     String?        @default("media") // ← NUEVO: facil | media | dificil
 
   @@unique([examenId, numeroPregunta, sesionId])
   @@map("claves_examen")
@@ -458,6 +459,8 @@ model ResultadoSesion {
   puntajePreliminar Float    @default(0)
   puntajeTRI        Float?
   tiempoUsado       Int      @default(0)
+  esBorrador        Boolean  @default(false)
+  fechaInicio       DateTime @default(now())
   completadoEn      DateTime @default(now())
 
   estudiante Usuario        @relation(fields: [estudianteId], references: [id])
@@ -477,11 +480,13 @@ model ResultadoSimulacro {
   total             Int                @default(0)
   puntajePreliminar Float              @default(0)
   puntajeTRI        Float?
-  puntajePorArea    Json?              // {LECTURA_CRITICA: 120, MATEMATICAS: 115, ...}
-  ranking           Int?               // Posición del estudiante en el grupo
-  percentil         Float?             // Percentil del estudiante (0-100)
+  puntajePorArea    Json? // {LECTURA_CRITICA: 120, MATEMATICAS: 115, ...}
+  ranking           Int? // Posición del estudiante en el grupo
+  percentil         Float? // Percentil del estudiante (0-100)
   estadoCalif       EstadoCalificacion @default(PRELIMINAR)
   tiempoUsado       Int                @default(0)
+  esBorrador        Boolean            @default(false)
+  fechaInicio       DateTime           @default(now())
   completadoEn      DateTime           @default(now())
 
   estudiante Usuario        @relation(fields: [estudianteId], references: [id])
@@ -563,8 +568,8 @@ model Mensaje {
   leido          Boolean      @default(false)
   creadoEn       DateTime     @default(now())
 
-  @@map("mensajes")
   @@index([conversacionId, creadoEn])
+  @@map("mensajes")
 }
 
 // ─── ANUNCIOS ─────────────────────────────────────────────────────────────────
@@ -600,32 +605,32 @@ model ClassroomToken {
 
 // Clase sincronizada desde Google Classroom
 model ClassroomClase {
-  id             String   @id @default(cuid())
-  googleCourseId String   @unique  // ID de Google Classroom
-  nombre         String
-  descripcion    String?
-  materia        String?
-  seccion        String?
-  enlaceAlternativo String?         // meet link u otro
-  estado         EstadoClase @default(ACTIVA)
+  id                String      @id @default(cuid())
+  googleCourseId    String      @unique // ID de Google Classroom
+  nombre            String
+  descripcion       String?
+  materia           String?
+  seccion           String?
+  enlaceAlternativo String? // meet link u otro
+  estado            EstadoClase @default(ACTIVA)
 
   // Vinculación con el sistema AXIS
-  grupoId        String?
-  grupo          Grupo?   @relation(fields: [grupoId], references: [id])
-  docenteId      String?
-  docente        Usuario? @relation("ClaseDocente", fields: [docenteId], references: [id])
+  grupoId   String?
+  grupo     Grupo?   @relation(fields: [grupoId], references: [id])
+  docenteId String?
+  docente   Usuario? @relation("ClaseDocente", fields: [docenteId], references: [id])
 
   // Relaciones
-  eventos        ClassroomEvento[]
-  grabaciones    ClassroomGrabacion[]
-  tareas         ClassroomTarea[]
+  eventos     ClassroomEvento[]
+  grabaciones ClassroomGrabacion[]
+  tareas      ClassroomTarea[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("classroom_clases")
   @@index([docenteId])
   @@index([grupoId])
+  @@map("classroom_clases")
 }
 
 enum EstadoClase {
@@ -636,24 +641,24 @@ enum EstadoClase {
 
 // Evento del calendario (clase en vivo, examen, evento)
 model ClassroomEvento {
-  id             String      @id @default(cuid())
-  googleEventId  String?     // ID del evento en Google Calendar (si se sincroniza)
-  claseId        String
-  clase          ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
-  titulo         String
-  descripcion    String?
-  tipo           TipoEvento  @default(CLASE)
-  fechaInicio    DateTime
-  fechaFin       DateTime?
-  linkMeet       String?     // link de Google Meet
-  linkGrabacion  String?     // link de grabación post-evento
-  completado     Boolean     @default(false)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  id            String         @id @default(cuid())
+  googleEventId String? // ID del evento en Google Calendar (si se sincroniza)
+  claseId       String
+  clase         ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  titulo        String
+  descripcion   String?
+  tipo          TipoEvento     @default(CLASE)
+  fechaInicio   DateTime
+  fechaFin      DateTime?
+  linkMeet      String? // link de Google Meet
+  linkGrabacion String? // link de grabación post-evento
+  completado    Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  @@map("classroom_eventos")
   @@index([claseId])
   @@index([fechaInicio])
+  @@map("classroom_eventos")
 }
 
 enum TipoEvento {
@@ -670,7 +675,7 @@ model ClassroomGrabacion {
   clase       ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
   titulo      String
   descripcion String?
-  linkUrl     String         // link de Drive, YouTube, Meet recording, etc.
+  linkUrl     String // link de Drive, YouTube, Meet recording, etc.
   materia     String?
   fecha       DateTime
   duracionMin Int?
@@ -678,29 +683,29 @@ model ClassroomGrabacion {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  @@map("classroom_grabaciones")
   @@index([claseId])
   @@index([fecha])
+  @@map("classroom_grabaciones")
 }
 
 // Tarea asignada desde Classroom
 model ClassroomTarea {
-  id               String         @id @default(cuid())
-  googleWorkId     String?        @unique // ID del coursework en Google
-  claseId          String
-  clase            ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
-  titulo           String
-  descripcion      String?
-  linkUrl          String?
-  fechaEntrega     DateTime?
-  puntosPosibles   Float?
-  estado           EstadoTarea    @default(ASIGNADA)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  googleWorkId   String?        @unique // ID del coursework en Google
+  claseId        String
+  clase          ClassroomClase @relation(fields: [claseId], references: [id], onDelete: Cascade)
+  titulo         String
+  descripcion    String?
+  linkUrl        String?
+  fechaEntrega   DateTime?
+  puntosPosibles Float?
+  estado         EstadoTarea    @default(ASIGNADA)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  @@map("classroom_tareas")
   @@index([claseId])
   @@index([fechaEntrega])
+  @@map("classroom_tareas")
 }
 
 enum EstadoTarea {

@@ -60,6 +60,7 @@ export async function GET(
       puntaje:      r.puntaje                ?? 0,
       total:        r.total                  ?? 0,
       puntajeTRI:   r.puntajeTRI             ?? null,
+      puntajeTRIEscalado: r.puntajeTRI != null ? Math.round((Number(r.puntajeTRI) / 100) * 500) : null,
       estadoCalif:  r.estadoCalif            ?? "PRELIMINAR",
       tiempoUsado:  r.tiempoUsado            ?? 0,
       completadoEn: r.completadoEn,

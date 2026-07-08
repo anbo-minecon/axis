@@ -50,6 +50,7 @@ interface Participante {
   puntaje: number;
   total: number;
   puntajeTRI: number | null;
+  puntajeTRIEscalado: number | null;
   estadoCalif: string;
   tiempoUsado: number;
   completadoEn: string;
@@ -348,6 +349,24 @@ function ModalParticipantes({ sim, onClose }: { sim: SimulacroAdmin; onClose: ()
       .finally(() => setLoading(false));
   }, [sim.id]);
 
+  const calcularPuntajeParticipante = (p: Participante) => {
+    if (p.estadoCalif === "OFICIAL" && p.puntajeTRI != null) {
+      const pct = Math.round(p.puntajeTRI);
+      return {
+        pct,
+        escalado: p.puntajeTRIEscalado ?? Math.round((pct / 100) * 500),
+        esOficial: true,
+      };
+    }
+
+    const pct = p.total > 0 ? Math.round((p.puntaje / p.total) * 100) : 0;
+    return {
+      pct,
+      escalado: p.puntaje,
+      esOficial: false,
+    };
+  };
+
   const filtrados = participantes
     .filter((p) => {
       if (!busqueda.trim()) return true;
@@ -361,7 +380,9 @@ function ModalParticipantes({ sim, onClose }: { sim: SimulacroAdmin; onClose: ()
     })
     .sort((a, b) => {
       if (orden === "puntaje") {
-        return (b.puntajeTRI ?? b.puntaje) - (a.puntajeTRI ?? a.puntaje);
+        const aScore = calcularPuntajeParticipante(a).pct;
+        const bScore = calcularPuntajeParticipante(b).pct;
+        return bScore - aScore;
       }
       if (orden === "nombre") return a.nombre.localeCompare(b.nombre);
       return new Date(b.completadoEn).getTime() - new Date(a.completadoEn).getTime();
@@ -369,10 +390,7 @@ function ModalParticipantes({ sim, onClose }: { sim: SimulacroAdmin; onClose: ()
 
   const total    = participantes.length;
   const promedio = total > 0
-    ? Math.round(participantes.reduce((acc, p) => {
-        const pct = p.total > 0 ? Math.round(((p.puntajeTRI ?? p.puntaje) / p.total) * 100) : 0;
-        return acc + pct;
-      }, 0) / total)
+    ? Math.round(participantes.reduce((acc, p) => acc + calcularPuntajeParticipante(p).pct, 0) / total)
     : 0;
   const oficiales = participantes.filter((p) => p.estadoCalif === "OFICIAL").length;
 
@@ -454,11 +472,9 @@ function ModalParticipantes({ sim, onClose }: { sim: SimulacroAdmin; onClose: ()
           ) : (
             <div className="divide-y divide-white/5">
               {filtrados.map((p, idx) => {
-                const pts        = p.puntajeTRI != null && p.estadoCalif === "OFICIAL" ? Math.round(p.puntajeTRI) : p.puntaje;
-                const pct        = p.total > 0 ? Math.round((pts / p.total) * 100) : 0;
+                const { pct, escalado, esOficial } = calcularPuntajeParticipante(p);
                 const nivel      = getNivel(pct);
                 const NivelIcon  = nivel.icon;
-                const esOficial  = p.estadoCalif === "OFICIAL";
 
                 return (
                   <div key={p.estudianteId}
@@ -514,8 +530,10 @@ function ModalParticipantes({ sim, onClose }: { sim: SimulacroAdmin; onClose: ()
                     {/* Puntaje */}
                     <div className="shrink-0 text-right min-w-[72px]">
                       <p className={cn("text-lg font-extrabold leading-tight", nivel.color)}>
-                        {pts}
-                        <span className="text-xs text-gray-600 font-normal">/{p.total}</span>
+                        {esOficial ? escalado : p.puntaje}
+                        <span className="text-xs text-gray-600 font-normal">
+                          {esOficial ? "/500" : `/${p.total}`}
+                        </span>
                       </p>
                       <p className={cn("flex items-center justify-end gap-0.5 text-[10px] font-semibold", nivel.color)}>
                         <NivelIcon className="h-2.5 w-2.5" />{pct}%
